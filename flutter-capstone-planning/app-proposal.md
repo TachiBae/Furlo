@@ -44,3 +44,7 @@ Pet owners juggle feeding, deworming, and vaccination schedules from memory or s
 
 ## One risk
 Reminder notifications — actually getting the app to notify at the right local time (especially recurring ones like "feed daily at 6pm" or "vaccine due in 3 days") is the part most likely to eat time, since it depends on the platform's notification/scheduling APIs rather than just UI and local storage.
+
+ - Explanation: Reminders need to fire even when the app is closed, which means relying on the phone's OS (Android/iOS) to schedule and trigger them,  not just something we control fully in our own code. Getting that to work reliably (especially recurring reminders like "every day at 6pm") takes extra setup beyond the usual screens and database work, so it's the part most likely to take longer than expected.
+
+
