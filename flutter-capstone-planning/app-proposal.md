@@ -1,7 +1,7 @@
 # App Proposal
 
 ## App name
-Pet Care Tracker *(working title)*
+Furlo: Pet Health & Care Tracker *(working title)*
 
 ## The problem, in one sentence
 Pet owners juggle feeding, vaccination, health, weight, and vet information from memory or scattered notes, making it easy to miss important care tasks or lose track of a pet's records.
