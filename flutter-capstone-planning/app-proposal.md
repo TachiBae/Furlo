@@ -4,47 +4,51 @@
 Pet Care Tracker *(working title)*
 
 ## The problem, in one sentence
-Pet owners juggle feeding, deworming, and vaccination schedules from memory or scattered vet stickers/notebooks, and it's easy to lose track of the exact date a shot is due until the vet calls to remind you — or doesn't.
+Pet owners juggle feeding, vaccination, health, weight, and vet information from memory or scattered notes, making it easy to miss important care tasks or lose track of a pet's records.
 
 ## Who is this for
 - Pet owners managing 1–3 pets at home — for example, an individual tracking their own pet(s), or a small household where multiple people feed/care for the same pet and no one's sure who did it last.
-- Currently: memory, a physical notebook, or vet appointment stickers/calendars — nothing centralized, so schedules live in different people's heads.
+- Currently: memory, a physical notebook, or vet appointment stickers/calendars — nothing centralized, so schedules and records can live in different places or different people's heads.
 
 ## Core features (MVP)
 
 | # | Feature | What the user does | What happens |
 |---|---|---|---|
-| 1 | Pet profiles | User adds a pet with name, species/breed, birthdate, photo | App stores the profile and shows it on a pet list/home screen |
-| 2 | Feeding schedule | User sets feeding times/frequency for a pet and marks each feeding as done | App shows today's feeding status and resets/tracks it daily |
-| 3 | Vaccination reminders | User logs a vaccine with date given and next-due date | App flags upcoming/overdue vaccinations on the home screen |
-| 4 | Health records | User logs a health event (vet visit, medication, symptom) with date and notes | App stores it in a chronological log per pet |
+| 1 | Pet onboarding | User adds a pet and enters basic information such as name, species/breed, birthdate, and photo | App creates the pet profile and adds it to the user's pet list/home screen |
+| 2 | Pet profile and pet list/home | User views their pets and selects an individual pet | App shows each pet's key information and provides access to its care records and features |
+| 3 | Feeding | User sets feeding times/frequency for a pet and marks each feeding as done | App shows today's feeding status and tracks completed feedings |
+| 4 | Vaccinations | User logs a vaccine with the date given and next-due date | App displays vaccination information and identifies upcoming or overdue vaccinations |
+| 5 | Health records | User logs a health event such as a vet visit, medication, or symptom, with a date and notes | App stores the information in a chronological health record for the selected pet |
+| 6 | Vet contacts | User adds and views vet contact information, including name, clinic, and phone number | App keeps the pet's veterinary contact information organized and accessible |
+| 7 | Weight tracking | User records a pet's weight over time | App stores dated weight entries so the user can review changes in the pet's weight |
+| 8 | Profile/account | User views and manages their account/profile information | App provides a dedicated area for account-related information and settings |
 
 ## Stretch goals
-1. Vet contact list (name, clinic, phone, linked per pet)
-2. Weight tracking (log weight over time, simple chart)
-3. Grooming schedule/reminders
-4. Pet food/treat safety guide — browse a reference list of safe and unsafe foods per species (static bundled data, no user input needed, so it's low-risk to add later without touching core screens/features)
+1. Authentication — account creation, login, and forgot-password flows
+2. Notifications — reminders for recurring feeding schedules and upcoming or overdue vaccinations
 
 ## Data the app needs to remember
 - **Pet** — name, species, breed, birthdate, photo
 - **Feeding entry** — pet_id, time/frequency, last fed timestamp, done today (bool)
 - **Vaccination** — pet_id, vaccine name, date given, next due date, status (upcoming/overdue/done)
 - **Health record** — pet_id, date, type (vet visit/medication/symptom), notes
-- *(stretch)* **Vet contact** — pet_id (or owner-level), name, clinic, phone
-- *(stretch)* **Weight log** — pet_id, date, weight value
-- *(stretch)* **Food Reference** — name, species (dog/cat/etc.), safety status (safe/toxic/moderation), notes
+- **Vet contact** — pet_id (or owner-level), name, clinic, phone
+- **Weight log** — pet_id, date, weight value
+- **Profile/account** — account/profile information and settings needed by the app
 
-## Screens you'll need
-1. Pet list (home) — all pets + upcoming reminders at a glance
-2. Pet profile — single pet's details
-3. Add/Edit pet
-4. Feeding schedule (per pet)
-5. Vaccination log (per pet, add/view)
-6. Health records log (per pet)
+## Screens I will need
+1. Pet onboarding — introduce the user to the pet setup process and collect the pet's basic information
+2. Pet list/home — all pets and key care information at a glance
+3. Pet profile — single pet's details and access to its care features
+4. Feeding — feeding schedule and daily feeding status per pet
+5. Vaccination log — view and add vaccination records
+6. Health records — view and add health records per pet
+7. Vet contacts — view and add veterinary contact information
+8. Weight tracking — view and add weight entries over time
+9. Profile/account — account and profile-related information/settings
+10. Authentication *(stretch)* — login, create account, and forgot-password screens
+11. Notifications *(stretch)* — reminder settings/status for feeding and vaccination reminders
+
 
 ## One risk
-Reminder notifications — actually getting the app to notify at the right local time (especially recurring ones like "feed daily at 6pm" or "vaccine due in 3 days") is the part most likely to eat time, since it depends on the platform's notification/scheduling APIs rather than just UI and local storage.
-
- - Explanation: Reminders need to fire even when the app is closed, which means relying on the phone's OS (Android/iOS) to schedule and trigger them,  not just something we control fully in our own code. Getting that to work reliably (especially recurring reminders like "every day at 6pm") takes extra setup beyond the usual screens and database work, so it's the part most likely to take longer than expected.
-
-
+Notifications are the main stretch-goal implementation risk. Reminders need to fire even when the app is closed, which means relying on the phone's operating system notification and scheduling APIs. Recurring reminders such as daily feeding times and future vaccination dates may require additional platform-specific setup beyond the core screens and local data storage.
