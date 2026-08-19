@@ -22,10 +22,10 @@ Pet owners juggle feeding, vaccination, health, weight, and vet information from
 | 6 | Vet contacts | User adds and views vet contact information, including name, clinic, and phone number | App keeps the pet's veterinary contact information organized and accessible |
 | 7 | Weight tracking | User records a pet's weight over time | App stores dated weight entries so the user can review changes in the pet's weight |
 | 8 | Profile/account | User views and manages their account/profile information | App provides a dedicated area for account-related information and settings |
+| 9 | Notifications | User enables/disables reminder types (feeding, vaccinations, vet appointments, medications) | App delivers reminders for daily feedings, missed meals, upcoming/overdue vaccinations, vet appointments, and medications |
 
 ## Stretch goals
 1. Authentication — account creation, login, and forgot-password flows
-2. Notifications — reminders for recurring feeding schedules and upcoming or overdue vaccinations
 
 ## Data the app needs to remember
 - **Pet** — name, species, breed, birthdate, photo
@@ -35,6 +35,7 @@ Pet owners juggle feeding, vaccination, health, weight, and vet information from
 - **Vet contact** — pet_id (or owner-level), name, clinic, phone
 - **Weight log** — pet_id, date, weight value
 - **Profile/account** — account/profile information and settings needed by the app
+- **Notification settings** — per-type toggle state (daily feeding, missed meal, upcoming vaccine, overdue vaccine, vet appointment, medication)
 
 ## Screens I will need
 1. Pet onboarding — introduce the user to the pet setup process and collect the pet's basic information
@@ -46,9 +47,9 @@ Pet owners juggle feeding, vaccination, health, weight, and vet information from
 7. Vet contacts — view and add veterinary contact information
 8. Weight tracking — view and add weight entries over time
 9. Profile/account — account and profile-related information/settings
-10. Authentication *(stretch)* — login, create account, and forgot-password screens
-11. Notifications *(stretch)* — reminder settings/status for feeding and vaccination reminders
+10. Notifications — reminder settings for feeding, vaccination, vet appointment, and medication alerts
+11. Authentication *(stretch)* — login, create account, and forgot-password screens
 
 
 ## One risk
-Notifications are the main stretch-goal implementation risk. Reminders need to fire even when the app is closed, which means relying on the phone's operating system notification and scheduling APIs. Recurring reminders such as daily feeding times and future vaccination dates may require additional platform-specific setup beyond the core screens and local data storage.
+Notifications are the main MVP implementation risk. Reminders need to fire even when the app is closed, which means relying on the phone's operating system notification and scheduling APIs. Recurring reminders such as daily feeding times, future vaccination dates, vet appointments, and medication schedules may require additional platform-specific setup beyond the core screens and local data storage.
