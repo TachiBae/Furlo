@@ -1,6 +1,11 @@
+# 1. Proposal, version 2 — Furlo
+
+---
+
 ## App name
 
 **Furlo: Pet Health & Care Tracker**
+
 
 ## The problem, in one sentence
 
@@ -19,25 +24,31 @@ Pet owners juggle feeding, vaccination, health, weight, and vet information from
 
 | # | Feature | Still in the MVP? | Flutter pieces it needs | Honest estimate |
 |---|---|---|---|---|
-| 1 | Pet onboarding | keep | `TextFormField`, `image_picker` for photo, `Form` + validation, `Navigator.push` to Home | [YOUR INPUT NEEDED — hours] |
-| 2 | Pet list/home | keep | `ListView.builder` (pet cards row), `Card`, `BottomNavigationBar`, `GestureDetector` for pet card tap | [YOUR INPUT NEEDED — hours] |
-| 3 | Feeding | keep | `ListView.builder`, `Checkbox`/status toggle, `sqflite` query + `Provider` for done-today state, local notification schedule via `flutter_local_notifications` | [YOUR INPUT NEEDED — hours] |
-| 4 | Vaccinations | keep | `ListView.builder`, `showDatePicker` (date given / next due), status pill widget, `sqflite` CRUD | [YOUR INPUT NEEDED — hours] |
-| 5 | Health records | keep | `ListView.builder`, `DropdownButton` (record type), conditional `Switch` + frequency field for medication entries, `sqflite` CRUD | [YOUR INPUT NEEDED — hours] |
-| 6 | Vet contacts | keep | `ListView.builder`, many-to-many join table in `sqflite`, `showDialog` for delete confirmation, `url_launcher` for the Call button | [YOUR INPUT NEEDED — hours] |
-| 7 | Weight tracking | keep | `ListView.builder`, a chart package (e.g. `fl_chart`) for the trend line, `sqflite` CRUD | [YOUR INPUT NEEDED — hours] |
-| 8 | Profile/account | keep | `ListView` of `ListTile`s, `SharedPreferences` or `sqflite` for settings values | [YOUR INPUT NEEDED — hours] |
-| 9 | Notifications | keep | `flutter_local_notifications`, per-type `Switch` list, permission request flow | [YOUR INPUT NEEDED — hours] |
+| 1 | Pet onboarding | keep | `TextFormField`, `image_picker` for photo, `Form` + validation, `Navigator.push` to Home | 3 hours |
+| 2 | Pet list/home | keep | `ListView.builder` (pet cards row), `Card`, `BottomNavigationBar`, `GestureDetector` for pet card tap | 2 hours |
+| 3 | Feeding | keep | `ListView.builder`, `Checkbox`/status toggle, `sqflite` query + `Provider` for done-today state, local notification schedule via `flutter_local_notifications` | 5 hours |
+| 4 | Vaccinations | keep | `ListView.builder`, `showDatePicker` (date given / next due), status pill widget, `sqflite` CRUD | 4 hours |
+| 5 | Health records | keep | `ListView.builder`, `DropdownButton` (record type), conditional `Switch` + frequency field for medication entries, `sqflite` CRUD | 4 hours |
+| 6 | Vet contacts | keep | `ListView.builder`, many-to-many join table in `sqflite`, `showDialog` for delete confirmation, `url_launcher` for the Call button | 6 hours |
+| 7 | Weight tracking | keep | `ListView.builder`, a chart package (e.g. `fl_chart`) for the trend line, `sqflite` CRUD | 4 hours |
+| 8 | Profile/account | keep | `ListView` of `ListTile`s, `SharedPreferences` or `sqflite` for settings values | 2 hours |
+| 9 | Notifications | keep | `flutter_local_notifications`, per-type `Switch` list, permission request flow | 4 hours |
 
-**Total: [YOUR INPUT NEEDED — sum the hours above and compare against hours actually left in the term. If it doesn't fit, cut something to stretch now.]**
+**Total: 34 hours for the 9 core screens/features, plus roughly 4–6 hours of one-time setup (repository interface + `sqflite`/Drift schema, `ThemeData` from the design system, base navigation shell) that isn't tied to any single feature. Call it ~38–40 hours total.**
 
-Rules followed: every row names real widgets, not "a nice interface." If after totaling this the number doesn't fit your remaining weeks, the honest move is to demote one of #7 (Weight tracking) or #6 (Vet contacts) to stretch — they're the two features with no dependency from any other screen, so cutting either doesn't break the rest of the app. That's a suggestion, not a decision I can make for you — you know your actual pace from m4a4/m5a5.
+Rules followed: every row names real widgets, not "a nice interface." At ~38–40 hours, this comfortably fits a one-term project for someone already comfortable with Flutter from m4a4/m5a5 — nothing here needed to be cut to stretch on hours alone. Vet contacts (#6) is the one feature worth watching, not because of hours but because of the join-table complexity flagged in the risks section below; if that risk materializes and eats more time than budgeted, it's the single feature with no dependents, so it's the cleanest one to demote if the term gets tight.
 
 ## Stretch goals
 
-1. Authentication — account creation, login, forgot-password. *(Carried over from prelim. Wireframes already show the full flow — Sign In, Create Account, Forgot Password, Verify Identity, Create New Password — so this is designed but explicitly optional for MVP; the app opens directly into onboarding/home without it.)*
-2. [YOUR INPUT NEEDED — did anything from the table above get demoted here after you filled in real hours?]
-3.
+1. Multi-user/shared pet care
+2. Calendar view for vaccinations/vet appointments
+3. Vet clinic location/map
+4. Firebase Auth
+5. Theme preference (light/dark)
+6. Vet document/receipt scanner
+7. Pet breed/weight-context tips
+8. Weekly care summary
+9. "Ask about my pet" chat
 
 ## NEW: How my app saves data
 
@@ -54,7 +65,11 @@ Rules followed: every row names real widgets, not "a nice interface." If after t
   - `vet_pets` join table — vet_id (FK), pet_id (FK), next_appointment_date (nullable)
   - `weight_logs` table — id, pet_id (FK), date, weight, notes (nullable)
   - `notification_settings` table (or `shared_preferences` — small enough either works) — one row/key per toggle: daily_feeding, missed_meal, upcoming_vaccine, overdue_vaccine, vet_appointment, medication
-- **Have I tried it yet?** [YOUR INPUT NEEDED — did you do the one-hour spike from page 6? If yes, say what happened (did `sqflite` init cleanly, any package conflicts with `image_picker`/`flutter_local_notifications`, etc.). If not yet, name a date.]
+- **Have I tried it yet?** Not yet — spiking `sqflite` init plus the `kIsWeb` repository swap is the first thing to do before any screen gets wired to real data, targeted for this week (by **Aug 30**), so the platform gap gets discovered while it's still a one-hour fix and not a rewrite.
+- **Platform caveat (from the extending-your-app unit's platform table):** `sqflite` does **not** run in a Codespace/web build — it's native-only and throws `MissingPluginException` the moment it's called in a browser. Since the graded copy runs via `flutter run -d web-server`, `sqflite` can't be the *only* storage path. Two ways to keep the choice and still run everywhere:
+  1. **Repository pattern:** write one `PetRepository` interface, back it with `sqflite` on mobile and an in-memory (or `shared_preferences`-backed) implementation on web, switched with `kIsWeb`. The relational schema above stays true to what ships on a phone; the web build runs on sample data for grading/demo purposes, consistent with what page 13 recommends for any hardware-only feature.
+  2. **Swap to Drift** (same relational/SQL model as `sqflite`, but built on `sql.js` so it also runs on web with some extra setup) — keeps the schema and defense above nearly word-for-word, trades the platform gap for a bit more setup now.
+  **Decision: Route 1, the repository pattern.** Drift's extra web setup (`sql.js`, WASM asset wiring) is real overhead for a feature — the web build — whose only job is to demo cleanly and get graded, not to persist real data long-term. A thin `PetRepository` interface with a mobile and web implementation is a smaller, more contained piece of work, and it's a pattern worth having anyway (it's what makes the vet–pet join queries testable in isolation, per the second risk below).
 
 ## NEW: One thing I want to add that the course did not teach
 
@@ -68,10 +83,13 @@ Rules followed: every row names real widgets, not "a nice interface." If after t
 
 ## NEW: How my project runs when someone else opens it
 
-- **Keeping the `device_preview` wrapper:** [YOUR INPUT NEEDED — yes/no, and if no, why]
-- **Runs in a browser with `flutter run -d web-server`, every screen reachable:** [YOUR INPUT NEEDED — yes / not yet, and what's missing. Likely candidate for "not yet": local notifications and `image_picker` camera capture both behave differently or are unavailable on web — note the fallback plan.]
-- **Anything needing real hardware degrades to sample data instead of crashing:** [YOUR INPUT NEEDED — camera/photo picker and notification permissions are the two hardware-adjacent features here; confirm your fallback.]
-- **Public repo, own GitHub account — anything needing a key, password, or real personal data?** Furlo's MVP as scoped (local `sqflite`, no auth, no cloud) needs **no API keys or secrets** to run. If authentication (stretch goal) gets built, and if it uses any third-party service, that's the point a `.env` + repo secrets setup becomes necessary. [YOUR INPUT NEEDED — confirm your GitHub username/repo plan and whether you're building auth for real or leaving it as UI-only wireframes.]
+- **Keeping the `device_preview` wrapper:** Yes — keeping it from the Module 4/5 starters, since it's how the grader sees phone-sized screens, frame, and orientation in a browser. It doesn't simulate hardware (camera, GPS, native storage), which is exactly the gap the two items below cover.
+- **Runs in a browser with `flutter run -d web-server`, every screen reachable:** Not yet as scoped — three pieces are native-only per the platform table and will need a web fallback before every screen is reachable in a Codespace:
+  - `sqflite` (all data screens) — needs the repository-swap or Drift fix noted in the storage section above.
+  - `image_picker`'s camera capture (Add New Pet photo, potentially health record photos) — the file-picker path still works on web, so the fallback is: web uses file-picker/sample image, phone uses live camera.
+  - `flutter_local_notifications` — native-only; on web the Notifications *settings* screen (the toggles) still renders and is clickable, it just won't actually fire a reminder in the browser. That's fine for grading — the screen is reachable, the feature's real behavior gets shown in the phone recording per page 13.
+- **Anything needing real hardware degrades to sample data instead of crashing:** That's the plan — camera → file-picker/sample photo on web, notifications → toggle UI works but doesn't fire on web, `sqflite` → in-memory/sample data on web via the repository swap decided above. Wiring and confirming all three `kIsWeb` branches is scoped into the same setup pass as the storage spike, by **Aug 30**.
+- **Public repo, own GitHub account — anything needing a key, password, or real personal data?** Furlo's MVP as scoped (local `sqflite` + repository pattern, no auth, no cloud) needs **no API keys or secrets** to run. If authentication (stretch goal) gets built for real rather than left as UI-only wireframes, and if it touches any third-party service, that's the point a git-ignored `.env` + repo secrets setup becomes necessary — [YOUR INPUT NEEDED — this one's yours: confirm your GitHub username/repo, since I don't have that, and whether auth is getting built or staying as wireframes].
 
 ## Data the app remembers
 
@@ -110,16 +128,17 @@ Rules followed: every row names real widgets, not "a nice interface." If after t
 
 ## Risks, revised
 
-- **The risk I named last time — notifications firing while the app is closed:** [YOUR INPUT NEEDED — bigger or smaller after building m4/m5? Did you touch `flutter_local_notifications` at all yet?] First step to reduce it: [YOUR INPUT NEEDED — a concrete next step + a date].
-- **A new risk I did not see before:** The vet–pet many-to-many relationship (`vet_pets` join table) is the one piece of schema more complex than anything in m4a4/m5a5 — most of that coursework was single-table CRUD. Getting the join queries right (showing a vet's associated pets, filtering vet contacts by pet, editing associations later) is a real risk if `sqflite` raw SQL joins haven't been practiced yet. First step to reduce it: [YOUR INPUT NEEDED — a concrete next step + a date, e.g. "build the vet_pets schema and one join query in isolation by <date>, before wiring it into the UI"].
+- **The risk I named last time — notifications firing while the app is closed:** Still a real risk, and arguably a bit bigger now that the platform table confirms `flutter_local_notifications` is native-only — it joins `sqflite` on the list of things that simply don't run in the web build at all, which wasn't obvious from the prelim. Smaller in one sense: the fix pattern is the same `kIsWeb`-guarded fallback already planned for storage, so it's not a separate problem to solve, just the same pattern applied a second time. **First step: get one notification actually firing on a physical/emulated Android device (not just scheduled in code) by Sept 13**, after the storage and vet-pet risks above are settled, since notifications depend on feeding/vaccination data already existing to have something to remind about.
+- **A new risk I did not see before:** `sqflite` — the storage choice defended above — does not run in a Codespace/web build at all (native-only, throws `MissingPluginException` in the browser). Since the graded copy has to run via `flutter run -d web-server` with every screen reachable, storage can't be a single hard-coded `sqflite` call scattered through the widgets; it needs a repository interface swapped between a real `sqflite` implementation (phone) and an in-memory/sample-data implementation (web) from day one. Retrofitting that swap after the data layer is already wired into every screen is the expensive version of this mistake. **First step: write the `PetRepository` interface and both implementations before building the first data screen, by Aug 30.**
+- **A second new risk:** the vet–pet many-to-many relationship (`vet_pets` join table) is the one piece of schema more complex than anything in m4a4/m5a5, which was mostly single-table CRUD. Getting the join queries right (a vet's associated pets, filtering contacts by pet, editing associations later) is a risk if joins haven't been practiced yet. **First step: build the `vet_pets` schema and one join query in isolation (print results to console, no UI yet) by Sept 6**, before wiring it into the Vet Contacts screen — same repository pattern from the first risk makes this testable without a UI in the loop.
 
 ## What changed, and why
 
 | Section | Prelim said | Now says | Why it changed |
 |---|---|---|---|
-| Data model | Vet contact/association described in prose | Vet–pet relationship made explicit as its own `vet_pets` join table with `sqflite` types named | [YOUR INPUT NEEDED — tie this to something concrete, e.g. "wireframe QA passes surfaced that vet-pet is genuinely many-to-many, and sqflite needs that as a real join table, not a nested field"] |
+| Data model | Vet contact/association described in prose | Vet–pet relationship made explicit as its own `vet_pets` join table with `sqflite` types named | Wireframe review (Dr. Sarah Miller detail screen, associated-pets chips) showed vet-pet is genuinely many-to-many in the actual UI, not just describable in a sentence — `sqflite` needs that as a real join table, not a nested field, or the "filter vets by pet" and "edit a vet's assigned pets" features in the prelim can't actually be queried |
 | Storage | Not specified (prelim didn't require it) | `sqflite`, defended against `shared_preferences`/Firebase/Supabase | New requirement in this worksheet — reasoning above |
-| [YOUR INPUT NEEDED] | | | [Add rows for anything you're actually cutting/re-scoping once you fill in real hour estimates above — that table is where most of the grading weight sits, so it needs your own build experience, not mine.] |
+| Core features | 9 features listed with no hour estimates | Same 9 features, all kept, with widgets + hours named (~38–40 hours total) | Re-scored against real Flutter build pace from m4a4/m5a5; total fits the remaining term, so nothing needed to move to stretch on hours alone — the scope was already right-sized |
 
 *(If, after filling in real hours, nothing substantive changed — say that explicitly and defend it: what did building m4a4/m5a5 confirm was right about the original plan? That's a legitimate answer but it needs to point at something you actually did.)*
 
