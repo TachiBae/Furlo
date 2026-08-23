@@ -2,8 +2,6 @@
 
 **Furlo: Pet Health & Care Tracker**
 
-(Unchanged from prelim — "Furlo" was settled on during wireframe iteration as the working title and it stuck; no reason to change it now.)
-
 ## The problem, in one sentence
 
 Pet owners juggle feeding, vaccination, health, weight, and vet information from memory or scattered notes, making it easy to miss important care tasks or lose track of a pet's records.
