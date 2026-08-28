@@ -73,13 +73,14 @@ Rules followed: every row names real widgets, not "a nice interface." At ~38–4
 
 ## NEW: One thing I want to add that the course did not teach
 
-[YOUR INPUT NEEDED — pick one and answer honestly:]
-- **Package:**
-- **Runs where you develop? (check platform table):**
-- **If it doesn't run on web:** how the app still opens and clicks through in a browser without it, and how you'll demo the real thing (sample data + phone recording).
-- **Core feature or stretch goal?**
+Four candidates came out of reviewing the wireframes against the extending-your-app unit — export, a vet document/receipt scanner, a vet clinic map, and a Gemini-powered "ask about my pet" chat. Export is the one I'm committing to for this section, because it's the only one of the four that runs identically on phone and web with no platform gap to fall back from — the other three all needed a `kIsWeb` workaround, and I've already got two of those (storage, notifications) to build. Documenting a feature that *doesn't* need one felt like the more honest use of this section than adding a third compromise.
 
-*(A natural candidate given your interests: the app already needs local notifications for reminders — `flutter_local_notifications` doesn't run in a browser, so this section could just document that gap, since it's already core, not "new." If you want something genuinely new, a candidate that fits the app's theme: a simple photo attachment on health records via `image_picker`, or `fl_chart` for the weight trend line already shown in the wireframe. Your call — write what you actually plan to try.)*
+- **Package:** `pdf` for generating the export file, paired with `share_plus` to hand it off (share sheet on phone, download on web) rather than writing to a device-specific path.
+- **Runs where you develop?** Yes — both packages are pure Dart with no native plugin dependency, so this is the one feature in the whole app that needs no `kIsWeb` branch at all. It runs the same way in the Codespace web build as it will on a phone.
+- **If it does not run on web:** N/A — it does.
+- **Core feature or stretch goal?** Stretch. The app is fully usable without it, and it has no dependents — nothing else in the MVP needs export to exist first.
+
+The other three stay on the stretch list for now, each with a real anchor already drawn in the wireframes rather than being speculative: the receipt scanner extends the existing Health Records "Add Record" flow via `image_picker` (already in the MVP for pet photos, so the web fallback pattern is identical — file-picker instead of camera); the vet map would attach to the address field already shown on the Vet Details screen, most simply via `url_launcher` opening the phone's native maps app rather than embedding `google_maps_flutter`, to avoid a second API key; and the chat feature is the most open-ended of the four — nothing in the current wireframes represents it yet, so it would need new screens before it needs a package decision.
 
 ## NEW: How my project runs when someone else opens it
 
