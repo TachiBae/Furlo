@@ -5,6 +5,12 @@ class VetContactsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Vet contacts screen')));
+    return Scaffold(
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Vet Contacts'),
+      ),
+      body: const Center(child: Text('Vet contacts screen')),
+    );
   }
 }

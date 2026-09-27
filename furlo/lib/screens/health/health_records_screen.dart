@@ -5,6 +5,12 @@ class HealthRecordsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Health records screen')));
+    return Scaffold(
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Health Records'),
+      ),
+      body: const Center(child: Text('Health records screen')),
+    );
   }
 }

@@ -5,8 +5,12 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Profile / settings screen')),
+    return Scaffold(
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Profile & Settings'),
+      ),
+      body: const Center(child: Text('Profile / settings screen')),
     );
   }
 }

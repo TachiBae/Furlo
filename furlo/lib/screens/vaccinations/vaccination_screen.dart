@@ -5,6 +5,12 @@ class VaccinationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Vaccinations screen')));
+    return Scaffold(
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Vaccinations'),
+      ),
+      body: const Center(child: Text('Vaccinations screen')),
+    );
   }
 }

@@ -5,6 +5,12 @@ class FeedingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Feeding schedule screen')));
+    return Scaffold(
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Feeding Schedule'),
+      ),
+      body: const Center(child: Text('Feeding schedule screen')),
+    );
   }
 }

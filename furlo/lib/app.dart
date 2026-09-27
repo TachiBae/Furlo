@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/pets/pet_onboarding_screen.dart';
+import 'repositories/pet_repository.dart';
 import 'utils/app_theme.dart';
 
 class FurloApp extends StatelessWidget {
@@ -12,7 +13,7 @@ class FurloApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Furlo',
       theme: AppTheme.dark,
-      home: const OnboardingScreen(),
+      home: OnboardingScreen(repository: createPetRepository()),
     );
   }
 }
