@@ -1,4 +1,4 @@
-# Weekly Increment Report (template)
+# Weekly Increment Report
 
 ## Week of: 2026-09-27
 
