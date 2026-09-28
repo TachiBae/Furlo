@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../data/pet_breeds.dart';
 import '../../models/pet.dart';
 import '../../repositories/pet_repository.dart';
 import '../../utils/app_theme.dart';
@@ -83,18 +84,52 @@ class AddPetScreen extends StatefulWidget {
 class _AddPetScreenState extends State<AddPetScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _breedController = TextEditingController();
   final _picker = ImagePicker();
   String? _species;
+  String? _breed;
   DateTime? _birthDate;
   String? _photoPath;
   Uint8List? _photoBytes;
   bool _saving = false;
 
+  Future<void> _selectBreed() async {
+    final species = _species;
+    if (species == null) return;
+    final breeds = species == 'Dog' ? PetBreeds.dogs : PetBreeds.cats;
+    final selected = await _showSelectionSheet(
+      title: 'Select breed',
+      searchHint: 'Search breeds',
+      emptyMessage: 'No breeds found',
+      options: breeds,
+    );
+    if (mounted && _species == species && selected != null) {
+      setState(() => _breed = selected);
+    }
+  }
+
+  Future<String?> _showSelectionSheet({
+    required String title,
+    required String searchHint,
+    required String emptyMessage,
+    required List<String> options,
+  }) => showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) => _SearchableSelectionSheet(
+      title: title,
+      searchHint: searchHint,
+      emptyMessage: emptyMessage,
+      options: options,
+    ),
+  );
+
   @override
   void dispose() {
     _nameController.dispose();
-    _breedController.dispose();
     super.dispose();
   }
 
@@ -138,13 +173,12 @@ class _AddPetScreenState extends State<AddPetScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
+      final petName = _capitalizeFirst(_nameController.text.trim());
       await widget.repository.addPet(
         Pet(
-          name: _nameController.text.trim(),
+          name: petName,
           species: _species!,
-          breed: _breedController.text.trim().isEmpty
-              ? null
-              : _breedController.text.trim(),
+          breed: _breed,
           birthDate: _birthDate,
           photoPath: _photoPath,
         ),
@@ -226,29 +260,52 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   DropdownButtonFormField<String>(
                     initialValue: _species,
+                    style: AppTypography.body,
                     decoration: const InputDecoration(
                       hintText: 'Select species',
                     ),
-                    items: const ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other']
+                    items: const ['Dog', 'Cat']
                         .map(
                           (species) => DropdownMenuItem(
                             value: species,
-                            child: Text(species),
+                            child: Text(
+                              species,
+                              style: const TextStyle(fontSize: 12),
+                            ),
                           ),
                         )
                         .toList(),
-                    onChanged: (value) => setState(() => _species = value),
+                    onChanged: (value) => setState(() {
+                      _species = value;
+                      _breed = null;
+                    }),
                     validator: (value) =>
                         value == null ? 'Choose a species' : null,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text('Breed (optional)', style: AppTypography.label),
                   const SizedBox(height: AppSpacing.sm),
-                  TextFormField(
-                    controller: _breedController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. Shiba Inu',
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _species == null ? null : _selectBreed,
+                      borderRadius: AppRadius.mdRadius,
+                      child: InputDecorator(
+                        isEmpty: _breed == null,
+                        decoration: InputDecoration(
+                          hintText: 'Select breed',
+                          enabled: _species != null,
+                          suffixIcon: const Icon(Icons.arrow_drop_down),
+                        ),
+                        child: Text(
+                          _breed ?? '',
+                          style: TextStyle(
+                            color: _species == null
+                                ? AppColors.textDisabled
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -277,6 +334,91 @@ class _AddPetScreenState extends State<AddPetScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _capitalizeFirst(String value) {
+  if (value.isEmpty) return value;
+  final runes = value.runes;
+  return '${String.fromCharCode(runes.first).toUpperCase()}${String.fromCharCodes(runes.skip(1))}';
+}
+
+class _SearchableSelectionSheet extends StatefulWidget {
+  const _SearchableSelectionSheet({
+    required this.title,
+    required this.searchHint,
+    required this.emptyMessage,
+    required this.options,
+  });
+
+  final String title;
+  final String searchHint;
+  final String emptyMessage;
+  final List<String> options;
+
+  @override
+  State<_SearchableSelectionSheet> createState() =>
+      _SearchableSelectionSheetState();
+}
+
+class _SearchableSelectionSheetState extends State<_SearchableSelectionSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final results = widget.options
+        .where((breed) => breed.toLowerCase().contains(query))
+        .toList();
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
+        ),
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.72,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.title, style: AppTypography.h2),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                autofocus: true,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: widget.searchHint,
+                  prefixIcon: Icon(Icons.search),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Expanded(
+                child: results.isEmpty
+                    ? Center(
+                        child: Text(
+                          widget.emptyMessage,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: results.length,
+                        itemBuilder: (context, index) => ListTile(
+                          title: Text(results[index]),
+                          onTap: () =>
+                              Navigator.of(context).pop(results[index]),
+                        ),
+                      ),
+              ),
+            ],
           ),
         ),
       ),
