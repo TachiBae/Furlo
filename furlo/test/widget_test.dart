@@ -12,9 +12,6 @@ void main() {
   testWidgets('Furlo app shell loads', (WidgetTester tester) async {
     await tester.pumpWidget(const FurloApp());
 
-    expect(
-      find.text('Furlo app shell ready for feature screens'),
-      findsOneWidget,
-    );
+    expect(find.text("Track Your Pet's Care"), findsOneWidget);
   });
 }

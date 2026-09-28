@@ -25,6 +25,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Pet>> _pets;
+  int? _selectedPetId;
+  int _activeTab = 0;
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ).push(MaterialPageRoute<void>(builder: (_) => screen));
 
   void _selectTab(int index) {
+    setState(() => _activeTab = index == 2 ? 0 : index);
     switch (index) {
       case 0:
         break;
@@ -56,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _addPet();
         break;
       case 3:
-        setState(() {});
         break;
       case 4:
         _open(const ProfileScreen());
@@ -76,6 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
               future: _pets,
               builder: (context, snapshot) {
                 final pets = snapshot.data ?? const <Pet>[];
+                final selectedPet =
+                    pets.where((pet) => pet.id == _selectedPetId).firstOrNull ??
+                    pets.firstOrNull;
                 return CustomScrollView(
                   slivers: [
                     SliverPadding(
@@ -116,12 +121,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: pets.length + 1,
-                              separatorBuilder: (context, index) =>
+                                separatorBuilder: (context, index) =>
                                     const SizedBox(width: AppSpacing.sm),
                                 itemBuilder: (context, index) =>
                                     index == pets.length
                                     ? _AddPetTile(onTap: _addPet)
-                                    : _PetTile(pet: pets[index]),
+                                    : _PetTile(
+                                        pet: pets[index],
+                                        selected:
+                                            pets[index].id == selectedPet?.id,
+                                        onTap: () => setState(
+                                          () => _selectedPetId = pets[index].id,
+                                        ),
+                                      ),
                               ),
                             ),
                           const SizedBox(height: AppSpacing.lg),
@@ -131,7 +143,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: AppSpacing.lg),
                           const _SectionHeading(title: 'Quick Actions'),
                           const SizedBox(height: AppSpacing.sm),
-                          _QuickActions(onOpen: _open),
+                          _QuickActions(
+                            onOpen: _open,
+                            repository: widget.repository,
+                            pets: pets,
+                            selectedPet: selectedPet,
+                          ),
                           const SizedBox(height: AppSpacing.xl),
                         ],
                       ),
@@ -143,35 +160,216 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        onDestinationSelected: _selectTab,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: _HomeBottomBar(
+        activeTab: _activeTab,
+        onTap: _selectTab,
+        onAddPet: _addPet,
+      ),
+    );
+  }
+}
+
+class _HomeBottomBar extends StatelessWidget {
+  const _HomeBottomBar({
+    required this.activeTab,
+    required this.onTap,
+    required this.onAddPet,
+  });
+
+  final int activeTab;
+  final ValueChanged<int> onTap;
+  final VoidCallback onAddPet;
+
+  @override
+  Widget build(BuildContext context) => BottomAppBar(
+    color: AppColors.surface,
+    elevation: 8,
+    padding: EdgeInsets.zero,
+    child: SafeArea(
+      top: false,
+      child: Container(
+        height: 68,
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppColors.textDisabled, width: 0.35),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_none),
-            selectedIcon: Icon(Icons.notifications),
-            label: 'Alerts',
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _NavItem(
+                label: 'Home',
+                icon: Icons.home_outlined,
+                selectedIcon: Icons.home,
+                selected: activeTab == 0,
+                onTap: () => onTap(0),
+              ),
+            ),
+            Expanded(
+              child: _NavItem(
+                label: 'Alerts',
+                icon: Icons.notifications_none,
+                selectedIcon: Icons.notifications,
+                selected: activeTab == 1,
+                showBadge: true,
+                onTap: () => onTap(1),
+              ),
+            ),
+            Expanded(child: _AddPetNavItem(onTap: onAddPet)),
+            Expanded(
+              child: _NavItem(
+                label: 'My Pets',
+                icon: Icons.pets_outlined,
+                selectedIcon: Icons.pets,
+                selected: activeTab == 3,
+                onTap: () => onTap(3),
+              ),
+            ),
+            Expanded(
+              child: _NavItem(
+                label: 'Settings',
+                icon: Icons.settings_outlined,
+                selectedIcon: Icons.settings,
+                selected: activeTab == 4,
+                onTap: () => onTap(4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _AddPetNavItem extends StatelessWidget {
+  const _AddPetNavItem({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Add Pet',
+    child: Tooltip(
+      message: 'Add Pet',
+      child: Center(
+        child: Material(
+          color: AppColors.primary,
+          shape: const CircleBorder(),
+          elevation: 4,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: const SizedBox(
+              width: 48,
+              height: 48,
+              child: Icon(Icons.add, size: 27, color: AppColors.textOnPrimary),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Add Pet',
+        ),
+      ),
+    ),
+  );
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.selected,
+    required this.onTap,
+    this.showBadge = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final bool showBadge;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = selected
+        ? AppColors.textPrimary
+        : AppColors.textSecondary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: showBadge ? '$label, unread reminders' : label,
+      child: Tooltip(
+        message: label,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 32,
+          containedInkWell: true,
+          child: SizedBox(
+            height: 64,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  width: 48,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primary.withValues(alpha: 0.22)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedScale(
+                        duration: const Duration(milliseconds: 200),
+                        scale: selected ? 1.08 : 1,
+                        child: Icon(
+                          selected ? selectedIcon : icon,
+                          size: 27,
+                          color: iconColor,
+                        ),
+                      ),
+                      if (showBadge)
+                        Positioned(
+                          top: 1,
+                          right: 5,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: AppColors.danger,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.surface,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: selected
+                      ? Text(
+                          label,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textPrimary,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                        )
+                      : const SizedBox(height: 0),
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.pets_outlined),
-            selectedIcon: Icon(Icons.pets),
-            label: 'My Pets',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -257,8 +455,14 @@ class _SectionHeading extends StatelessWidget {
 }
 
 class _PetTile extends StatelessWidget {
-  const _PetTile({required this.pet});
+  const _PetTile({
+    required this.pet,
+    required this.selected,
+    required this.onTap,
+  });
   final Pet pet;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -266,42 +470,54 @@ class _PetTile extends StatelessWidget {
     final image = data != null && data.startsWith('data:')
         ? MemoryImage(base64Decode(data.substring(data.indexOf(',') + 1)))
         : null;
-    return Container(
-      width: 145,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadius.lgRadius,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: AppRadius.lgRadius,
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: AppColors.primaryMuted,
-            backgroundImage: image,
-            child: image == null
-                ? const Icon(Icons.pets, color: AppColors.textPrimary)
-                : null,
+        child: Container(
+          width: 145,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.lgRadius,
+            border: Border.all(
+              color: selected
+                  ? AppColors.accent
+                  : AppColors.primary.withValues(alpha: 0.5),
+              width: selected ? 2 : 1,
+            ),
           ),
-          const Spacer(),
-          Text(
-            pet.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.bodyStrong,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: AppColors.primaryMuted,
+                backgroundImage: image,
+                child: image == null
+                    ? const Icon(Icons.pets, color: AppColors.textPrimary)
+                    : null,
+              ),
+              const Spacer(),
+              Text(
+                pet.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodyStrong,
+              ),
+              Text(
+                [
+                  pet.species,
+                  if (pet.breed?.isNotEmpty == true) pet.breed!,
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.caption,
+              ),
+            ],
           ),
-          Text(
-            [
-              pet.species,
-              if (pet.breed?.isNotEmpty == true) pet.breed!,
-            ].join(' · '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.caption,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -398,13 +614,29 @@ class _ReminderEmptyCard extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onOpen});
+  const _QuickActions({
+    required this.onOpen,
+    required this.repository,
+    required this.pets,
+    required this.selectedPet,
+  });
   final ValueChanged<Widget> onOpen;
+  final PetRepository repository;
+  final List<Pet> pets;
+  final Pet? selectedPet;
 
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _ActionData('Feeding', Icons.restaurant_outlined, const FeedingScreen()),
+      _ActionData(
+        'Feeding',
+        Icons.restaurant_outlined,
+        FeedingScreen(
+          repository: repository,
+          pets: pets,
+          selectedPet: selectedPet,
+        ),
+      ),
       _ActionData(
         'Vaccines',
         Icons.vaccines_outlined,
