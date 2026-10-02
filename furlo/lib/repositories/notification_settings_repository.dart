@@ -25,6 +25,7 @@ abstract interface class NotificationSettingsRepository {
   Future<void> setEnabled(String type, bool enabled);
   Future<bool> permissionWasRequested();
   Future<void> markPermissionRequested();
+  Future<void> clearAll();
 }
 
 class SharedPreferencesNotificationSettingsRepository
@@ -87,5 +88,13 @@ class SharedPreferencesNotificationSettingsRepository
       return;
     }
     await preferences.setBool(_permissionRequestedKey, true);
+  }
+
+  @override
+  Future<void> clearAll() async {
+    _webMemory.clear();
+    _permissionMemory = false;
+    final preferences = await _preferences();
+    await preferences?.clear();
   }
 }

@@ -1,14 +1,19 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/pet.dart';
+import '../../providers/furlo_state.dart';
+import '../../providers/home_reminders_provider.dart';
+import '../../repositories/app_settings_repository.dart';
 import '../../repositories/pet_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../screens/feeding/feeding_screen.dart';
 import '../../screens/health/health_records_screen.dart';
 import '../../screens/pets/pet_onboarding_screen.dart';
+import '../../screens/pets/pet_profile_screen.dart';
 import '../../screens/settings/notifications_screen.dart';
 import '../../screens/settings/profile_screen.dart';
 import '../../screens/vaccinations/vaccination_screen.dart';
@@ -33,14 +38,48 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late final AppSettingsRepository _appSettings =
+      SharedPreferencesAppSettingsRepository();
+  late final HomeRemindersProvider _remindersProvider = HomeRemindersProvider(
+    widget.repository,
+  );
   late Future<List<Pet>> _pets;
-  int? _selectedPetId;
+  List<Pet>? _cachedPets;
+  int? _fallbackSelectedPetId;
   int _activeTab = 0;
+  String _displayName = '';
 
   @override
   void initState() {
     super.initState();
-    _pets = widget.repository.getPets();
+    _pets = _loadPets();
+    _loadDisplayName();
+  }
+
+  Future<void> _loadDisplayName() async {
+    try {
+      final name = await _appSettings.getDisplayName();
+      if (mounted) setState(() => _displayName = name);
+    } catch (_) {}
+  }
+
+  Future<List<Pet>> _loadPets() async {
+    final pets = await widget.repository.getPets();
+    if (mounted) {
+      context.read<FurloState?>()?.setPets(pets);
+      _fallbackSelectedPetId =
+          pets.any((pet) => pet.id == _fallbackSelectedPetId)
+          ? _fallbackSelectedPetId
+          : pets.firstOrNull?.id;
+      await _remindersProvider.refresh(pets: pets);
+    }
+    return pets;
+  }
+
+  @override
+  void dispose() {
+    _remindersProvider.dispose();
+    super.dispose();
   }
 
   Future<void> _addPet() async {
@@ -49,12 +88,155 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => AddPetScreen(repository: widget.repository),
       ),
     );
-    if (mounted) setState(() => _pets = widget.repository.getPets());
+    if (mounted) setState(() => _pets = _loadPets());
   }
 
-  void _open(Widget screen) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => screen));
+  Future<void> _openPetProfile(Pet pet) async {
+    final deleted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PetProfileScreen(
+          petId: pet.id!,
+          repository: widget.repository,
+          pets: _cachedPets ?? [pet],
+          notificationService: widget.notificationService,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    final pets = await widget.repository.getPets();
+    if (!mounted) return;
+    setState(() {
+      _cachedPets = pets;
+      context.read<FurloState?>()?.setPets(pets);
+      _fallbackSelectedPetId =
+          pets.any((item) => item.id == _fallbackSelectedPetId)
+          ? _fallbackSelectedPetId
+          : pets.firstOrNull?.id;
+      _pets = Future.value(pets);
+    });
+    await _remindersProvider.refresh(pets: pets);
+    if (deleted == true && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${pet.name} was deleted.')));
+    }
+  }
+
+  Future<void> _open(Widget screen) async {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute<void>(builder: (_) => screen));
+    if (!mounted) return;
+    setState(() => _pets = _loadPets());
+    await _loadDisplayName();
+  }
+
+  void _openProfile() => _open(
+    ProfileScreen(
+      repository: widget.repository,
+      appSettings: _appSettings,
+      notificationSettings: widget.notificationSettings,
+      notificationService: widget.notificationService,
+    ),
+  );
+
+  Future<void> _openAllPets(List<Pet> pets) async {
+    final selected = await Navigator.of(
+      context,
+    ).push<Pet>(MaterialPageRoute(builder: (_) => _AllPetsScreen(pets: pets)));
+    if (selected != null && mounted) {
+      _fallbackSelectedPetId = selected.id;
+      context.read<FurloState?>()?.selectPet(selected);
+      await _openPetProfile(selected);
+    }
+  }
+
+  void _openReminder(HomeReminder reminder, List<Pet> pets) {
+    final pet = pets.where((item) => item.id == reminder.petId).firstOrNull;
+    if (pet == null) return;
+    Widget screen;
+    switch (reminder.type) {
+      case ReminderType.feeding:
+        screen = FeedingScreen(
+          repository: widget.repository,
+          notificationService: widget.notificationService,
+          pets: pets,
+          selectedPet: pet,
+        );
+      case ReminderType.vaccination:
+        screen = VaccinationScreen(
+          repository: widget.repository,
+          notificationService: widget.notificationService,
+          pets: pets,
+          selectedPet: pet,
+        );
+      case ReminderType.vetAppointment:
+        screen = VetContactsScreen(
+          repository: widget.repository,
+          notificationService: widget.notificationService,
+          pets: pets,
+          selectedPet: pet,
+        );
+      case ReminderType.medication:
+        screen = HealthRecordsScreen(
+          repository: widget.repository,
+          notificationService: widget.notificationService,
+          pets: pets,
+          selectedPet: pet,
+        );
+    }
+    context.read<FurloState?>()?.selectPet(pet);
+    _open(screen);
+  }
+
+  void _showMoreReminders(List<HomeReminder> reminders, List<Pet> pets) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bg,
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.75,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text("Today's Reminders", style: AppTypography.h2),
+                    ),
+                    IconButton(
+                      tooltip: 'Close reminders',
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  itemCount: reminders.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.sm),
+                  itemBuilder: (context, index) => _ReminderTile(
+                    reminder: reminders[index],
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _openReminder(reminders[index], pets);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _selectTab(int index) {
     // This navigation bar launches secondary screens from the dashboard;
@@ -77,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 3:
         break;
       case 4:
-        _open(const ProfileScreen());
+        _openProfile();
         break;
     }
   }
@@ -94,8 +276,18 @@ class _HomeScreenState extends State<HomeScreen> {
               future: _pets,
               builder: (context, snapshot) {
                 final pets = snapshot.data ?? const <Pet>[];
+                _cachedPets = pets;
+                final storedSelection = context
+                    .watch<FurloState?>()
+                    ?.selectedPet;
                 final selectedPet =
-                    pets.where((pet) => pet.id == _selectedPetId).firstOrNull ??
+                    pets
+                        .where(
+                          (pet) =>
+                              pet.id ==
+                              (storedSelection?.id ?? _fallbackSelectedPetId),
+                        )
+                        .firstOrNull ??
                     pets.firstOrNull;
                 return CustomScrollView(
                   slivers: [
@@ -110,13 +302,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           _DashboardHeader(
                             date: today,
-                            onSettings: () => _open(const ProfileScreen()),
+                            displayName: _displayName,
+                            onSettings: _openProfile,
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           _SectionHeading(
                             title: 'My Pets',
                             action: 'See all',
-                            onAction: () {},
+                            onAction: () => _openAllPets(pets),
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           if (snapshot.connectionState ==
@@ -146,16 +339,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                         pet: pets[index],
                                         selected:
                                             pets[index].id == selectedPet?.id,
-                                        onTap: () => setState(
-                                          () => _selectedPetId = pets[index].id,
-                                        ),
+                                        onTap: () {
+                                          _fallbackSelectedPetId =
+                                              pets[index].id;
+                                          context
+                                              .read<FurloState?>()
+                                              ?.selectPet(pets[index]);
+                                          _openPetProfile(pets[index]);
+                                        },
                                       ),
                               ),
                             ),
                           const SizedBox(height: AppSpacing.lg),
                           const _SectionHeading(title: "Today's Reminders"),
                           const SizedBox(height: AppSpacing.sm),
-                          const _ReminderEmptyCard(),
+                          _HomeRemindersSection(
+                            provider: _remindersProvider,
+                            onTap: (reminder) => _openReminder(reminder, pets),
+                            onMore: (reminders) =>
+                                _showMoreReminders(reminders, pets),
+                          ),
                           const SizedBox(height: AppSpacing.lg),
                           const _SectionHeading(title: 'Quick Actions'),
                           const SizedBox(height: AppSpacing.sm),
@@ -393,8 +596,13 @@ class _NavItem extends StatelessWidget {
 }
 
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.date, required this.onSettings});
+  const _DashboardHeader({
+    required this.date,
+    required this.displayName,
+    required this.onSettings,
+  });
   final DateTime date;
+  final String displayName;
   final VoidCallback onSettings;
 
   @override
@@ -404,7 +612,10 @@ class _DashboardHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Hello, pet parent!', style: AppTypography.h1),
+            Text(
+              'Hello, ${displayName.isEmpty ? 'pet parent' : displayName}!',
+              style: AppTypography.h1,
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               _formatDate(date),
@@ -476,10 +687,12 @@ class _PetTile extends StatelessWidget {
     required this.pet,
     required this.selected,
     required this.onTap,
+    this.width = 145,
   });
   final Pet pet;
   final bool selected;
   final VoidCallback onTap;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -494,7 +707,7 @@ class _PetTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.lgRadius,
         child: Container(
-          width: 145,
+          width: width,
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             borderRadius: AppRadius.lgRadius,
@@ -627,6 +840,212 @@ class _ReminderEmptyCard extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+class _HomeRemindersSection extends StatelessWidget {
+  const _HomeRemindersSection({
+    required this.provider,
+    required this.onTap,
+    required this.onMore,
+  });
+
+  final HomeRemindersProvider provider;
+  final ValueChanged<HomeReminder> onTap;
+  final ValueChanged<List<HomeReminder>> onMore;
+
+  @override
+  Widget build(BuildContext context) => ChangeNotifierProvider.value(
+    value: provider,
+    child: Consumer<HomeRemindersProvider>(
+      builder: (context, state, _) {
+        if (state.loading && state.reminders.isEmpty) {
+          return const SizedBox(
+            height: 84,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (state.hasError && state.reminders.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.lgRadius,
+            ),
+            child: Text(
+              'Your reminders could not be loaded. Try again later.',
+              style: AppTypography.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          );
+        }
+        if (state.reminders.isEmpty) return const _ReminderEmptyCard();
+        final visible = state.result.visibleItems;
+        return Column(
+          children: [
+            ...visible.map(
+              (reminder) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _ReminderTile(
+                  reminder: reminder,
+                  onTap: () => onTap(reminder),
+                ),
+              ),
+            ),
+            if (state.result.remainingCount > 0)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => onMore(state.reminders),
+                  style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                  child: Text('+${state.result.remainingCount} more'),
+                ),
+              ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+class _ReminderTile extends StatelessWidget {
+  const _ReminderTile({required this.reminder, required this.onTap});
+  final HomeReminder reminder;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final urgencyColor = switch (reminder.urgency) {
+      ReminderUrgency.overdue => AppColors.danger,
+      ReminderUrgency.today => AppColors.warning,
+      ReminderUrgency.upcoming => AppColors.textSecondary,
+    };
+    final trailing = reminder.time ?? _dateLabel(reminder.date);
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadius.mdRadius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.mdRadius,
+        child: SizedBox(
+          height: 68,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Row(
+              children: [
+                Icon(_reminderIcon(reminder.type), color: urgencyColor),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reminder.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodyStrong,
+                      ),
+                      Text(
+                        reminder.petName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      trailing,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      _urgencyLabel(reminder.urgency),
+                      style: AppTypography.caption.copyWith(
+                        color: urgencyColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _dateLabel(DateTime? date) {
+    if (date == null) {
+      return '';
+    }
+    final today = DateTime.now();
+    if (date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day) {
+      return 'Today';
+    }
+    return '${date.month}/${date.day}';
+  }
+
+  String _urgencyLabel(ReminderUrgency urgency) => switch (urgency) {
+    ReminderUrgency.overdue => 'Overdue',
+    ReminderUrgency.today => 'Today',
+    ReminderUrgency.upcoming => 'Upcoming',
+  };
+
+  IconData _reminderIcon(ReminderType type) => switch (type) {
+    ReminderType.feeding => Icons.restaurant_outlined,
+    ReminderType.vaccination => Icons.vaccines_outlined,
+    ReminderType.vetAppointment => Icons.local_hospital_outlined,
+    ReminderType.medication => Icons.medication_outlined,
+  };
+}
+
+class _AllPetsScreen extends StatelessWidget {
+  const _AllPetsScreen({required this.pets});
+  final List<Pet> pets;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('My Pets')),
+    body: pets.isEmpty
+        ? Center(
+            child: Text(
+              'No pets yet.',
+              style: AppTypography.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          )
+        : GridView.builder(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            itemCount: pets.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: AppSpacing.sm,
+              mainAxisSpacing: AppSpacing.sm,
+              childAspectRatio: 1,
+            ),
+            itemBuilder: (context, index) => _PetTile(
+              pet: pets[index],
+              selected: false,
+              width: double.infinity,
+              onTap: () => Navigator.of(context).pop(pets[index]),
+            ),
+          ),
   );
 }
 
