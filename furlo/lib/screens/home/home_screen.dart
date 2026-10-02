@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/pet.dart';
 import '../../repositories/pet_repository.dart';
+import '../../repositories/notification_settings_repository.dart';
+import '../../services/notifications_service.dart';
 import '../../screens/feeding/feeding_screen.dart';
 import '../../screens/health/health_records_screen.dart';
 import '../../screens/pets/pet_onboarding_screen.dart';
@@ -15,9 +17,16 @@ import '../../screens/weight/weight_tracking_screen.dart';
 import '../../utils/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.repository});
+  const HomeScreen({
+    super.key,
+    required this.repository,
+    required this.notificationSettings,
+    required this.notificationService,
+  });
 
   final PetRepository repository;
+  final NotificationSettingsRepository notificationSettings;
+  final NotificationService notificationService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -48,12 +57,19 @@ class _HomeScreenState extends State<HomeScreen> {
   ).push(MaterialPageRoute<void>(builder: (_) => screen));
 
   void _selectTab(int index) {
-    setState(() => _activeTab = index == 2 ? 0 : index);
+    // This navigation bar launches secondary screens from the dashboard;
+    // Home remains the active dashboard destination when those routes close.
+    setState(() => _activeTab = 0);
     switch (index) {
       case 0:
         break;
       case 1:
-        _open(const NotificationsScreen());
+        _open(
+          NotificationsScreen(
+            settings: widget.notificationSettings,
+            service: widget.notificationService,
+          ),
+        );
         break;
       case 2:
         _addPet();
@@ -146,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _QuickActions(
                             onOpen: _open,
                             repository: widget.repository,
+                            notificationService: widget.notificationService,
                             pets: pets,
                             selectedPet: selectedPet,
                           ),
@@ -617,11 +634,13 @@ class _QuickActions extends StatelessWidget {
   const _QuickActions({
     required this.onOpen,
     required this.repository,
+    required this.notificationService,
     required this.pets,
     required this.selectedPet,
   });
   final ValueChanged<Widget> onOpen;
   final PetRepository repository;
+  final NotificationService notificationService;
   final List<Pet> pets;
   final Pet? selectedPet;
 
@@ -633,6 +652,7 @@ class _QuickActions extends StatelessWidget {
         Icons.restaurant_outlined,
         FeedingScreen(
           repository: repository,
+          notificationService: notificationService,
           pets: pets,
           selectedPet: selectedPet,
         ),
@@ -640,22 +660,41 @@ class _QuickActions extends StatelessWidget {
       _ActionData(
         'Vaccines',
         Icons.vaccines_outlined,
-        const VaccinationScreen(),
+        VaccinationScreen(
+          repository: repository,
+          notificationService: notificationService,
+          pets: pets,
+          selectedPet: selectedPet,
+        ),
       ),
       _ActionData(
         'Health Records',
         Icons.medical_information_outlined,
-        const HealthRecordsScreen(),
+        HealthRecordsScreen(
+          repository: repository,
+          notificationService: notificationService,
+          pets: pets,
+          selectedPet: selectedPet,
+        ),
       ),
       _ActionData(
         'Vet Contacts',
         Icons.local_hospital_outlined,
-        const VetContactsScreen(),
+        VetContactsScreen(
+          repository: repository,
+          notificationService: notificationService,
+          pets: pets,
+          selectedPet: selectedPet,
+        ),
       ),
       _ActionData(
         'Weight Tracking',
         Icons.monitor_weight_outlined,
-        const WeightTrackingScreen(),
+        WeightTrackingScreen(
+          repository: repository,
+          pets: pets,
+          selectedPet: selectedPet,
+        ),
       ),
     ];
     return GridView.builder(

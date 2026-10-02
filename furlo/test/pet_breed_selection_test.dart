@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/models/feeding_entry.dart';
+import 'package:furlo/models/health_record.dart';
 import 'package:furlo/models/pet.dart';
+import 'package:furlo/models/vaccination.dart';
+import 'package:furlo/models/vet.dart';
+import 'package:furlo/models/weight_log.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
 
@@ -14,6 +18,9 @@ class _FakePetRepository implements PetRepository {
   Future<void> addPet(Pet pet) async {
     savedPet = pet;
   }
+
+  @override
+  Future<void> deletePet(int id) async {}
 
   @override
   Future<List<Pet>> getPets() async => [];
@@ -41,6 +48,59 @@ class _FakePetRepository implements PetRepository {
     );
     if (index >= 0) schedules[index] = entry;
   }
+
+  @override
+  Future<List<Vaccination>> getVaccinationsForPet(int petId) async => [];
+
+  @override
+  Future<Vaccination> addVaccination(Vaccination vaccination) async =>
+      vaccination;
+
+  @override
+  Future<void> updateVaccination(Vaccination vaccination) async {}
+
+  @override
+  Future<void> deleteVaccination(int id, int petId) async {}
+
+  @override
+  Future<List<HealthRecord>> getHealthRecordsForPet(int petId) async => [];
+
+  @override
+  Future<HealthRecord> addHealthRecord(HealthRecord record) async => record;
+
+  @override
+  Future<void> updateHealthRecord(HealthRecord record) async {}
+
+  @override
+  Future<void> deleteHealthRecord(int id, int petId) async {}
+
+  @override
+  Future<List<Vet>> getAllVets() async => [];
+  @override
+  Future<List<Vet>> getVetsForPet(int petId) async => [];
+  @override
+  Future<Vet?> getVetById(int id) async => null;
+  @override
+  Future<List<Pet>> getPetsForVet(int vetId) async => [];
+  @override
+  Future<List<VetPetAssociation>> getVetPetAssociations(int vetId) async => [];
+  @override
+  Future<Vet> addVet(Vet vet, List<int> petIds) async => vet;
+  @override
+  Future<void> updateVet(Vet vet, List<int> petIds) async {}
+  @override
+  Future<void> deleteVet(int id) async {}
+  @override
+  Future<void> setNextAppointment(int vetId, int petId, DateTime? date) async {}
+
+  @override
+  Future<List<WeightLog>> getWeightLogsForPet(int petId) async => [];
+  @override
+  Future<WeightLog> addWeightLog(WeightLog log) async => log;
+  @override
+  Future<void> updateWeightLog(WeightLog log) async {}
+  @override
+  Future<void> deleteWeightLog(int id, int petId) async {}
 }
 
 void main() {

@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "/Users/jorelmarquez/Downloads/Furlo/furlo/linux"
+  "cmake.sourceDirectory": "/Users/jorelmarquez/Downloads/Furlo/furlo/linux",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

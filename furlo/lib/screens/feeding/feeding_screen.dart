@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/feeding_entry.dart';
 import '../../models/pet.dart';
 import '../../repositories/pet_repository.dart';
+import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../pets/pet_onboarding_screen.dart';
 
@@ -10,11 +11,13 @@ class FeedingScreen extends StatefulWidget {
   const FeedingScreen({
     super.key,
     required this.repository,
+    this.notificationService = const NoOpNotificationService(),
     required this.pets,
     this.selectedPet,
   });
 
   final PetRepository repository;
+  final NotificationService notificationService;
   final List<Pet> pets;
   final Pet? selectedPet;
 
@@ -323,6 +326,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       } else {
         await widget.repository.updateFeedingSchedule(result);
       }
+      await widget.notificationService.rescheduleAll();
       await _loadSchedules();
     } catch (error, stackTrace) {
       debugPrint('Failed to save feeding schedule: $error');
@@ -340,6 +344,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       await widget.repository.updateFeedingSchedule(
         entry.copyWith(lastFedAt: DateTime.now()),
       );
+      await widget.notificationService.rescheduleAll();
       await _loadSchedules();
     } catch (_) {
       _showMessage('The meal could not be marked complete.');
@@ -373,6 +378,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
     if (confirmed != true || !mounted) return;
     try {
       await widget.repository.deleteFeedingSchedule(id, petId);
+      await widget.notificationService.rescheduleAll();
       await _loadSchedules();
     } catch (_) {
       _showMessage('The feeding schedule could not be deleted.');

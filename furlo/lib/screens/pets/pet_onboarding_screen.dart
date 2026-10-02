@@ -7,13 +7,22 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/pet_breeds.dart';
 import '../../models/pet.dart';
 import '../../repositories/pet_repository.dart';
+import '../../repositories/notification_settings_repository.dart';
+import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../home/home_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
-  const OnboardingScreen({super.key, required this.repository});
+  const OnboardingScreen({
+    super.key,
+    required this.repository,
+    required this.notificationSettings,
+    required this.notificationService,
+  });
 
   final PetRepository repository;
+  final NotificationSettingsRepository notificationSettings;
+  final NotificationService notificationService;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -56,7 +65,11 @@ class OnboardingScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => AddPetScreen(repository: repository),
+                        builder: (_) => AddPetScreen(
+                          repository: repository,
+                          notificationSettings: notificationSettings,
+                          notificationService: notificationService,
+                        ),
                       ),
                     ),
                     style: AppComponents.primaryButton,
@@ -73,9 +86,16 @@ class OnboardingScreen extends StatelessWidget {
 }
 
 class AddPetScreen extends StatefulWidget {
-  const AddPetScreen({super.key, required this.repository});
+  const AddPetScreen({
+    super.key,
+    required this.repository,
+    this.notificationSettings,
+    this.notificationService = const NoOpNotificationService(),
+  });
 
   final PetRepository repository;
+  final NotificationSettingsRepository? notificationSettings;
+  final NotificationService notificationService;
 
   @override
   State<AddPetScreen> createState() => _AddPetScreenState();
@@ -186,7 +206,13 @@ class _AddPetScreenState extends State<AddPetScreen> {
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => HomeScreen(repository: widget.repository),
+          builder: (_) => HomeScreen(
+            repository: widget.repository,
+            notificationSettings:
+                widget.notificationSettings ??
+                SharedPreferencesNotificationSettingsRepository(),
+            notificationService: widget.notificationService,
+          ),
         ),
         (_) => false,
       );
