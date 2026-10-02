@@ -10,6 +10,7 @@ import '../../repositories/pet_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/pet_file_image.dart';
 import '../home/home_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
@@ -91,11 +92,13 @@ class AddPetScreen extends StatefulWidget {
     required this.repository,
     this.notificationSettings,
     this.notificationService = const NoOpNotificationService(),
+    this.existingPet,
   });
 
   final PetRepository repository;
   final NotificationSettingsRepository? notificationSettings;
   final NotificationService notificationService;
+  final Pet? existingPet;
 
   @override
   State<AddPetScreen> createState() => _AddPetScreenState();
@@ -111,6 +114,28 @@ class _AddPetScreenState extends State<AddPetScreen> {
   String? _photoPath;
   Uint8List? _photoBytes;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final pet = widget.existingPet;
+    if (pet != null) {
+      _nameController.text = pet.name;
+      _species = pet.species;
+      _breed = pet.breed;
+      _birthDate = pet.birthDate;
+      _photoPath = pet.photoPath;
+      if (_photoPath?.startsWith('data:') == true) {
+        try {
+          _photoBytes = base64Decode(
+            _photoPath!.substring(_photoPath!.indexOf(',') + 1),
+          );
+        } catch (_) {
+          _photoBytes = null;
+        }
+      }
+    }
+  }
 
   Future<void> _selectBreed() async {
     final species = _species;
@@ -194,16 +219,24 @@ class _AddPetScreenState extends State<AddPetScreen> {
     setState(() => _saving = true);
     try {
       final petName = _capitalizeFirst(_nameController.text.trim());
-      await widget.repository.addPet(
-        Pet(
-          name: petName,
-          species: _species!,
-          breed: _breed,
-          birthDate: _birthDate,
-          photoPath: _photoPath,
-        ),
+      final pet = Pet(
+        id: widget.existingPet?.id,
+        name: petName,
+        species: _species!,
+        breed: _breed,
+        birthDate: _birthDate,
+        photoPath: _photoPath,
       );
+      if (widget.existingPet == null) {
+        await widget.repository.addPet(pet);
+      } else {
+        await widget.repository.updatePet(pet);
+      }
       if (!mounted) return;
+      if (widget.existingPet != null) {
+        Navigator.of(context).pop(pet);
+        return;
+      }
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => HomeScreen(
@@ -234,7 +267,10 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Add New Pet', style: AppTypography.h2),
+        title: Text(
+          widget.existingPet == null ? 'Add New Pet' : 'Edit Pet',
+          style: AppTypography.h2,
+        ),
         backgroundColor: AppColors.bg,
         centerTitle: true,
       ),
@@ -245,29 +281,55 @@ class _AddPetScreenState extends State<AddPetScreen> {
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 children: [
                   Center(
                     child: InkWell(
                       onTap: _choosePhoto,
                       borderRadius: BorderRadius.circular(64),
-                      child: CircleAvatar(
-                        radius: 54,
-                        backgroundColor: AppColors.surface,
-                        backgroundImage: _photoBytes == null
-                            ? null
-                            : MemoryImage(_photoBytes!),
-                        child: _photoBytes == null
-                            ? const Icon(Icons.add_a_photo_outlined, size: 30)
-                            : null,
+                      child: Builder(
+                        builder: (context) {
+                          final photo = _photoBytes != null
+                              ? MemoryImage(_photoBytes!)
+                              : (_photoPath == null ||
+                                        _photoPath!.startsWith('data:')
+                                    ? null
+                                    : petFileImage(_photoPath!));
+                          return CircleAvatar(
+                            radius: 54,
+                            backgroundColor: AppColors.surface,
+                            backgroundImage: photo,
+                            child: photo == null
+                                ? const Icon(
+                                    Icons.add_a_photo_outlined,
+                                    size: 30,
+                                  )
+                                : null,
+                          );
+                        },
                       ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Center(
-                    child: TextButton(
-                      onPressed: _choosePhoto,
-                      child: const Text('Add a photo'),
+                    child: Wrap(
+                      spacing: AppSpacing.sm,
+                      children: [
+                        TextButton(
+                          onPressed: _choosePhoto,
+                          child: Text(
+                            _photoPath == null ? 'Add a photo' : 'Change photo',
+                          ),
+                        ),
+                        if (_photoPath != null)
+                          TextButton(
+                            onPressed: () => setState(() {
+                              _photoPath = null;
+                              _photoBytes = null;
+                            }),
+                            child: const Text('Remove photo'),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -346,6 +408,14 @@ class _AddPetScreenState extends State<AddPetScreen> {
                           : '${_birthDate!.month}/${_birthDate!.day}/${_birthDate!.year}',
                     ),
                   ),
+                  if (_birthDate != null)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => setState(() => _birthDate = null),
+                        child: const Text('Clear birthdate'),
+                      ),
+                    ),
                   const SizedBox(height: AppSpacing.xl),
                   ElevatedButton(
                     onPressed: _saving ? null : _savePet,
@@ -355,7 +425,11 @@ class _AddPetScreenState extends State<AddPetScreen> {
                             dimension: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Save Pet'),
+                        : Text(
+                            widget.existingPet == null
+                                ? 'Save Pet'
+                                : 'Save Changes',
+                          ),
                   ),
                 ],
               ),

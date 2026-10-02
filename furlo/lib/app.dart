@@ -1,8 +1,10 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'repositories/pet_repository.dart';
 import 'repositories/notification_settings_repository.dart';
+import 'providers/furlo_state.dart';
 import 'services/notifications_service.dart';
 import 'screens/pets/pet_onboarding_screen.dart';
 import 'utils/app_theme.dart';
@@ -37,16 +39,19 @@ class _FurloAppState extends State<FurloApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Furlo',
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
-      theme: AppTheme.dark,
-      home: OnboardingScreen(
-        repository: _repository,
-        notificationSettings: _notificationSettings,
-        notificationService: _notificationService,
+    return ChangeNotifierProvider(
+      create: (_) => FurloState(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Furlo',
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
+        theme: AppTheme.dark,
+        home: OnboardingScreen(
+          repository: _repository,
+          notificationSettings: _notificationSettings,
+          notificationService: _notificationService,
+        ),
       ),
     );
   }

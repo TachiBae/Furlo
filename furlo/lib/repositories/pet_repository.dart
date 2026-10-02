@@ -13,7 +13,9 @@ import '../models/weight_log.dart';
 abstract class PetRepository {
   Future<List<Pet>> getPets();
   Future<void> addPet(Pet pet);
+  Future<void> updatePet(Pet pet);
   Future<void> deletePet(int id);
+  Future<void> clearAllData();
   Future<List<FeedingEntry>> getFeedingSchedules(int petId);
   Future<FeedingEntry> addFeedingSchedule(FeedingEntry entry);
   Future<void> updateFeedingSchedule(FeedingEntry entry);
@@ -109,8 +111,30 @@ class SqlitePetRepository implements PetRepository {
   }
 
   @override
+  Future<void> updatePet(Pet pet) async {
+    final id = pet.id;
+    if (id == null) throw ArgumentError('Pet id is required to update.');
+    await (await database).update(
+      'pets',
+      _petToMap(pet),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  @override
   Future<void> deletePet(int id) async {
     await (await database).delete('pets', where: 'id = ?', whereArgs: [id]);
+  }
+
+  @override
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('vet_pets');
+      await txn.delete('pets');
+      await txn.delete('vets');
+    });
   }
 
   @override
@@ -450,14 +474,48 @@ class WebPetRepository implements PetRepository {
   }
 
   @override
+  Future<void> updatePet(Pet pet) async {
+    final id = pet.id;
+    if (id == null) throw ArgumentError('Pet id is required to update.');
+    final preferences = await SharedPreferences.getInstance();
+    final pets = await getPets();
+    final index = pets.indexWhere((existing) => existing.id == id);
+    if (index < 0) return;
+    pets[index] = pet;
+    await _savePets(preferences, pets);
+  }
+
+  @override
   Future<void> deletePet(int id) async {
     final preferences = await SharedPreferences.getInstance();
     final pets = await getPets();
     await _savePets(preferences, pets.where((pet) => pet.id != id).toList());
+    final feedingValues = preferences.getStringList(_feedingStorageKey) ?? [];
+    final feedingEntries = feedingValues
+        .map((value) => _feedingEntryFromMap(_decodeMap(value)))
+        .where((entry) => entry.petId != id)
+        .toList();
+    await _saveFeedingEntries(preferences, feedingEntries);
     _vaccinations.removeWhere((item) => item.petId == id);
     _healthRecords.removeWhere((record) => record.petId == id);
     _vetLinks.removeWhere((link) => link.petId == id);
     _weightLogs.removeWhere((log) => log.petId == id);
+  }
+
+  @override
+  Future<void> clearAllData() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.remove(_storageKey);
+      await preferences.remove(_feedingStorageKey);
+    } catch (_) {
+      // In-memory web data is still reset if browser storage is unavailable.
+    }
+    _vaccinations.clear();
+    _healthRecords.clear();
+    _vets.clear();
+    _vetLinks.clear();
+    _weightLogs.clear();
   }
 
   Future<void> _savePets(SharedPreferences preferences, List<Pet> pets) =>

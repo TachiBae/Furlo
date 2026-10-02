@@ -20,7 +20,15 @@ class _FakePetRepository implements PetRepository {
   }
 
   @override
+  Future<void> updatePet(Pet pet) async {
+    savedPet = pet;
+  }
+
+  @override
   Future<void> deletePet(int id) async {}
+
+  @override
+  Future<void> clearAllData() async {}
 
   @override
   Future<List<Pet>> getPets() async => [];
