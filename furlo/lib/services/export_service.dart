@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
@@ -9,9 +8,8 @@ import '../models/health_record.dart';
 import '../models/pet.dart';
 import '../models/vaccination.dart';
 import '../models/vet.dart';
-import '../models/weight_log.dart';
+import '../models/weight_log.dart' show WeightLog, weightUnit;
 import '../repositories/pet_repository.dart';
-import '../models/weight_log.dart' show weightUnit;
 
 class PetCareSummary {
   const PetCareSummary({
@@ -41,7 +39,7 @@ class PetCareVetSummary {
 }
 
 class ExportService {
-  ExportService({required PetRepository repository}) : _repository = repository;
+  ExportService({required this._repository});
 
   final PetRepository _repository;
 
@@ -318,6 +316,7 @@ pw.Widget _healthRecordBlock(HealthRecord record) => pw.Container(
           child: pw.Text(
             _safePdfText(record.notes!),
             style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+            softWrap: true,
           ),
         ),
     ],

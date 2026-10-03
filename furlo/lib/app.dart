@@ -4,12 +4,12 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'repositories/pet_repository.dart';
-import 'repositories/notification_settings_repository.dart';
 import 'providers/furlo_state.dart';
-import 'services/notifications_service.dart';
+import 'repositories/notification_settings_repository.dart';
+import 'repositories/pet_repository.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/pets/pet_onboarding_screen.dart';
+import 'services/notifications_service.dart';
 import 'utils/app_theme.dart';
 
 class FurloApp extends StatefulWidget {
