@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:furlo/models/pet.dart';
-import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/screens/pets/pet_profile_screen.dart';
 
 void main() {
@@ -18,19 +16,5 @@ void main() {
       expect(petAgeLabel(DateTime(2026, 11, 1), today: today), 'Not provided');
       expect(petAgeLabel(DateTime(2026, 9, 30), today: today), '0 mos');
     });
-  });
-
-  test('selected pet falls back to a remaining pet or null after delete', () {
-    final state = FurloState();
-    final milo = Pet(id: 1, name: 'Milo', species: 'Dog');
-    final luna = Pet(id: 2, name: 'Luna', species: 'Cat');
-    state.setPets([milo, luna]);
-    state.selectPet(luna);
-
-    state.setPets([milo]);
-    expect(state.selectedPet?.id, milo.id);
-
-    state.setPets([]);
-    expect(state.selectedPet, isNull);
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,9 +8,8 @@ import '../../models/pet.dart';
 import '../../providers/furlo_state.dart';
 import '../../providers/home_reminders_provider.dart';
 import '../../repositories/app_settings_repository.dart';
-import '../../repositories/pet_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
-import '../../services/notifications_service.dart';
+import '../../repositories/pet_repository.dart';
 import '../../screens/feeding/feeding_screen.dart';
 import '../../screens/health/health_records_screen.dart';
 import '../../screens/pets/pet_onboarding_screen.dart';
@@ -19,6 +19,7 @@ import '../../screens/settings/profile_screen.dart';
 import '../../screens/vaccinations/vaccination_screen.dart';
 import '../../screens/vets/vet_contacts_screen.dart';
 import '../../screens/weight/weight_tracking_screen.dart';
+import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -43,16 +44,16 @@ class _HomeScreenState extends State<HomeScreen> {
   late final HomeRemindersProvider _remindersProvider = HomeRemindersProvider(
     widget.repository,
   );
-  late Future<List<Pet>> _pets;
-  List<Pet>? _cachedPets;
-  int? _fallbackSelectedPetId;
+  late final FurloState _furloState;
   int _activeTab = 0;
   String _displayName = '';
 
   @override
   void initState() {
     super.initState();
-    _pets = _loadPets();
+    _furloState = context.read<FurloState>();
+    _furloState.addListener(_refreshReminders);
+    unawaited(_remindersProvider.refresh(pets: _furloState.pets));
     _loadDisplayName();
   }
 
@@ -63,21 +64,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
-  Future<List<Pet>> _loadPets() async {
-    final pets = await widget.repository.getPets();
-    if (mounted) {
-      context.read<FurloState?>()?.setPets(pets);
-      _fallbackSelectedPetId =
-          pets.any((pet) => pet.id == _fallbackSelectedPetId)
-          ? _fallbackSelectedPetId
-          : pets.firstOrNull?.id;
-      await _remindersProvider.refresh(pets: pets);
-    }
-    return pets;
-  }
+  void _refreshReminders() =>
+      unawaited(_remindersProvider.refresh(pets: _furloState.pets));
 
   @override
   void dispose() {
+    _furloState.removeListener(_refreshReminders);
     _remindersProvider.dispose();
     super.dispose();
   }
@@ -88,7 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => AddPetScreen(repository: widget.repository),
       ),
     );
-    if (mounted) setState(() => _pets = _loadPets());
   }
 
   Future<void> _openPetProfile(Pet pet) async {
@@ -97,24 +88,11 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => PetProfileScreen(
           petId: pet.id!,
           repository: widget.repository,
-          pets: _cachedPets ?? [pet],
           notificationService: widget.notificationService,
         ),
       ),
     );
     if (!mounted) return;
-    final pets = await widget.repository.getPets();
-    if (!mounted) return;
-    setState(() {
-      _cachedPets = pets;
-      context.read<FurloState?>()?.setPets(pets);
-      _fallbackSelectedPetId =
-          pets.any((item) => item.id == _fallbackSelectedPetId)
-          ? _fallbackSelectedPetId
-          : pets.firstOrNull?.id;
-      _pets = Future.value(pets);
-    });
-    await _remindersProvider.refresh(pets: pets);
     if (deleted == true && mounted) {
       ScaffoldMessenger.of(
         context,
@@ -127,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
     ).push<void>(MaterialPageRoute<void>(builder: (_) => screen));
     if (!mounted) return;
-    setState(() => _pets = _loadPets());
     await _loadDisplayName();
   }
 
@@ -140,13 +117,12 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
-  Future<void> _openAllPets(List<Pet> pets) async {
+  Future<void> _openAllPets() async {
     final selected = await Navigator.of(
       context,
-    ).push<Pet>(MaterialPageRoute(builder: (_) => _AllPetsScreen(pets: pets)));
+    ).push<Pet>(MaterialPageRoute(builder: (_) => const _AllPetsScreen()));
     if (selected != null && mounted) {
-      _fallbackSelectedPetId = selected.id;
-      context.read<FurloState?>()?.selectPet(selected);
+      _furloState.selectPet(selected);
       await _openPetProfile(selected);
     }
   }
@@ -160,8 +136,6 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = FeedingScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: pets,
-          selectedPet: pet,
         );
       case ReminderType.vaccination:
         screen = VaccinationScreen(
@@ -174,8 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = VetContactsScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: pets,
-          selectedPet: pet,
         );
       case ReminderType.medication:
         screen = HealthRecordsScreen(
@@ -267,115 +239,84 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
+    final furloState = context.watch<FurloState>();
+    final pets = furloState.pets;
+    final selectedPet = furloState.selectedPet;
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 700),
-            child: FutureBuilder<List<Pet>>(
-              future: _pets,
-              builder: (context, snapshot) {
-                final pets = snapshot.data ?? const <Pet>[];
-                _cachedPets = pets;
-                final storedSelection = context
-                    .watch<FurloState?>()
-                    ?.selectedPet;
-                final selectedPet =
-                    pets
-                        .where(
-                          (pet) =>
-                              pet.id ==
-                              (storedSelection?.id ?? _fallbackSelectedPetId),
-                        )
-                        .firstOrNull ??
-                    pets.firstOrNull;
-                return CustomScrollView(
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        AppSpacing.lg,
-                        AppSpacing.lg,
-                        0,
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    0,
+                  ),
+                  sliver: SliverList.list(
+                    children: [
+                      _DashboardHeader(
+                        date: today,
+                        displayName: _displayName,
+                        onSettings: _openProfile,
                       ),
-                      sliver: SliverList.list(
-                        children: [
-                          _DashboardHeader(
-                            date: today,
-                            displayName: _displayName,
-                            onSettings: _openProfile,
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          _SectionHeading(
-                            title: 'My Pets',
-                            action: 'See all',
-                            onAction: () => _openAllPets(pets),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting)
-                            const SizedBox(
-                              height: 130,
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          else if (snapshot.hasError)
-                            const _MessageCard(
-                              message: 'Your pets could not be loaded.',
-                            )
-                          else if (pets.isEmpty)
-                            _AddFirstPetCard(onTap: _addPet)
-                          else
-                            SizedBox(
-                              height: 150,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: pets.length + 1,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(width: AppSpacing.sm),
-                                itemBuilder: (context, index) =>
-                                    index == pets.length
-                                    ? _AddPetTile(onTap: _addPet)
-                                    : _PetTile(
-                                        pet: pets[index],
-                                        selected:
-                                            pets[index].id == selectedPet?.id,
-                                        onTap: () {
-                                          _fallbackSelectedPetId =
-                                              pets[index].id;
-                                          context
-                                              .read<FurloState?>()
-                                              ?.selectPet(pets[index]);
-                                          _openPetProfile(pets[index]);
-                                        },
-                                      ),
-                              ),
-                            ),
-                          const SizedBox(height: AppSpacing.lg),
-                          const _SectionHeading(title: "Today's Reminders"),
-                          const SizedBox(height: AppSpacing.sm),
-                          _HomeRemindersSection(
-                            provider: _remindersProvider,
-                            onTap: (reminder) => _openReminder(reminder, pets),
-                            onMore: (reminders) =>
-                                _showMoreReminders(reminders, pets),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          const _SectionHeading(title: 'Quick Actions'),
-                          const SizedBox(height: AppSpacing.sm),
-                          _QuickActions(
-                            onOpen: _open,
-                            repository: widget.repository,
-                            notificationService: widget.notificationService,
-                            pets: pets,
-                            selectedPet: selectedPet,
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                        ],
+                      const SizedBox(height: AppSpacing.lg),
+                      _SectionHeading(
+                        title: 'My Pets',
+                        action: 'See all',
+                        onAction: _openAllPets,
                       ),
-                    ),
-                  ],
-                );
-              },
+                      const SizedBox(height: AppSpacing.sm),
+                      if (pets.isEmpty)
+                        _AddFirstPetCard(onTap: _addPet)
+                      else
+                        SizedBox(
+                          height: 150,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: pets.length + 1,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(width: AppSpacing.sm),
+                            itemBuilder: (context, index) =>
+                                index == pets.length
+                                ? _AddPetTile(onTap: _addPet)
+                                : _PetTile(
+                                    pet: pets[index],
+                                    selected: pets[index].id == selectedPet?.id,
+                                    onTap: () {
+                                      _furloState.selectPet(pets[index]);
+                                      _openPetProfile(pets[index]);
+                                    },
+                                  ),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const _SectionHeading(title: "Today's Reminders"),
+                      const SizedBox(height: AppSpacing.sm),
+                      _HomeRemindersSection(
+                        provider: _remindersProvider,
+                        onTap: (reminder) => _openReminder(reminder, pets),
+                        onMore: (reminders) =>
+                            _showMoreReminders(reminders, pets),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const _SectionHeading(title: 'Quick Actions'),
+                      const SizedBox(height: AppSpacing.sm),
+                      _QuickActions(
+                        onOpen: _open,
+                        repository: widget.repository,
+                        notificationService: widget.notificationService,
+                        pets: pets,
+                        selectedPet: selectedPet,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1015,38 +956,42 @@ class _ReminderTile extends StatelessWidget {
 }
 
 class _AllPetsScreen extends StatelessWidget {
-  const _AllPetsScreen({required this.pets});
-  final List<Pet> pets;
+  const _AllPetsScreen();
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('My Pets')),
-    body: pets.isEmpty
-        ? Center(
-            child: Text(
-              'No pets yet.',
-              style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
+  Widget build(BuildContext context) {
+    final state = context.watch<FurloState>();
+    final pets = state.pets;
+    final selectedPetId = state.selectedPet?.id;
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Pets')),
+      body: pets.isEmpty
+          ? Center(
+              child: Text(
+                'No pets yet.',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            )
+          : GridView.builder(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              itemCount: pets.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 1,
+              ),
+              itemBuilder: (context, index) => _PetTile(
+                pet: pets[index],
+                selected: pets[index].id == selectedPetId,
+                width: double.infinity,
+                onTap: () => Navigator.of(context).pop(pets[index]),
               ),
             ),
-          )
-        : GridView.builder(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: pets.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: AppSpacing.sm,
-              mainAxisSpacing: AppSpacing.sm,
-              childAspectRatio: 1,
-            ),
-            itemBuilder: (context, index) => _PetTile(
-              pet: pets[index],
-              selected: false,
-              width: double.infinity,
-              onTap: () => Navigator.of(context).pop(pets[index]),
-            ),
-          ),
-  );
+    );
+  }
 }
 
 class _QuickActions extends StatelessWidget {
@@ -1072,8 +1017,6 @@ class _QuickActions extends StatelessWidget {
         FeedingScreen(
           repository: repository,
           notificationService: notificationService,
-          pets: pets,
-          selectedPet: selectedPet,
         ),
       ),
       _ActionData(
@@ -1102,8 +1045,6 @@ class _QuickActions extends StatelessWidget {
         VetContactsScreen(
           repository: repository,
           notificationService: notificationService,
-          pets: pets,
-          selectedPet: selectedPet,
         ),
       ),
       _ActionData(
@@ -1159,18 +1100,4 @@ class _ActionData {
   final String label;
   final IconData icon;
   final Widget screen;
-}
-
-class _MessageCard extends StatelessWidget {
-  const _MessageCard({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    color: AppColors.surface,
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Text(message),
-    ),
-  );
 }

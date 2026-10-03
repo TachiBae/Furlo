@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/feeding_entry.dart';
 import '../../models/pet.dart';
+import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
@@ -12,30 +16,46 @@ class FeedingScreen extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
-    required this.pets,
-    this.selectedPet,
   });
 
   final PetRepository repository;
   final NotificationService notificationService;
-  final List<Pet> pets;
-  final Pet? selectedPet;
 
   @override
   State<FeedingScreen> createState() => _FeedingScreenState();
 }
 
 class _FeedingScreenState extends State<FeedingScreen> {
-  Pet? _selectedPet;
+  late final FurloState _furloState;
+  int? _observedSelectedPetId;
   List<FeedingEntry> _schedules = [];
   bool _loading = true;
   bool _saving = false;
 
+  Pet? get _selectedPet => _furloState.selectedPet;
+
   @override
   void initState() {
     super.initState();
-    _selectedPet = widget.selectedPet ?? widget.pets.firstOrNull;
+    _furloState = context.read<FurloState>();
+    _observedSelectedPetId = _selectedPet?.id;
+    _furloState.addListener(_onFurloStateChanged);
     _loadSchedules();
+  }
+
+  @override
+  void dispose() {
+    _furloState.removeListener(_onFurloStateChanged);
+    super.dispose();
+  }
+
+  void _onFurloStateChanged() {
+    final selectedPetId = _selectedPet?.id;
+    if (selectedPetId == _observedSelectedPetId) return;
+    _observedSelectedPetId = selectedPetId;
+    if (!mounted) return;
+    setState(() => _schedules = []);
+    unawaited(_loadSchedules());
   }
 
   Future<void> _loadSchedules() async {
@@ -70,13 +90,11 @@ class _FeedingScreenState extends State<FeedingScreen> {
   }
 
   Future<void> _choosePet(int? petId) async {
-    final selected = widget.pets.where((pet) => pet.id == petId).firstOrNull;
+    final selected = _furloState.pets
+        .where((pet) => pet.id == petId)
+        .firstOrNull;
     if (selected == null || selected.id == _selectedPet?.id) return;
-    setState(() {
-      _selectedPet = selected;
-      _schedules = [];
-    });
-    await _loadSchedules();
+    _furloState.selectPet(selected);
   }
 
   Future<void> _editSchedule([FeedingEntry? existing]) async {
@@ -90,7 +108,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
     var daysOfWeek = [...?existing?.daysOfWeek];
     var portionSize = existing?.portionSize ?? '';
     var remindMe = existing?.remindMe ?? false;
-    final petsWithIds = widget.pets.where((pet) => pet.id != null).toList();
+    final petsWithIds = _furloState.pets
+        .where((pet) => pet.id != null)
+        .toList();
 
     final result = await showDialog<FeedingEntry>(
       context: context,
@@ -316,18 +336,21 @@ class _FeedingScreenState extends State<FeedingScreen> {
 
     setState(() => _saving = true);
     try {
-      if (existing == null && result.petId != _selectedPet?.id) {
-        _selectedPet = widget.pets
-            .where((pet) => pet.id == result.petId)
-            .firstOrNull;
-      }
+      final selectedPetChanged =
+          existing == null && result.petId != _selectedPet?.id;
+      final targetPet = selectedPetChanged
+          ? _furloState.pets
+                .where((pet) => pet.id == result.petId)
+                .firstOrNull
+          : null;
       if (existing == null) {
         await widget.repository.addFeedingSchedule(result);
       } else {
         await widget.repository.updateFeedingSchedule(result);
       }
+      if (targetPet != null) _furloState.selectPet(targetPet);
       await widget.notificationService.rescheduleAll();
-      await _loadSchedules();
+      if (!selectedPetChanged) await _loadSchedules();
     } catch (error, stackTrace) {
       debugPrint('Failed to save feeding schedule: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -426,7 +449,10 @@ class _FeedingScreenState extends State<FeedingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final petsWithIds = widget.pets.where((pet) => pet.id != null).toList();
+    final furloState = context.watch<FurloState>();
+    final petsWithIds = furloState.pets
+        .where((pet) => pet.id != null)
+        .toList();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -535,7 +561,6 @@ class _FeedingScreenState extends State<FeedingScreen> {
         builder: (_) => AddPetScreen(repository: widget.repository),
       ),
     );
-    if (mounted) _showMessage('Return to the dashboard to select your pet.');
   }
 
   String _statusFor(FeedingEntry entry) {
