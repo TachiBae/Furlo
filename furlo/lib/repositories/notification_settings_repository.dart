@@ -95,6 +95,10 @@ class SharedPreferencesNotificationSettingsRepository
     _webMemory.clear();
     _permissionMemory = false;
     final preferences = await _preferences();
-    await preferences?.clear();
+    if (preferences == null) return;
+    for (final type in NotificationTypes.all) {
+      await preferences.remove('$_keyPrefix$type');
+    }
+    await preferences.remove(_permissionRequestedKey);
   }
 }

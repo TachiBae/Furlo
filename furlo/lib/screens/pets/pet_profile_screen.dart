@@ -6,15 +6,16 @@ import 'package:provider/provider.dart';
 import '../../models/pet.dart';
 import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
+import '../../services/export_service.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/pet_file_image.dart';
 import '../feeding/feeding_screen.dart';
 import '../health/health_records_screen.dart';
-import 'pet_onboarding_screen.dart';
 import '../vaccinations/vaccination_screen.dart';
 import '../vets/vet_contacts_screen.dart';
 import '../weight/weight_tracking_screen.dart';
+import 'pet_onboarding_screen.dart';
 
 int? petAgeInMonths(DateTime? birthDate, {DateTime? today}) {
   if (birthDate == null) return null;
@@ -63,6 +64,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   late Future<void> _load;
   Map<String, int> _counts = {};
   bool _deleting = false;
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -113,6 +115,26 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
       setState(() {
         _load = _refresh();
       });
+    }
+  }
+
+  Future<void> _exportCareSummary() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      await ExportService(
+        repository: widget.repository,
+      ).exportPetSummary(widget.petId);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not export care summary. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
   }
 
@@ -313,8 +335,28 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                   const SizedBox(height: AppSpacing.md),
                   SizedBox(
                     height: 52,
+                    child: FilledButton.icon(
+                      onPressed: _exporting ? null : _exportCareSummary,
+                      icon: _exporting
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(
+                        _exporting ? 'Generating PDF…' : 'Export care summary',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    height: 52,
                     child: OutlinedButton.icon(
-                      onPressed: _deleting ? null : _delete,
+                      onPressed: _deleting || _exporting ? null : _delete,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.danger,
                         side: const BorderSide(color: AppColors.danger),

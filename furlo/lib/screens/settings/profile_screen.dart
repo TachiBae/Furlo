@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../models/pet.dart';
-import '../../providers/furlo_state.dart';
 import '../../repositories/app_settings_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../repositories/pet_repository.dart';
-import '../../screens/pets/pet_onboarding_screen.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import 'notifications_screen.dart';
@@ -44,7 +40,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String _displayName = '';
   bool _loading = true;
-  bool _clearing = false;
 
   @override
   void initState() {
@@ -76,57 +71,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _displayName = value);
     } catch (_) {
       if (mounted) _showMessage('Could not save your display name.');
-    }
-  }
-
-  Future<void> _deleteAllData() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete all data?'),
-        content: const Text(
-          'This erases all pets and their feeding, vaccination, health, weight, and vet-link records, all vet contacts, and saved settings from this device. This can\'t be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
-            ),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete all data'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => _clearing = true);
-    try {
-      await widget.repository.clearAllData();
-      await widget.notificationSettings.clearAll();
-      await widget.appSettings.clearDisplayName();
-      await widget.notificationService.rescheduleAll();
-      if (!mounted) return;
-      context.read<FurloState?>()?.setPets(const <Pet>[]);
-      Navigator.of(context).pushAndRemoveUntil<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => OnboardingScreen(
-            repository: widget.repository,
-            notificationSettings: widget.notificationSettings,
-            notificationService: widget.notificationService,
-          ),
-        ),
-        (_) => false,
-      );
-    } catch (_) {
-      if (mounted) {
-        setState(() => _clearing = false);
-        _showMessage('Could not erase your data. Please try again.');
-      }
     }
   }
 
@@ -183,20 +127,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _GroupHeading('Data'),
-              ListTile(
-                minTileHeight: 56,
-                leading: const Icon(Icons.delete_forever_outlined),
-                title: Text(
-                  _clearing ? 'Deleting data…' : 'Delete all data',
-                  style: AppTypography.bodyStrong.copyWith(
-                    color: AppColors.danger,
-                  ),
-                ),
-                subtitle: const Text('Erase pets, records, and settings'),
-                onTap: _clearing ? null : _deleteAllData,
               ),
               const SizedBox(height: AppSpacing.md),
               _GroupHeading('About'),

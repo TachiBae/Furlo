@@ -1,153 +1,156 @@
 # Furlo
 
-Furlo is a Flutter-powered pet care tracker designed to help pet owners keep daily routines, health records, vaccination schedules, and veterinary information in one place.
+Furlo is a pet health and care tracker for owners managing one to three pets at home.
 
-The app is built to simplify the everyday management of pet care by combining feeding reminders, health tracking, weight logs, vaccination records, and vet contact management into a single, easy-to-use mobile experience.
+## Features
 
-## Why Furlo?
+Implemented in the Flutter app under `furlo/`:
 
-Pet parents often keep important information in scattered notes, calendars, and memory. Furlo brings those details together in a focused and organized system so owners can stay proactive and reduce missed care tasks.
+- **Pet onboarding and profiles** — add/edit pets (species, breed, birth date, optional photo), onboarding gate when no pets exist, per-pet profile with care-record shortcuts and delete
+- **Home dashboard** — pet carousel, selected pet context, today’s reminders, quick actions into care screens
+- **Feeding** — per-pet feeding schedules (time, frequency, portion, done-today), with optional reminder hooks via the notification service on native platforms
+- **Vaccinations** — CRUD, due-date status, vaccine catalog helpers, reminder scheduling on native
+- **Health records** — CRUD by type (checkup, medication, illness/injury, surgery, lab test, other), notes, optional medication reminders on native
+- **Vet contacts** — vets linked to pets (many-to-many), next appointment per pet, phone launch via `url_launcher`
+- **Weight tracking** — weight log CRUD and a trend line chart (`fl_chart`)
+- **Notifications** — local notifications on iOS/Android (`flutter_local_notifications`), per-type toggles in settings, reschedule on app start
+- **Profile and settings** — display name (`shared_preferences`), notification preferences, delete-all-data
+- **Export care summary** — PDF care summary per pet (`pdf`) shared or downloaded (`share_plus`) from the pet profile screen
 
-## Key Features
+## Known limitations
 
-- Pet onboarding and profile management
-- Feeding logs and routine tracking
-- Vaccination tracking and due-date reminders
-- Health records and care notes
-- Weight history and trend monitoring
-- Vet contact management
-- Local notifications for reminders
-- Clean, mobile-first dashboard experience
+- **No account or cloud sync** — single device, local data only; two installs do not share data.
+- **Dark theme only** — `MaterialApp` uses `AppTheme.dark`; no in-app light theme toggle.
+- **Web storage is split** — `WebPetRepository` persists **pets** and **feeding schedules** in `shared_preferences`; vaccinations, health records, vets, vet–pet links, and weight logs are held **in memory** and are lost on a full page reload.
+- **Web notifications** — `NoOpNotificationService`; reminder UI works but nothing is scheduled.
+- **Bottom nav “My Pets”** — the tab does not open a separate screen; the pet list lives on the home dashboard (“See all” opens the full list).
+- **Stretch goals below** are not implemented.
 
-## Current Project Status
+## Tech stack
 
-This project is in its early MVP phase and is being structured for feature-driven development. The app shell is ready, with the foundation in place for expanding into the full pet care workflow.
+- **Flutter / Dart** (SDK `^3.12.2` in `pubspec.yaml`)
+- **State:** `provider`
+- **Persistence:** `sqflite` (native), `shared_preferences` (settings and partial web storage)
+- **UI / utilities:** Material 3, `device_preview` (debug), `image_picker`, `url_launcher`, `fl_chart`
+- **Export:** `pdf`, `share_plus`
+- **Notifications (native):** `flutter_local_notifications`, `timezone`
 
-## Tech Stack
+## Data storage
 
-- Flutter
-- Dart
-- Material Design
-- Local persistence with SQLite-style app architecture patterns
-- Notification support for reminder workflows
+All feature screens use the **`PetRepository`** interface. Implementation is chosen at runtime:
 
-## Project Structure
-
-```text
-furlo/
-├── android/               # Android platform configuration
-├── ios/                   # iOS platform configuration
-├── lib/
-│   ├── app.dart           # App entry and app shell
-│   ├── main.dart          # Application bootstrap
-│   ├── models/            # Data models for pets, records, etc.
-│   ├── providers/         # State management
-│   ├── repositories/     # Data access layer
-│   ├── screens/          # Feature screens
-│   ├── services/         # Notifications/export services
-│   ├── utils/            # Shared utilities and styling
-│   └── widgets/          # Reusable UI components
-├── test/                  # Automated tests
-├── analysis_options.yaml  # Linting configuration
-├── pubspec.yaml           # Flutter package metadata and dependencies
-├── README.md              # Project documentation
-└── .gitignore
+```dart
+createPetRepository() => kIsWeb ? WebPetRepository() : SqlitePetRepository();
 ```
 
-## Getting Started
+- **Mobile (iOS/Android):** SQLite database `furlo.db` via `sqflite`, with foreign keys enabled.
+- **Web:** `sqflite` is not used (no plugin). `WebPetRepository` avoids `MissingPluginException` while keeping the same API for demos and tests.
+
+**SQLite tables (native):**
+
+| Table | Purpose |
+| --- | --- |
+| `pets` | Pet identity, species, breed, birth date, photo path |
+| `feeding_schedules` | Feeding times, frequency, done-today, last fed, reminders |
+| `vaccinations` | Vaccine name, dates, completion, derived status |
+| `health_records` | Title, date, type, notes, optional medication reminder fields |
+| `vets` | Clinic contact fields |
+| `vet_pets` | Vet–pet link and optional next appointment |
+| `weight_logs` | Date, weight, notes |
+
+**Also stored outside SQLite:**
+
+- Notification type toggles and permission flag — `SharedPreferencesNotificationSettingsRepository`
+- Display name — `SharedPreferencesAppSettingsRepository`
+
+## Getting started
 
 ### Prerequisites
 
-Before running the app, make sure you have the following installed:
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (includes Dart)
+- For mobile: Xcode (iOS) and/or Android Studio / SDK (Android)
+- For web: Chrome or another browser supported by Flutter web
 
-- Flutter SDK
-- Dart SDK
-- Android Studio or Xcode depending on your target platform
-- VS Code or Android Studio with Flutter support
+### Install and run
 
-### Installation
-
-1. Clone the repository:
+From the repository root, the app package lives in `furlo/`:
 
 ```bash
 git clone <repository-url>
 cd furlo
-```
-
-2. Install dependencies:
-
-```bash
 flutter pub get
 ```
 
-3. Run the app:
-   V
+**Mobile** (device or emulator connected):
 
 ```bash
+flutter devices
 flutter run
 ```
 
-### Common Development Commands
+**Web** (local HTTP server; URL printed in the terminal):
+
+```bash
+flutter run -d web-server
+```
+
+You can also use `flutter run -d chrome` for a Chrome instance with Flutter tooling.
+
+**Device Preview:** In non-release builds, `main.dart` wraps the app in `DevicePreview` (`enabled: !kReleaseMode`). Use the preview toolbar to simulate screen sizes; release builds disable it.
+
+### Quality checks
+
+From `furlo/`:
 
 ```bash
 flutter analyze
 flutter test
-flutter run -d chrome
-flutter build apk
-flutter build ios
 ```
 
-## App Architecture
+## Platform notes
 
-The app follows a modular Flutter structure centered around:
+| Area | Mobile (iOS/Android) | Web |
+| --- | --- | --- |
+| Pet / feeding persistence | SQLite | `shared_preferences` |
+| Vaccinations, health, vets, weight | SQLite | In-memory (session only) |
+| Local notifications | Scheduled | No-op service |
+| Export PDF | Share sheet | Download fallback via `share_plus` |
+| Vet phone links | `url_launcher` | Browser-dependent |
 
-- Models for core domain entities such as pets, feeding entries, vaccinations, and vet records
-- Repositories for consistent data access and persistence logic
-- Providers for shared application state
-- Screens for feature-specific user flows
-- Services for background and reminder functionality
+## Project structure (`furlo/lib/`)
 
-This structure allows the app to scale cleanly as new features are added without mixing domain logic into UI code.
+```text
+lib/
+├── app.dart              # MaterialApp, theme, repository wiring, onboarding entry
+├── main.dart             # runApp + DevicePreview wrapper
+├── data/                 # Static catalogs (breeds, vaccine names, health record types)
+├── models/               # Pet, feeding, vaccination, health, vet, weight types
+├── providers/            # Provider ChangeNotifiers (pets, reminders, feature state)
+├── repositories/         # PetRepository (+ SQLite / web), settings repositories
+├── screens/              # UI by feature (home, pets, feeding, health, vets, …)
+├── services/             # Local notifications and PDF export
+├── utils/                # Theme, validation, weight helpers, pet photo loading
+└── widgets/              # Shared UI (pet card, status pill, buttons, record rows)
+```
 
-## Planned Roadmap
+Other repo paths: `flutter-capstone-planning/` (planning docs, including the original app proposal), platform folders under `furlo/android` and `furlo/ios`.
 
-### MVP
+## Secrets and backend
 
-- Pet onboarding
-- Pet dashboard and list views
-- Feeding history and reminders
-- Vaccination tracking
-- Health record management
-- Vet information storage
-- Weight tracking
-- Notification settings
+The MVP needs **no API keys** or backend. Firebase Auth, cloud sync, and multi-user access are **not** implemented.
 
-### Future Enhancements
+## Roadmap / stretch goals
 
-- Exporting records
-- Improved charting and reporting
-- More advanced reminder scheduling
-- Shared household workflows
-- Design refinements and accessibility improvements
+From the product proposal; not in the app today:
 
-## Contributing
-
-Contributions are welcome. If you want to help improve Furlo:
-
-1. Fork the project
-2. Create a feature branch
-3. Make your changes
-4. Run tests and validation
-5. Submit a pull request with a clear summary
+- Calendar view for vaccinations and vet appointments
+- Vet clinic location / map
+- Vet document or receipt scanner
+- Firebase Auth (or other cloud account)
+- Light theme / theme preference
+- Weekly care summary
+- “Ask about my pet” / AI chat
 
 ## License
 
-This project is licensed under the terms of the repository license. Please review the license file before using or distributing the project.
-
-## Contact
-
-For questions, ideas, or collaboration opportunities, please reach out through the project repository or the active development channel for the team.
-
----
-
-Furlo is designed to make pet care more consistent, organized, and stress-free for everyday owners.
+See [LICENSE](LICENSE) in this repository.

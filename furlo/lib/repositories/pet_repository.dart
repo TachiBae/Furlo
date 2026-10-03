@@ -415,11 +415,129 @@ class SqlitePetRepository implements PetRepository {
 class WebPetRepository implements PetRepository {
   static const _storageKey = 'furlo.pets';
   static const _feedingStorageKey = 'furlo.feeding_schedules';
+  static const _vaccinationsKey = 'furlo.vaccinations';
+  static const _healthRecordsKey = 'furlo.health_records';
+  static const _vetsKey = 'furlo.vets';
+  static const _vetLinksKey = 'furlo.vet_links';
+  static const _weightLogsKey = 'furlo.weight_logs';
+
   final List<Vaccination> _vaccinations = [];
   final List<HealthRecord> _healthRecords = [];
   final List<Vet> _vets = [];
   final List<VetPetAssociation> _vetLinks = [];
   final List<WeightLog> _weightLogs = [];
+
+  Future<void>? _initFuture;
+
+  Future<void> _ensureLoaded() => _initFuture ??= _loadAll();
+
+  Future<void> _loadAll() async {
+    final preferences = await SharedPreferences.getInstance();
+
+    final vaccinationValues =
+        preferences.getStringList(_vaccinationsKey) ?? [];
+    _vaccinations
+      ..clear()
+      ..addAll(
+        vaccinationValues.map(
+          (v) => Vaccination.fromMap(_decodeMap(v)),
+        ),
+      );
+
+    final healthValues = preferences.getStringList(_healthRecordsKey) ?? [];
+    _healthRecords
+      ..clear()
+      ..addAll(
+        healthValues.map((v) => HealthRecord.fromMap(_decodeMap(v))),
+      );
+
+    final vetValues = preferences.getStringList(_vetsKey) ?? [];
+    _vets
+      ..clear()
+      ..addAll(vetValues.map((v) => Vet.fromMap(_decodeMap(v))));
+
+    final vetLinkValues = preferences.getStringList(_vetLinksKey) ?? [];
+    _vetLinks
+      ..clear()
+      ..addAll(
+        vetLinkValues.map((v) => VetPetAssociation.fromMap(_decodeMap(v))),
+      );
+
+    final weightValues = preferences.getStringList(_weightLogsKey) ?? [];
+    _weightLogs
+      ..clear()
+      ..addAll(weightValues.map((v) => WeightLog.fromMap(_decodeMap(v))));
+  }
+
+  Future<void> _saveVaccinations(SharedPreferences preferences) =>
+      preferences.setStringList(
+        _vaccinationsKey,
+        _vaccinations
+            .map(
+              (v) => Uri(
+                queryParameters: v.toMap().map(
+                  (k, val) => MapEntry(k, val?.toString() ?? ''),
+                ),
+              ).query,
+            )
+            .toList(),
+      );
+
+  Future<void> _saveHealthRecords(SharedPreferences preferences) =>
+      preferences.setStringList(
+        _healthRecordsKey,
+        _healthRecords
+            .map(
+              (r) => Uri(
+                queryParameters: r.toMap().map(
+                  (k, val) => MapEntry(k, val?.toString() ?? ''),
+                ),
+              ).query,
+            )
+            .toList(),
+      );
+
+  Future<void> _saveVets(SharedPreferences preferences) =>
+      preferences.setStringList(
+        _vetsKey,
+        _vets
+            .map(
+              (v) => Uri(
+                queryParameters: v.toMap().map(
+                  (k, val) => MapEntry(k, val?.toString() ?? ''),
+                ),
+              ).query,
+            )
+            .toList(),
+      );
+
+  Future<void> _saveVetLinks(SharedPreferences preferences) =>
+      preferences.setStringList(
+        _vetLinksKey,
+        _vetLinks
+            .map(
+              (l) => Uri(
+                queryParameters: l.toMap().map(
+                  (k, val) => MapEntry(k, val?.toString() ?? ''),
+                ),
+              ).query,
+            )
+            .toList(),
+      );
+
+  Future<void> _saveWeightLogs(SharedPreferences preferences) =>
+      preferences.setStringList(
+        _weightLogsKey,
+        _weightLogs
+            .map(
+              (l) => Uri(
+                queryParameters: l.toMap().map(
+                  (k, val) => MapEntry(k, val?.toString() ?? ''),
+                ),
+              ).query,
+            )
+            .toList(),
+      );
 
   @override
   Future<List<Pet>> getPets() async {
@@ -487,6 +605,7 @@ class WebPetRepository implements PetRepository {
 
   @override
   Future<void> deletePet(int id) async {
+    await _ensureLoaded();
     final preferences = await SharedPreferences.getInstance();
     final pets = await getPets();
     await _savePets(preferences, pets.where((pet) => pet.id != id).toList());
@@ -497,17 +616,27 @@ class WebPetRepository implements PetRepository {
         .toList();
     await _saveFeedingEntries(preferences, feedingEntries);
     _vaccinations.removeWhere((item) => item.petId == id);
+    await _saveVaccinations(preferences);
     _healthRecords.removeWhere((record) => record.petId == id);
+    await _saveHealthRecords(preferences);
     _vetLinks.removeWhere((link) => link.petId == id);
+    await _saveVetLinks(preferences);
     _weightLogs.removeWhere((log) => log.petId == id);
+    await _saveWeightLogs(preferences);
   }
 
   @override
   Future<void> clearAllData() async {
+    _initFuture = null;
     try {
       final preferences = await SharedPreferences.getInstance();
       await preferences.remove(_storageKey);
       await preferences.remove(_feedingStorageKey);
+      await preferences.remove(_vaccinationsKey);
+      await preferences.remove(_healthRecordsKey);
+      await preferences.remove(_vetsKey);
+      await preferences.remove(_vetLinksKey);
+      await preferences.remove(_weightLogsKey);
     } catch (_) {
       // In-memory web data is still reset if browser storage is unavailable.
     }
@@ -601,14 +730,17 @@ class WebPetRepository implements PetRepository {
   }
 
   @override
-  Future<List<Vaccination>> getVaccinationsForPet(int petId) async =>
-      _vaccinations
-          .where((item) => item.petId == petId)
-          .map((item) => Vaccination.fromMap(item.toMap()))
-          .toList();
+  Future<List<Vaccination>> getVaccinationsForPet(int petId) async {
+    await _ensureLoaded();
+    return _vaccinations
+        .where((item) => item.petId == petId)
+        .map((item) => Vaccination.fromMap(item.toMap()))
+        .toList();
+  }
 
   @override
   Future<Vaccination> addVaccination(Vaccination vaccination) async {
+    await _ensureLoaded();
     final nextId =
         _vaccinations.fold<int>(0, (maxId, item) {
           final id = item.id ?? 0;
@@ -617,11 +749,14 @@ class WebPetRepository implements PetRepository {
         1;
     final saved = vaccination.copyWith(id: vaccination.id ?? nextId);
     _vaccinations.add(saved);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveVaccinations(preferences);
     return saved;
   }
 
   @override
   Future<void> updateVaccination(Vaccination vaccination) async {
+    await _ensureLoaded();
     final id = vaccination.id;
     if (id == null) {
       throw ArgumentError('Vaccination id is required to update.');
@@ -631,15 +766,21 @@ class WebPetRepository implements PetRepository {
     );
     if (index < 0) return;
     _vaccinations[index] = vaccination;
+    final preferences = await SharedPreferences.getInstance();
+    await _saveVaccinations(preferences);
   }
 
   @override
   Future<void> deleteVaccination(int id, int petId) async {
+    await _ensureLoaded();
     _vaccinations.removeWhere((item) => item.id == id && item.petId == petId);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveVaccinations(preferences);
   }
 
   @override
   Future<List<HealthRecord>> getHealthRecordsForPet(int petId) async {
+    await _ensureLoaded();
     final records = _healthRecords
         .where((record) => record.petId == petId)
         .toList();
@@ -663,6 +804,7 @@ class WebPetRepository implements PetRepository {
 
   @override
   Future<HealthRecord> addHealthRecord(HealthRecord record) async {
+    await _ensureLoaded();
     final nextId =
         _healthRecords.fold<int>(0, (maxId, item) {
           final id = item.id ?? 0;
@@ -671,11 +813,14 @@ class WebPetRepository implements PetRepository {
         1;
     final saved = record.copyWith(id: record.id ?? nextId);
     _healthRecords.add(saved);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveHealthRecords(preferences);
     return saved;
   }
 
   @override
   Future<void> updateHealthRecord(HealthRecord record) async {
+    await _ensureLoaded();
     final id = record.id;
     if (id == null) {
       throw ArgumentError('Health record id is required to update.');
@@ -683,28 +828,42 @@ class WebPetRepository implements PetRepository {
     final index = _healthRecords.indexWhere(
       (item) => item.id == id && item.petId == record.petId,
     );
-    if (index >= 0) _healthRecords[index] = record;
+    if (index >= 0) {
+      _healthRecords[index] = record;
+      final preferences = await SharedPreferences.getInstance();
+      await _saveHealthRecords(preferences);
+    }
   }
 
   @override
   Future<void> deleteHealthRecord(int id, int petId) async {
+    await _ensureLoaded();
     _healthRecords.removeWhere((item) => item.id == id && item.petId == petId);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveHealthRecords(preferences);
   }
 
   @override
-  Future<List<Vet>> getAllVets() async => List.of(_vets);
+  Future<List<Vet>> getAllVets() async {
+    await _ensureLoaded();
+    return List.of(_vets);
+  }
 
   @override
-  Future<List<Vet>> getVetsForPet(int petId) async => _vets
-      .where(
-        (vet) => _vetLinks.any(
-          (link) => link.vetId == vet.id && link.petId == petId,
-        ),
-      )
-      .toList();
+  Future<List<Vet>> getVetsForPet(int petId) async {
+    await _ensureLoaded();
+    return _vets
+        .where(
+          (vet) => _vetLinks.any(
+            (link) => link.vetId == vet.id && link.petId == petId,
+          ),
+        )
+        .toList();
+  }
 
   @override
   Future<Vet?> getVetById(int id) async {
+    await _ensureLoaded();
     for (final vet in _vets) {
       if (vet.id == id) return vet;
     }
@@ -713,6 +872,7 @@ class WebPetRepository implements PetRepository {
 
   @override
   Future<List<Pet>> getPetsForVet(int vetId) async {
+    await _ensureLoaded();
     final ids = _vetLinks
         .where((link) => link.vetId == vetId)
         .map((link) => link.petId)
@@ -721,11 +881,14 @@ class WebPetRepository implements PetRepository {
   }
 
   @override
-  Future<List<VetPetAssociation>> getVetPetAssociations(int vetId) async =>
-      _vetLinks.where((link) => link.vetId == vetId).toList();
+  Future<List<VetPetAssociation>> getVetPetAssociations(int vetId) async {
+    await _ensureLoaded();
+    return _vetLinks.where((link) => link.vetId == vetId).toList();
+  }
 
   @override
   Future<Vet> addVet(Vet vet, List<int> petIds) async {
+    await _ensureLoaded();
     final id =
         vet.id ??
         (_vets.fold<int>(
@@ -738,11 +901,15 @@ class WebPetRepository implements PetRepository {
     for (final petId in petIds.toSet()) {
       _vetLinks.add(VetPetAssociation(vetId: id, petId: petId));
     }
+    final preferences = await SharedPreferences.getInstance();
+    await _saveVets(preferences);
+    await _saveVetLinks(preferences);
     return saved;
   }
 
   @override
   Future<void> updateVet(Vet vet, List<int> petIds) async {
+    await _ensureLoaded();
     final id = vet.id;
     if (id == null) throw ArgumentError('Vet id is required to update.');
     final index = _vets.indexWhere((item) => item.id == id);
@@ -758,16 +925,24 @@ class WebPetRepository implements PetRepository {
         previous[petId] ?? VetPetAssociation(vetId: id, petId: petId),
       );
     }
+    final preferences = await SharedPreferences.getInstance();
+    await _saveVets(preferences);
+    await _saveVetLinks(preferences);
   }
 
   @override
   Future<void> deleteVet(int id) async {
+    await _ensureLoaded();
     _vets.removeWhere((vet) => vet.id == id);
     _vetLinks.removeWhere((link) => link.vetId == id);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveVets(preferences);
+    await _saveVetLinks(preferences);
   }
 
   @override
   Future<void> setNextAppointment(int vetId, int petId, DateTime? date) async {
+    await _ensureLoaded();
     final index = _vetLinks.indexWhere(
       (link) => link.vetId == vetId && link.petId == petId,
     );
@@ -777,11 +952,14 @@ class WebPetRepository implements PetRepository {
         petId: petId,
         nextAppointmentDate: date,
       );
+      final preferences = await SharedPreferences.getInstance();
+      await _saveVetLinks(preferences);
     }
   }
 
   @override
   Future<List<WeightLog>> getWeightLogsForPet(int petId) async {
+    await _ensureLoaded();
     final logs = _weightLogs.where((log) => log.petId == petId).toList();
     logs.sort((a, b) {
       final dateOrder = (b.date ?? DateTime(0)).compareTo(
@@ -794,6 +972,7 @@ class WebPetRepository implements PetRepository {
 
   @override
   Future<WeightLog> addWeightLog(WeightLog log) async {
+    await _ensureLoaded();
     final id =
         log.id ??
         (_weightLogs.fold<int>(
@@ -809,22 +988,32 @@ class WebPetRepository implements PetRepository {
       notes: log.notes,
     );
     _weightLogs.add(saved);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveWeightLogs(preferences);
     return saved;
   }
 
   @override
   Future<void> updateWeightLog(WeightLog log) async {
+    await _ensureLoaded();
     final id = log.id;
     if (id == null) throw ArgumentError('Weight log id is required to update.');
     final index = _weightLogs.indexWhere(
       (item) => item.id == id && item.petId == log.petId,
     );
-    if (index >= 0) _weightLogs[index] = log;
+    if (index >= 0) {
+      _weightLogs[index] = log;
+      final preferences = await SharedPreferences.getInstance();
+      await _saveWeightLogs(preferences);
+    }
   }
 
   @override
   Future<void> deleteWeightLog(int id, int petId) async {
+    await _ensureLoaded();
     _weightLogs.removeWhere((log) => log.id == id && log.petId == petId);
+    final preferences = await SharedPreferences.getInstance();
+    await _saveWeightLogs(preferences);
   }
 
   Future<void> _saveFeedingEntries(
