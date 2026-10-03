@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/models/pet.dart';
+import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/feeding/feeding_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -23,14 +25,13 @@ void main() {
       final pets = await repository.getPets();
       final mochi = pets.firstWhere((pet) => pet.name == 'Mochi');
       final miso = pets.firstWhere((pet) => pet.name == 'Miso');
+      final state = FurloState(repository);
+      await state.load();
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: FeedingScreen(
-            repository: repository,
-            pets: pets,
-            selectedPet: mochi,
-          ),
+        ChangeNotifierProvider.value(
+          value: state,
+          child: MaterialApp(home: FeedingScreen(repository: repository)),
         ),
       );
       await tester.pumpAndSettle();

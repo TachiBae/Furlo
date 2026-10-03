@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/pet.dart';
 import '../../models/vet.dart';
+import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
@@ -14,13 +16,9 @@ class VetContactsScreen extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
-    required this.pets,
-    this.selectedPet,
   });
   final PetRepository repository;
   final NotificationService notificationService;
-  final List<Pet> pets;
-  final Pet? selectedPet;
 
   @override
   State<VetContactsScreen> createState() => _VetContactsScreenState();
@@ -31,11 +29,28 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
   String _filter = 'all';
   List<Vet> _vets = [];
   final Map<int, List<Pet>> _linkedPets = {};
+  late final FurloState _furloState;
 
   @override
   void initState() {
     super.initState();
-    _filter = widget.selectedPet?.id?.toString() ?? 'all';
+    _furloState = context.read<FurloState>();
+    _filter = _furloState.selectedPet?.id?.toString() ?? 'all';
+    _furloState.addListener(_onFurloStateChanged);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _furloState.removeListener(_onFurloStateChanged);
+    super.dispose();
+  }
+
+  void _onFurloStateChanged() {
+    if (_filter != 'all' &&
+        !_furloState.pets.any((pet) => pet.id.toString() == _filter)) {
+      _filter = _furloState.selectedPet?.id?.toString() ?? 'all';
+    }
     _load();
   }
 
@@ -65,7 +80,6 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
         builder: (_) => VetFormScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: widget.pets,
           vet: vet,
           linkedPetIds: ids,
         ),
@@ -92,6 +106,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pets = context.watch<FurloState>().pets;
     final visible = _filter == 'all'
         ? _vets
         : _vets
@@ -105,7 +120,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
               .toList();
     final filters = [
       const RecordFilterOption('all', 'All'),
-      ...widget.pets
+      ...pets
           .where((p) => p.id != null)
           .map((p) => RecordFilterOption(p.id.toString(), p.name)),
     ];
@@ -116,7 +131,15 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
           RecordFilterTabs(
             options: filters,
             selectedValue: _filter,
-            onSelected: (value) => setState(() => _filter = value),
+            onSelected: (value) {
+              if (value != 'all') {
+                final selectedPet = pets
+                    .where((pet) => pet.id.toString() == value)
+                    .firstOrNull;
+                if (selectedPet != null) _furloState.selectPet(selectedPet);
+              }
+              setState(() => _filter = value);
+            },
           ),
           Expanded(
             child: _loading
@@ -226,13 +249,11 @@ class VetFormScreen extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
-    required this.pets,
     this.vet,
     this.linkedPetIds = const [],
   });
   final PetRepository repository;
   final NotificationService notificationService;
-  final List<Pet> pets;
   final Vet? vet;
   final List<int> linkedPetIds;
   @override
@@ -288,69 +309,72 @@ class _VetFormScreenState extends State<VetFormScreen> {
   String? _optional(String value) => value.trim().isEmpty ? null : value.trim();
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.vet == null ? 'Add Vet' : 'Edit Vet')),
-    body: Form(
-      key: _form,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _field(_name, 'Name', required: true),
-          _field(_clinic, 'Clinic'),
-          _field(
-            _phone,
-            'Phone',
-            required: true,
-            validator: validateVetPhone,
-            keyboard: TextInputType.phone,
-          ),
-          _field(
-            _email,
-            'Email',
-            validator: validateVetEmail,
-            keyboard: TextInputType.emailAddress,
-          ),
-          _field(_address, 'Address'),
-          _field(_notes, 'Notes', lines: 3),
-          const SizedBox(height: 16),
-          Text('Associated pets', style: AppTypography.h2),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 2,
-            children: widget.pets
-                .where((pet) => pet.id != null)
-                .map(
-                  (pet) => FilterChip(
-                    label: Text(pet.name),
-                    selected: _selected.contains(pet.id),
-                    onSelected: (value) => setState(() {
-                      if (value) {
-                        _selected.add(pet.id!);
-                      } else {
-                        _selected.remove(pet.id);
-                      }
-                    }),
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _saving ? null : _save,
-            style: AppComponents.primaryButton,
-            child: Text(_saving ? 'Saving…' : 'Save vet'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: AppComponents.secondaryButton,
-            child: const Text('Cancel'),
-          ),
-        ],
+  Widget build(BuildContext context) {
+    final pets = context.watch<FurloState>().pets;
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.vet == null ? 'Add Vet' : 'Edit Vet')),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _field(_name, 'Name', required: true),
+            _field(_clinic, 'Clinic'),
+            _field(
+              _phone,
+              'Phone',
+              required: true,
+              validator: validateVetPhone,
+              keyboard: TextInputType.phone,
+            ),
+            _field(
+              _email,
+              'Email',
+              validator: validateVetEmail,
+              keyboard: TextInputType.emailAddress,
+            ),
+            _field(_address, 'Address'),
+            _field(_notes, 'Notes', lines: 3),
+            const SizedBox(height: 16),
+            Text('Associated pets', style: AppTypography.h2),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 2,
+              children: pets
+                  .where((pet) => pet.id != null)
+                  .map(
+                    (pet) => FilterChip(
+                      label: Text(pet.name),
+                      selected: _selected.contains(pet.id),
+                      onSelected: (value) => setState(() {
+                        if (value) {
+                          _selected.add(pet.id!);
+                        } else {
+                          _selected.remove(pet.id);
+                        }
+                      }),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: AppComponents.primaryButton,
+              child: Text(_saving ? 'Saving…' : 'Save vet'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: AppComponents.secondaryButton,
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _field(
     TextEditingController controller,
@@ -598,15 +622,12 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () async {
-                      final pets = await widget.repository.getPets();
-                      if (!context.mounted) return;
                       final changed = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (_) => VetFormScreen(
                             repository: widget.repository,
                             notificationService: widget.notificationService,
-                            pets: pets,
                             vet: vet,
                             linkedPetIds: _pets.map((pet) => pet.id!).toList(),
                           ),

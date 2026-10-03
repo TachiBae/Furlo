@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
 import '../../data/pet_breeds.dart';
 import '../../models/pet.dart';
+import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../services/notifications_service.dart';
@@ -228,9 +230,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
         photoPath: _photoPath,
       );
       if (widget.existingPet == null) {
-        await widget.repository.addPet(pet);
+        await context.read<FurloState>().addPet(pet);
       } else {
-        await widget.repository.updatePet(pet);
+        await context.read<FurloState>().updatePet(pet);
       }
       if (!mounted) return;
       if (widget.existingPet != null) {

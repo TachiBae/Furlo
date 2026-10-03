@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/pet.dart';
+import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
@@ -44,14 +46,12 @@ class PetProfileScreen extends StatefulWidget {
     super.key,
     required this.petId,
     required this.repository,
-    required this.pets,
     this.notificationService = const NoOpNotificationService(),
     this.onPetDeleted,
   });
 
   final int petId;
   final PetRepository repository;
-  final List<Pet> pets;
   final NotificationService notificationService;
   final ValueChanged<int>? onPetDeleted;
 
@@ -61,7 +61,6 @@ class PetProfileScreen extends StatefulWidget {
 
 class _PetProfileScreenState extends State<PetProfileScreen> {
   late Future<void> _load;
-  Pet? _pet;
   Map<String, int> _counts = {};
   bool _deleting = false;
 
@@ -72,8 +71,11 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   }
 
   Future<void> _refresh() async {
-    final pets = await widget.repository.getPets();
-    final pet = pets.where((item) => item.id == widget.petId).firstOrNull;
+    final pet = context
+        .read<FurloState>()
+        .pets
+        .where((item) => item.id == widget.petId)
+        .firstOrNull;
     if (pet == null) throw StateError('Pet not found');
     final results = await Future.wait<Object>([
       widget.repository.getFeedingSchedules(widget.petId),
@@ -84,7 +86,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     ]);
     if (!mounted) return;
     setState(() {
-      _pet = pet;
       _counts = {
         'Feeding': (results[0] as List).length,
         'Vaccinations': (results[1] as List).length,
@@ -96,7 +97,11 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   }
 
   Future<void> _edit() async {
-    final pet = _pet;
+    final pet = context
+        .read<FurloState>()
+        .pets
+        .where((item) => item.id == widget.petId)
+        .firstOrNull;
     if (pet == null) return;
     final saved = await Navigator.of(context).push<Pet>(
       MaterialPageRoute(
@@ -105,12 +110,18 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
       ),
     );
     if (saved != null && mounted) {
-      setState(() => _load = _refresh());
+      setState(() {
+        _load = _refresh();
+      });
     }
   }
 
   Future<void> _delete() async {
-    final pet = _pet;
+    final pet = context
+        .read<FurloState>()
+        .pets
+        .where((item) => item.id == widget.petId)
+        .firstOrNull;
     if (pet == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -138,7 +149,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     if (confirmed != true || !mounted) return;
     setState(() => _deleting = true);
     try {
-      await widget.repository.deletePet(widget.petId);
+      await context.read<FurloState>().deletePet(widget.petId);
       widget.onPetDeleted?.call(widget.petId);
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -155,42 +166,41 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   }
 
   void _openLink(String label) {
-    final pet = _pet;
+    final state = context.read<FurloState>();
+    final pet = state.pets.where((item) => item.id == widget.petId).firstOrNull;
     if (pet == null) return;
+    state.selectPet(pet);
+    final pets = state.pets;
     Widget screen;
     switch (label) {
       case 'Feeding':
         screen = FeedingScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: widget.pets,
-          selectedPet: pet,
         );
       case 'Vaccinations':
         screen = VaccinationScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: widget.pets,
+          pets: pets,
           selectedPet: pet,
         );
       case 'Health Records':
         screen = HealthRecordsScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: widget.pets,
+          pets: pets,
           selectedPet: pet,
         );
       case 'Vets':
         screen = VetContactsScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
-          pets: widget.pets,
-          selectedPet: pet,
         );
       default:
         screen = WeightTrackingScreen(
           repository: widget.repository,
-          pets: widget.pets,
+          pets: pets,
           selectedPet: pet,
         );
     }
@@ -198,122 +208,129 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.bg,
-    appBar: AppBar(
-      title: const Text('Pet Profile'),
-      actions: [
-        IconButton(
-          tooltip: 'Edit pet',
-          onPressed: _pet == null ? null : _edit,
-          icon: const Icon(Icons.edit_outlined),
-        ),
-      ],
-    ),
-    body: FutureBuilder<void>(
-      future: _load,
-      builder: (context, snapshot) {
-        final pet = _pet;
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            pet == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError || pet == null) {
+  Widget build(BuildContext context) {
+    final pet = context
+        .watch<FurloState>()
+        .pets
+        .where((item) => item.id == widget.petId)
+        .firstOrNull;
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        title: const Text('Pet Profile'),
+        actions: [
+          IconButton(
+            tooltip: 'Edit pet',
+            onPressed: pet == null ? null : _edit,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+        ],
+      ),
+      body: FutureBuilder<void>(
+        future: _load,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              pet == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || pet == null) {
+            return Center(
+              child: Text(
+                'Could not load this pet.',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            );
+          }
+          final photo = _photo(pet.photoPath);
           return Center(
-            child: Text(
-              'Could not load this pet.',
-              style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppRadius.lgRadius,
+                    ),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 52,
+                          backgroundColor: AppColors.primaryMuted,
+                          backgroundImage: photo,
+                          child: photo == null
+                              ? const Icon(
+                                  Icons.pets,
+                                  size: 42,
+                                  color: AppColors.textPrimary,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(pet.name, style: AppTypography.h1),
+                        Text(
+                          [
+                            pet.species,
+                            if (pet.breed?.trim().isNotEmpty == true)
+                              pet.breed!,
+                          ].join(' · '),
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          petAgeLabel(pet.birthDate),
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text('Details', style: AppTypography.h2),
+                  const SizedBox(height: AppSpacing.sm),
+                  _details(pet),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text('Care records', style: AppTypography.h2),
+                  const SizedBox(height: AppSpacing.sm),
+                  ...[
+                    'Feeding',
+                    'Vaccinations',
+                    'Health Records',
+                    'Vets',
+                    'Weight',
+                  ].map(
+                    (label) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: _linkTile(label),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: _deleting ? null : _delete,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                        side: const BorderSide(color: AppColors.danger),
+                      ),
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(_deleting ? 'Deleting…' : 'Delete pet'),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
-        }
-        final photo = _photo(pet.photoPath);
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: AppRadius.lgRadius,
-                  ),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 52,
-                        backgroundColor: AppColors.primaryMuted,
-                        backgroundImage: photo,
-                        child: photo == null
-                            ? const Icon(
-                                Icons.pets,
-                                size: 42,
-                                color: AppColors.textPrimary,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(pet.name, style: AppTypography.h1),
-                      Text(
-                        [
-                          pet.species,
-                          if (pet.breed?.trim().isNotEmpty == true) pet.breed!,
-                        ].join(' · '),
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        petAgeLabel(pet.birthDate),
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text('Details', style: AppTypography.h2),
-                const SizedBox(height: AppSpacing.sm),
-                _details(pet),
-                const SizedBox(height: AppSpacing.lg),
-                Text('Care records', style: AppTypography.h2),
-                const SizedBox(height: AppSpacing.sm),
-                ...[
-                  'Feeding',
-                  'Vaccinations',
-                  'Health Records',
-                  'Vets',
-                  'Weight',
-                ].map(
-                  (label) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _linkTile(label),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: _deleting ? null : _delete,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.danger),
-                    ),
-                    icon: const Icon(Icons.delete_outline),
-                    label: Text(_deleting ? 'Deleting…' : 'Delete pet'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ),
-  );
+        },
+      ),
+    );
+  }
 
   Widget _details(Pet pet) => Container(
     padding: const EdgeInsets.all(AppSpacing.md),
