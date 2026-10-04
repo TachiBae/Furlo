@@ -214,7 +214,7 @@ String summaryFileName(String petName, DateTime date) {
   final sanitized = petName
       .trim()
       .toLowerCase()
-      .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '')
+      .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), ' ')
       .replaceAll(RegExp(r'\s+'), '-')
       .replaceAll(RegExp(r'-+'), '-')
       .replaceAll(RegExp(r'^[-.]+|[-.]+$'), '');

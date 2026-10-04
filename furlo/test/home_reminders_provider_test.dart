@@ -88,6 +88,62 @@ void main() {
     },
   );
 
+  test('one-time feedings appear only on their scheduled date', () {
+    final scheduledDate = DateTime(today.year, today.month, today.day);
+    final oneTimeMeal = FeedingEntry(
+      petId: 1,
+      name: 'One-time meal',
+      time: '15:00',
+      frequency: FeedingEntry.doesNotRepeat,
+      scheduledDate: scheduledDate,
+    );
+
+    final onScheduledDate = build(feedings: [oneTimeMeal]);
+    expect(onScheduledDate.allItems.map((item) => item.title), [
+      'One-time meal',
+    ]);
+    expect(
+      onScheduledDate.allItems.single.date,
+      DateTime(today.year, today.month, today.day, 15),
+    );
+    expect(
+      buildTodayReminders(
+        pets: pets,
+        feedings: [oneTimeMeal],
+        vaccinations: const [],
+        healthRecords: const [],
+        appointments: const [],
+        today: scheduledDate.add(const Duration(days: 1)),
+      ).allItems,
+      isEmpty,
+    );
+    expect(
+      buildTodayReminders(
+        pets: pets,
+        feedings: [oneTimeMeal],
+        vaccinations: const [],
+        healthRecords: const [],
+        appointments: const [],
+        today: scheduledDate.subtract(const Duration(days: 1)),
+      ).allItems,
+      isEmpty,
+    );
+  });
+
+  test('one-time feeding completion is evaluated on its scheduled date', () {
+    final scheduledDate = DateTime(today.year, today.month, today.day);
+    final meal = FeedingEntry(
+      petId: 1,
+      name: 'One-time meal',
+      time: '15:00',
+      frequency: FeedingEntry.doesNotRepeat,
+      scheduledDate: scheduledDate,
+      lastFedAt: scheduledDate.add(const Duration(hours: 9)),
+    );
+
+    expect(build(feedings: [meal]).allItems, isEmpty);
+  });
+
   test('orders overdue reminders before today and upcoming reminders', () {
     final result = build(
       feedings: [FeedingEntry(petId: 1, name: 'Meal', time: '08:00')],

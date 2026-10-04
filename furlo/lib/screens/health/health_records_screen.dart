@@ -104,7 +104,7 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
           leading: const BackButton(),
           title: const Text('Health Records'),
         ),
-        floatingActionButton: state.selectedPet == null
+        floatingActionButton: state.selectedPet == null || state.records.isEmpty
             ? null
             : FloatingActionButton.extended(
                 onPressed: state.saving ? null : () => _edit(state),

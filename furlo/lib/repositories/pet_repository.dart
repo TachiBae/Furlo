@@ -56,7 +56,7 @@ class SqlitePetRepository implements PetRepository {
     final databasePath = path.join(await getDatabasesPath(), 'furlo.db');
     return openDatabase(
       databasePath,
-      version: 9,
+      version: 10,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, version) async {
         await db.execute('''
@@ -86,6 +86,7 @@ class SqlitePetRepository implements PetRepository {
         if (oldVersion < 7) await _createHealthRecordsTable(db);
         if (oldVersion < 8) await _createVetsTables(db);
         if (oldVersion < 9) await _createWeightLogsTable(db);
+        if (oldVersion < 10) await _ensureFeedingScheduleColumns(db);
       },
       onOpen: (db) async {
         await _createFeedingSchedulesTable(db);
@@ -1064,6 +1065,7 @@ Future<void> _createFeedingSchedulesTable(Database db) => db.execute('''
     name TEXT NOT NULL,
     scheduled_time TEXT NOT NULL,
     frequency TEXT NOT NULL DEFAULT 'Daily',
+    scheduled_date TEXT,
     days_of_week TEXT NOT NULL DEFAULT '',
     portion_size TEXT,
     remind_me INTEGER NOT NULL DEFAULT 0,
@@ -1080,6 +1082,7 @@ Future<void> _ensureFeedingScheduleColumns(Database db) async {
     'days_of_week': "TEXT NOT NULL DEFAULT ''",
     'portion_size': 'TEXT',
     'remind_me': 'INTEGER NOT NULL DEFAULT 0',
+    'scheduled_date': 'TEXT',
   };
   for (final entry in additions.entries) {
     if (!names.contains(entry.key)) {
@@ -1155,6 +1158,7 @@ Map<String, Object?> _feedingEntryToMap(FeedingEntry entry) => {
   'name': entry.name,
   'scheduled_time': entry.time,
   'frequency': entry.frequency,
+  'scheduled_date': entry.scheduledDate?.toIso8601String(),
   'days_of_week': entry.daysOfWeek.join(','),
   'portion_size': entry.portionSize,
   'remind_me': entry.remindMe ? 1 : 0,
@@ -1168,6 +1172,7 @@ FeedingEntry _feedingEntryFromMap(Map<String, Object?> row) => FeedingEntry(
   name: row['name']?.toString() ?? '',
   time: row['scheduled_time']?.toString() ?? '08:00',
   frequency: row['frequency']?.toString() ?? 'Daily',
+  scheduledDate: DateTime.tryParse(row['scheduled_date']?.toString() ?? ''),
   daysOfWeek: (row['days_of_week']?.toString() ?? '')
       .split(',')
       .where((value) => value.isNotEmpty)

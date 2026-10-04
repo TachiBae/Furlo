@@ -73,8 +73,8 @@ TodayReminderResult buildTodayReminders({
   for (final feeding in feedings) {
     final pet = petById[feeding.petId];
     if (pet == null ||
-        feeding.isDoneOn(today) ||
-        !_feedingScheduledToday(feeding, today)) {
+        feeding.isCompleteOn(today) ||
+        !feeding.isScheduledOn(today)) {
       continue;
     }
     reminders.add(
@@ -170,16 +170,6 @@ TodayReminderResult buildTodayReminders({
     return a.title.toLowerCase().compareTo(b.title.toLowerCase());
   });
   return TodayReminderResult(allItems: List.unmodifiable(reminders));
-}
-
-bool _feedingScheduledToday(FeedingEntry entry, DateTime today) {
-  final frequency = entry.frequency.toLowerCase();
-  if (frequency == 'daily' || frequency == 'twice daily') return true;
-  if (frequency == 'weekly' || frequency == 'custom') {
-    return entry.daysOfWeek.contains(today.weekday);
-  }
-  return entry.daysOfWeek.isNotEmpty &&
-      entry.daysOfWeek.contains(today.weekday);
 }
 
 bool _medicationDueToday(DateTime start, String frequency, DateTime today) {

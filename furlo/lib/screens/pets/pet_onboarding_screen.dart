@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -31,55 +32,62 @@ class OnboardingScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.bg,
     body: SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: AppRadius.lgRadius,
-                  child: Image.asset(
-                    'assets/images/onboarding-paw.jpeg',
-                    width: 220,
-                    height: 220,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  "Track Your Pet's Care",
-                  style: AppTypography.h1,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Keep schedules, health records, and daily habits seamlessly organized.',
-                  style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AddPetScreen(
-                          repository: repository,
-                          notificationSettings: notificationSettings,
-                          notificationService: notificationService,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: AppRadius.lgRadius,
+                        child: Image.asset(
+                          'assets/images/onboarding-paw.jpeg',
+                          width: 220,
+                          height: 220,
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    ),
-                    style: AppComponents.primaryButton,
-                    child: const Text('Get Started'),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        "Track Your Pet's Care",
+                        style: AppTypography.h1,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Keep schedules, health records, and daily habits seamlessly organized.',
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => AddPetScreen(
+                                repository: repository,
+                                notificationSettings: notificationSettings,
+                                notificationService: notificationService,
+                              ),
+                            ),
+                          ),
+                          style: AppComponents.primaryButton,
+                          child: const Text('Get Started'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -139,7 +147,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     }
   }
 
-  Future<void> _selectBreed() async {
+  Future<void> _selectBreed(double fieldWidth) async {
     final species = _species;
     if (species == null) return;
     final breeds = species == 'Dog' ? PetBreeds.dogs : PetBreeds.cats;
@@ -148,6 +156,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
       searchHint: 'Search breeds',
       emptyMessage: 'No breeds found',
       options: breeds,
+      species: species,
+      selectedOption: _breed,
+      fieldWidth: fieldWidth,
     );
     if (mounted && _species == species && selected != null) {
       setState(() => _breed = selected);
@@ -159,18 +170,23 @@ class _AddPetScreenState extends State<AddPetScreen> {
     required String searchHint,
     required String emptyMessage,
     required List<String> options,
+    required String species,
+    required String? selectedOption,
+    required double fieldWidth,
   }) => showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.bg,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+    constraints: BoxConstraints.tightFor(width: fieldWidth),
+    backgroundColor: AppColors.surface,
+    shape: RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
     builder: (_) => _SearchableSelectionSheet(
       title: title,
       searchHint: searchHint,
       emptyMessage: emptyMessage,
       options: options,
+      species: species,
+      selectedOption: selectedOption,
+      fieldWidth: fieldWidth,
     ),
   );
 
@@ -348,51 +364,111 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   const SizedBox(height: AppSpacing.md),
                   Text('Species', style: AppTypography.label),
                   const SizedBox(height: AppSpacing.sm),
-                  DropdownButtonFormField<String>(
-                    initialValue: _species,
-                    style: AppTypography.body,
-                    decoration: const InputDecoration(
-                      hintText: 'Select species',
+                  LayoutBuilder(
+                    builder: (context, constraints) => SizedBox(
+                      width: constraints.maxWidth,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _species,
+                        style: AppTypography.body,
+                        decoration: const InputDecoration(
+                          hintText: 'Select species',
+                        ),
+                        items: const ['Dog', 'Cat']
+                            .map(
+                              (species) => DropdownMenuItem(
+                                value: species,
+                                child: SizedBox(
+                                  height: 48,
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 24,
+                                        child: FaIcon(
+                                          species == 'Dog'
+                                              ? FontAwesomeIcons.dog
+                                              : FontAwesomeIcons.cat,
+                                          size: 24,
+                                          color: _species == species
+                                              ? AppColors.accent
+                                              : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpacing.md),
+                                      Expanded(
+                                        child: Text(
+                                          species,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: _species == species
+                                                ? AppColors.accent
+                                                : AppColors.textPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                      if (_species == species)
+                                        const Icon(
+                                          Icons.check,
+                                          color: AppColors.accent,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        selectedItemBuilder: (context) => const ['Dog', 'Cat']
+                            .map(
+                              (species) => Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text(
+                                  species,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        itemHeight: 48,
+                        isExpanded: true,
+                        menuMaxHeight: 300,
+                        dropdownColor: AppColors.surface,
+                        borderRadius: AppRadius.mdRadius,
+                        onChanged: (value) => setState(() {
+                          _species = value;
+                          _breed = null;
+                        }),
+                        validator: (value) =>
+                            value == null ? 'Choose a species' : null,
+                      ),
                     ),
-                    items: const ['Dog', 'Cat']
-                        .map(
-                          (species) => DropdownMenuItem(
-                            value: species,
-                            child: Text(
-                              species,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() {
-                      _species = value;
-                      _breed = null;
-                    }),
-                    validator: (value) =>
-                        value == null ? 'Choose a species' : null,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text('Breed (optional)', style: AppTypography.label),
                   const SizedBox(height: AppSpacing.sm),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _species == null ? null : _selectBreed,
-                      borderRadius: AppRadius.mdRadius,
-                      child: InputDecorator(
-                        isEmpty: _breed == null,
-                        decoration: InputDecoration(
-                          hintText: 'Select breed',
-                          enabled: _species != null,
-                          suffixIcon: const Icon(Icons.arrow_drop_down),
-                        ),
-                        child: Text(
-                          _breed ?? '',
-                          style: TextStyle(
-                            color: _species == null
-                                ? AppColors.textDisabled
-                                : AppColors.textPrimary,
+                  LayoutBuilder(
+                    builder: (context, constraints) => SizedBox(
+                      width: constraints.maxWidth,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _species == null
+                              ? null
+                              : () => _selectBreed(constraints.maxWidth),
+                          borderRadius: AppRadius.mdRadius,
+                          child: InputDecorator(
+                            isEmpty: _breed == null,
+                            decoration: InputDecoration(
+                              hintText: 'Select breed',
+                              enabled: _species != null,
+                              suffixIcon: const Icon(Icons.arrow_drop_down),
+                            ),
+                            child: Text(
+                              _breed ?? '',
+                              style: TextStyle(
+                                color: _species == null
+                                    ? AppColors.textDisabled
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -455,12 +531,18 @@ class _SearchableSelectionSheet extends StatefulWidget {
     required this.searchHint,
     required this.emptyMessage,
     required this.options,
+    required this.species,
+    required this.selectedOption,
+    required this.fieldWidth,
   });
 
   final String title;
   final String searchHint;
   final String emptyMessage;
   final List<String> options;
+  final String species;
+  final String? selectedOption;
+  final double fieldWidth;
 
   @override
   State<_SearchableSelectionSheet> createState() =>
@@ -478,49 +560,86 @@ class _SearchableSelectionSheetState extends State<_SearchableSelectionSheet> {
         .toList();
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.lg,
-          AppSpacing.lg,
-          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
-        ),
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.72,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.title, style: AppTypography.h2),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                autofocus: true,
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: widget.searchHint,
-                  prefixIcon: Icon(Icons.search),
+      child: SizedBox(
+        width: widget.fieldWidth,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            0,
+            AppSpacing.lg,
+            0,
+            MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
+          ),
+          child: SizedBox(
+            height: (MediaQuery.sizeOf(context).height * 0.6 -
+                    (AppSpacing.lg * 2))
+                .clamp(0.0, MediaQuery.sizeOf(context).height * 0.6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.title, style: AppTypography.h2),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  autofocus: true,
+                  onChanged: (value) => setState(() => _query = value),
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    prefixIcon: Icon(Icons.search),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Expanded(
-                child: results.isEmpty
-                    ? Center(
-                        child: Text(
-                          widget.emptyMessage,
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.textSecondary,
+                const SizedBox(height: AppSpacing.sm),
+                Expanded(
+                  child: results.isEmpty
+                      ? Center(
+                          child: Text(
+                            widget.emptyMessage,
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
+                        )
+                      : ListView.builder(
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final option = results[index];
+                            final selected = option == widget.selectedOption;
+                            return ListTile(
+                              minTileHeight: 48,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                              ),
+                              leading: SizedBox(
+                                width: 24,
+                                child: FaIcon(
+                                  widget.species == 'Dog'
+                                      ? FontAwesomeIcons.dog
+                                      : FontAwesomeIcons.cat,
+                                  size: 24,
+                                  color: selected
+                                      ? AppColors.accent
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                              title: Text(
+                                option,
+                                style: AppTypography.body.copyWith(
+                                  color: selected
+                                      ? AppColors.accent
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                              trailing: selected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: AppColors.accent,
+                                    )
+                                  : null,
+                              onTap: () => Navigator.of(context).pop(option),
+                            );
+                          },
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: results.length,
-                        itemBuilder: (context, index) => ListTile(
-                          title: Text(results[index]),
-                          onTap: () =>
-                              Navigator.of(context).pop(results[index]),
-                        ),
-                      ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

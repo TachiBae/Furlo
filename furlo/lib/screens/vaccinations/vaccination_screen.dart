@@ -113,7 +113,8 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
           leading: const BackButton(),
           title: const Text('Vaccinations'),
         ),
-        floatingActionButton: state.selectedPet == null
+        floatingActionButton:
+            state.selectedPet == null || state.vaccinations.isEmpty
             ? null
             : FloatingActionButton.extended(
                 onPressed: state.saving ? null : () => _edit(state),

@@ -229,6 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _addPet();
         break;
       case 3:
+        _openAllPets();
         break;
       case 4:
         _openProfile();
