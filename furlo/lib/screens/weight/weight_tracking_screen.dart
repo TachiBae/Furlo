@@ -96,23 +96,29 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: CustomScrollView(
+                slivers: [
                   if (state.selectedPet != null)
-                    PetSelectorTabs(
-                      pets: state.pets,
-                      selectedPet: state.selectedPet!,
-                      onSelected: state.selectPet,
+                    SliverToBoxAdapter(
+                      child: PetSelectorTabs(
+                        pets: state.pets,
+                        selectedPet: state.selectedPet!,
+                        onSelected: state.selectPet,
+                      ),
                     ),
                   if (state.loading)
-                    const Expanded(
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
                       child: Center(child: CircularProgressIndicator()),
                     )
                   else if (state.error != null)
-                    Expanded(child: Center(child: Text(state.error!)))
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: Text(state.error!)),
+                    )
                   else if (state.selectedPet == null)
-                    const Expanded(
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
                       child: RecordEmptyState(
                         title: 'No pets yet',
                         message: 'Add a pet before tracking its weight.',
@@ -120,7 +126,8 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                       ),
                     )
                   else if (logs.isEmpty)
-                    Expanded(
+                    SliverFillRemaining(
+                      hasScrollBody: false,
                       child: RecordEmptyState(
                         title: 'No weight entries yet',
                         message:
@@ -131,28 +138,34 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                       ),
                     )
                   else ...[
-                    _SummaryRow(logs: logs),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Text(
-                        'Weight trend ($weightUnit)',
-                        style: AppTypography.h2,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 210,
+                    SliverToBoxAdapter(child: _SummaryRow(logs: logs)),
+                    SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
-                        child: _WeightTrendChart(logs: logs),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: Text(
+                          'Weight trend ($weightUnit)',
+                          style: AppTypography.h2,
+                        ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                      child: Text('History', style: AppTypography.h2),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 210,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
+                          child: _WeightTrendChart(logs: logs),
+                        ),
+                      ),
                     ),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 104),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        child: Text('History', style: AppTypography.h2),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 104),
+                      sliver: SliverList.builder(
                         itemCount: logs.length,
                         itemBuilder: (context, index) {
                           final log = logs[index];

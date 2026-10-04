@@ -1,5 +1,5 @@
-import 'dart:typed_data';
-
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
@@ -10,6 +10,9 @@ import '../models/vaccination.dart';
 import '../models/vet.dart';
 import '../models/weight_log.dart' show WeightLog, weightUnit;
 import '../repositories/pet_repository.dart';
+import 'pdf_download_stub.dart'
+    if (dart.library.js_interop) 'pdf_download_web.dart'
+    as browser;
 
 class PetCareSummary {
   const PetCareSummary({
@@ -38,10 +41,49 @@ class PetCareVetSummary {
   final DateTime? nextAppointment;
 }
 
+typedef SaveSummaryFile =
+    Future<String?> Function({
+      required String fileName,
+      required Uint8List bytes,
+    });
+
 class ExportService {
-  ExportService({required this._repository});
+  ExportService({
+    required this._repository,
+    SaveSummaryFile? saveFile,
+    Future<void> Function({required String fileName, required Uint8List bytes})?
+    downloadFile,
+    Future<void> Function(ShareParams)? shareFile,
+    bool? isWeb,
+  }) : _saveFile = saveFile ?? _savePdfFile,
+       _downloadFile = downloadFile ?? browser.downloadPdf,
+       _shareFile = shareFile ?? _sharePdfFile,
+       _isWeb = isWeb ?? kIsWeb;
 
   final PetRepository _repository;
+  final SaveSummaryFile _saveFile;
+  final Future<void> Function({
+    required String fileName,
+    required Uint8List bytes,
+  })
+  _downloadFile;
+  final Future<void> Function(ShareParams) _shareFile;
+  final bool _isWeb;
+
+  static Future<void> _sharePdfFile(ShareParams params) async {
+    await SharePlus.instance.share(params);
+  }
+
+  static Future<String?> _savePdfFile({
+    required String fileName,
+    required Uint8List bytes,
+  }) => FilePicker.platform.saveFile(
+    dialogTitle: 'Save care summary PDF',
+    fileName: fileName,
+    type: FileType.custom,
+    allowedExtensions: ['pdf'],
+    bytes: bytes,
+  );
 
   Future<PetCareSummary> assemblePetSummary(
     int petId, {
@@ -161,9 +203,7 @@ class ExportService {
             'Health Records',
             summary.healthRecords.isEmpty
                 ? [_emptyMessage()]
-                : summary.healthRecords
-                      .map(_healthRecordBlock)
-                      .toList(),
+                : summary.healthRecords.map(_healthRecordBlock).toList(),
           ),
           _section(
             'Weight History',
@@ -195,11 +235,30 @@ class ExportService {
     return Uint8List.fromList(await document.save());
   }
 
-  Future<void> exportPetSummary(int petId) async {
-    final summary = await assemblePetSummary(petId);
+  /// Returns false when the native save dialog is canceled.
+  /// Web completes after starting a download; it cannot confirm disk storage.
+  Future<bool> saveSummary(int petId, {DateTime? generatedAt}) async {
+    final summary = await assemblePetSummary(petId, generatedAt: generatedAt);
+    final bytes = await renderSummary(summary);
+    if (_isWeb) {
+      await _downloadFile(
+        fileName: summaryFileName(summary.pet.name, summary.generatedAt),
+        bytes: bytes,
+      );
+      return true;
+    }
+    final result = await _saveFile(
+      fileName: summaryFileName(summary.pet.name, summary.generatedAt),
+      bytes: bytes,
+    );
+    return result != null;
+  }
+
+  Future<void> shareSummary(int petId, {DateTime? generatedAt}) async {
+    final summary = await assemblePetSummary(petId, generatedAt: generatedAt);
     final bytes = await renderSummary(summary);
     final filename = summaryFileName(summary.pet.name, summary.generatedAt);
-    await SharePlus.instance.share(
+    await _shareFile(
       ShareParams(
         title: 'Furlo Care Summary',
         files: [XFile.fromData(bytes, mimeType: 'application/pdf')],
@@ -225,8 +284,18 @@ String summaryFileName(String petName, DateTime date) {
 String formatSummaryDate(DateTime? date) {
   if (date == null) return '—';
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   return '${months[date.month - 1]} ${date.day}, ${date.year}';
 }
@@ -236,7 +305,8 @@ String _isoDate(DateTime date) =>
 
 String _petAge(DateTime? birthDate, DateTime today) {
   if (birthDate == null || birthDate.isAfter(today)) return 'Not provided';
-  var months = (today.year - birthDate.year) * 12 + today.month - birthDate.month;
+  var months =
+      (today.year - birthDate.year) * 12 + today.month - birthDate.month;
   if (today.day < birthDate.day) months--;
   if (months < 0) return 'Not provided';
   final years = months ~/ 12;
@@ -285,20 +355,21 @@ pw.Widget _emptyMessage() => pw.Padding(
   ),
 );
 
-pw.Widget _table(List<String> headers, List<List<String>> rows) => pw.TableHelper.fromTextArray(
-  headers: headers,
-  data: rows.map((row) => row.map(_safePdfText).toList()).toList(),
-  headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-  rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
-  headerStyle: pw.TextStyle(
-    fontSize: 8,
-    fontWeight: pw.FontWeight.bold,
-    color: PdfColors.grey900,
-  ),
-  cellStyle: const pw.TextStyle(fontSize: 8, color: PdfColors.grey900),
-  cellPadding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-  border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-);
+pw.Widget _table(List<String> headers, List<List<String>> rows) =>
+    pw.TableHelper.fromTextArray(
+      headers: headers,
+      data: rows.map((row) => row.map(_safePdfText).toList()).toList(),
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+      rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+      headerStyle: pw.TextStyle(
+        fontSize: 8,
+        fontWeight: pw.FontWeight.bold,
+        color: PdfColors.grey900,
+      ),
+      cellStyle: const pw.TextStyle(fontSize: 8, color: PdfColors.grey900),
+      cellPadding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+      border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+    );
 
 pw.Widget _healthRecordBlock(HealthRecord record) => pw.Container(
   width: double.infinity,
@@ -371,12 +442,17 @@ String _safePdfText(String input) {
     0x2022: '*',
     0x20ac: 'EUR',
   };
-  return String.fromCharCodes(input.runes.expand((rune) {
-    if (rune == 9 || rune == 10 || rune == 13 || (rune >= 32 && rune <= 126)) {
-      return [rune];
-    }
-    final replacement = replacements[rune];
-    if (replacement != null) return replacement.codeUnits;
-    return [63];
-  }));
+  return String.fromCharCodes(
+    input.runes.expand((rune) {
+      if (rune == 9 ||
+          rune == 10 ||
+          rune == 13 ||
+          (rune >= 32 && rune <= 126)) {
+        return [rune];
+      }
+      final replacement = replacements[rune];
+      if (replacement != null) return replacement.codeUnits;
+      return [63];
+    }),
+  );
 }

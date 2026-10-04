@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -64,6 +65,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   late Future<void> _load;
   Map<String, int> _counts = {};
   bool _deleting = false;
+  bool _choosingExport = false;
   bool _exporting = false;
 
   @override
@@ -119,22 +121,82 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   }
 
   Future<void> _exportCareSummary() async {
-    if (_exporting) return;
-    setState(() => _exporting = true);
+    if (_choosingExport || _exporting) return;
+    _choosingExport = true;
+    var saving = false;
     try {
-      await ExportService(
-        repository: widget.repository,
-      ).exportPetSummary(widget.petId);
-    } catch (_) {
+      final action = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.lgRadius),
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  leading: const Icon(
+                    Icons.download_rounded,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    kIsWeb ? 'Download PDF' : 'Save PDF',
+                    style: AppTypography.bodyStrong,
+                  ),
+                  onTap: () => Navigator.of(sheetContext).pop('save'),
+                ),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  leading: const Icon(Icons.share, color: AppColors.primary),
+                  title: Text('Share', style: AppTypography.bodyStrong),
+                  onTap: () => Navigator.of(sheetContext).pop('share'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (!mounted || action == null) return;
+      setState(() => _exporting = true);
+      final service = ExportService(repository: widget.repository);
+      saving = action == 'save';
+      if (saving) {
+        final saved = await service.saveSummary(widget.petId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              saved
+                  ? (kIsWeb ? 'PDF download started.' : 'PDF saved.')
+                  : 'PDF save canceled.',
+            ),
+          ),
+        );
+      } else {
+        await service.shareSummary(widget.petId);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Care summary export failed: $error\n$stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not export care summary. Please try again.'),
+          SnackBar(
+            content: Text(
+              saving
+                  ? 'Could not save PDF. Please try again.'
+                  : 'Could not export care summary. Please try again.',
+            ),
           ),
         );
       }
     } finally {
-      if (mounted) setState(() => _exporting = false);
+      _choosingExport = false;
+      if (mounted && _exporting) setState(() => _exporting = false);
     }
   }
 

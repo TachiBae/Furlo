@@ -125,75 +125,85 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 700),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (state.selectedPet != null)
-                    PetSelectorTabs(
-                      pets: state.pets,
-                      selectedPet: state.selectedPet!,
-                      onSelected: state.selectPet,
-                    ),
-                  RecordFilterTabs(
-                    options: const [
-                      RecordFilterOption(VaccinationStatuses.all, 'All'),
-                      RecordFilterOption(
-                        VaccinationStatuses.dueSoon,
-                        'Due soon',
+              child: RefreshIndicator(
+                onRefresh: state.refresh,
+                child: CustomScrollView(
+                  slivers: [
+                    if (state.selectedPet != null)
+                      SliverToBoxAdapter(
+                        child: PetSelectorTabs(
+                          pets: state.pets,
+                          selectedPet: state.selectedPet!,
+                          onSelected: state.selectPet,
+                        ),
                       ),
-                      RecordFilterOption(
-                        VaccinationStatuses.overdue,
-                        'Overdue',
-                      ),
-                      RecordFilterOption(
-                        VaccinationStatuses.completed,
-                        'Completed',
-                      ),
-                    ],
-                    selectedValue: _filter,
-                    onSelected: (status) => setState(() => _filter = status),
-                  ),
-                  if (state.loading)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (state.error != null)
-                    Expanded(child: Center(child: Text(state.error!)))
-                  else if (state.selectedPet == null)
-                    const Expanded(
-                      child: Center(
-                        child: Text('Add a pet to track vaccines.'),
-                      ),
-                    )
-                  else if (records.isEmpty)
-                    Expanded(
-                      child: RecordEmptyState(
-                        icon: Icons.vaccines_outlined,
-                        title: state.vaccinations.isNotEmpty
-                            ? 'No vaccines in this status'
-                            : 'No vaccinations yet',
-                        message: state.vaccinations.isNotEmpty
-                            ? 'Choose another filter to see more records.'
-                            : 'Keep your pet’s vaccine history up to date.',
-                        actionLabel: state.vaccinations.isNotEmpty
-                            ? null
-                            : 'Add vaccination',
-                        onAction: state.vaccinations.isNotEmpty
-                            ? null
-                            : () => _edit(state),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: state.refresh,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.md,
-                            AppSpacing.sm,
-                            AppSpacing.md,
-                            88,
+                    SliverToBoxAdapter(
+                      child: RecordFilterTabs(
+                        options: const [
+                          RecordFilterOption(VaccinationStatuses.all, 'All'),
+                          RecordFilterOption(
+                            VaccinationStatuses.dueSoon,
+                            'Due soon',
                           ),
+                          RecordFilterOption(
+                            VaccinationStatuses.overdue,
+                            'Overdue',
+                          ),
+                          RecordFilterOption(
+                            VaccinationStatuses.completed,
+                            'Completed',
+                          ),
+                        ],
+                        selectedValue: _filter,
+                        onSelected: (status) =>
+                            setState(() => _filter = status),
+                      ),
+                    ),
+                    if (state.loading)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (state.error != null)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: Text(state.error!)),
+                      )
+                    else if (state.selectedPet == null)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Text('Add a pet to track vaccines.'),
+                        ),
+                      )
+                    else if (records.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: RecordEmptyState(
+                          icon: Icons.vaccines_outlined,
+                          title: state.vaccinations.isNotEmpty
+                              ? 'No vaccines in this status'
+                              : 'No vaccinations yet',
+                          message: state.vaccinations.isNotEmpty
+                              ? 'Choose another filter to see more records.'
+                              : 'Keep your pet’s vaccine history up to date.',
+                          actionLabel: state.vaccinations.isNotEmpty
+                              ? null
+                              : 'Add vaccination',
+                          onAction: state.vaccinations.isNotEmpty
+                              ? null
+                              : () => _edit(state),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                          AppSpacing.md,
+                          88,
+                        ),
+                        sliver: SliverList.builder(
                           itemCount: records.length,
                           itemBuilder: (context, index) {
                             final item = records[index];
@@ -206,8 +216,8 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                           },
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
