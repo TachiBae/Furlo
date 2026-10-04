@@ -818,21 +818,19 @@ class _FeedingScheduleCard extends StatelessWidget {
             ],
           ),
           const Divider(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.circle, color: statusColor, size: 9),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      status,
-                      style: AppTypography.caption.copyWith(color: statusColor),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton.icon(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final statusLabel = Row(
+                children: [
+                  Icon(Icons.circle, color: statusColor, size: 9),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    status,
+                    style: AppTypography.caption.copyWith(color: statusColor),
+                  ),
+                ],
+              );
+              final completeButton = TextButton.icon(
                 onPressed: onComplete,
                 icon: Icon(
                   entry.isComplete
@@ -841,8 +839,26 @@ class _FeedingScheduleCard extends StatelessWidget {
                   size: 18,
                 ),
                 label: Text(entry.isComplete ? 'Done' : 'Mark fed'),
-              ),
-            ],
+              );
+              if (MediaQuery.sizeOf(context).height < 400) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    statusLabel,
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: completeButton,
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: statusLabel),
+                  completeButton,
+                ],
+              );
+            },
           ),
         ],
       ),
