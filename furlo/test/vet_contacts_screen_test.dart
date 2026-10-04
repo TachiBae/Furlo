@@ -75,7 +75,13 @@ void main() {
             await tester.scrollUntilVisible(
               find.text('Dr. Lee ${count - 1}'),
               300,
-              scrollable: find.byType(Scrollable).last,
+              scrollable: find
+                  .byWidgetPredicate(
+                    (widget) =>
+                        widget is Scrollable &&
+                        widget.axisDirection == AxisDirection.down,
+                  )
+                  .first,
             );
             expect(find.text('Dr. Lee ${count - 1}'), findsOneWidget);
             expect(
