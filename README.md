@@ -2,6 +2,8 @@
 
 Furlo is a pet health and care tracker for owners managing one to three pets at home.
 
+> **AI credit:** I used Codebuff for code edits, debugging, and test iteration, with Claude for planning/explanations and some ChatGPT assistance. I reviewed generated work and documented contributions and mistakes in [AI-USAGE.md](AI-USAGE.md).
+
 ## Features
 
 Implemented in the Flutter app under `furlo/`:
