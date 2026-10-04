@@ -108,10 +108,12 @@ class _ExportTestRepository implements PetRepository {
   Future<Vet?> getVetById(int id) async => throw UnimplementedError();
 
   @override
-  Future<List<Pet>> getPetsForVet(int vetId) async => throw UnimplementedError();
+  Future<List<Pet>> getPetsForVet(int vetId) async =>
+      throw UnimplementedError();
 
   @override
-  Future<Vet> addVet(Vet vet, List<int> petIds) async => throw UnimplementedError();
+  Future<Vet> addVet(Vet vet, List<int> petIds) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> updateVet(Vet vet, List<int> petIds) async =>
@@ -125,10 +127,12 @@ class _ExportTestRepository implements PetRepository {
       throw UnimplementedError();
 
   @override
-  Future<WeightLog> addWeightLog(WeightLog log) async => throw UnimplementedError();
+  Future<WeightLog> addWeightLog(WeightLog log) async =>
+      throw UnimplementedError();
 
   @override
-  Future<void> updateWeightLog(WeightLog log) async => throw UnimplementedError();
+  Future<void> updateWeightLog(WeightLog log) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> deleteWeightLog(int id, int petId) async =>
@@ -137,6 +141,91 @@ class _ExportTestRepository implements PetRepository {
 
 void main() {
   final generatedAt = DateTime(2026, 10, 2, 15, 30);
+
+  group('saveSummary', () {
+    test(
+      'passes PDF bytes and the expected filename to the save function',
+      () async {
+        final service = ExportService(
+          repository: _ExportTestRepository(
+            pets: [Pet(id: 1, name: 'Milo / Pup', species: 'Dog')],
+          ),
+          saveFile: ({required fileName, required bytes}) async {
+            expect(fileName, 'furlo-milo-pup-summary-2026-10-02.pdf');
+            expect(bytes, isNotEmpty);
+            expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+            return '/Downloads/$fileName';
+          },
+        );
+        expect(await service.saveSummary(1, generatedAt: generatedAt), isTrue);
+      },
+    );
+
+    test('returns false when the native save function is canceled', () async {
+      final service = ExportService(
+        repository: _ExportTestRepository(
+          pets: [Pet(id: 1, name: 'Milo', species: 'Dog')],
+        ),
+        saveFile: ({required fileName, required bytes}) async => null,
+      );
+      expect(await service.saveSummary(1, generatedAt: generatedAt), isFalse);
+    });
+
+    test('propagates save errors for the UI to handle', () async {
+      final service = ExportService(
+        repository: _ExportTestRepository(
+          pets: [Pet(id: 1, name: 'Milo', species: 'Dog')],
+        ),
+        saveFile: ({required fileName, required bytes}) async {
+          throw StateError('Save failed');
+        },
+      );
+      await expectLater(
+        service.saveSummary(1, generatedAt: generatedAt),
+        throwsStateError,
+      );
+    });
+  });
+
+  test(
+    'web save downloads PDF bytes without sharing or calling saveFile',
+    () async {
+      var downloaded = false;
+      final service = ExportService(
+        repository: _ExportTestRepository(
+          pets: [Pet(id: 1, name: 'Milo / Pup', species: 'Dog')],
+        ),
+        isWeb: true,
+        saveFile: ({required fileName, required bytes}) async {
+          fail('Web must not call the file picker save function');
+        },
+        shareFile: (_) async => fail('Web download must not invoke sharing'),
+        downloadFile: ({required fileName, required bytes}) async {
+          downloaded = true;
+          expect(fileName, 'furlo-milo-pup-summary-2026-10-02.pdf');
+          expect(bytes, isNotEmpty);
+          expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+        },
+      );
+      expect(await service.saveSummary(1, generatedAt: generatedAt), isTrue);
+      expect(downloaded, isTrue);
+    },
+  );
+
+  test(
+    'native cancel completes without throwing or invoking sharing',
+    () async {
+      final service = ExportService(
+        repository: _ExportTestRepository(
+          pets: [Pet(id: 1, name: 'Milo', species: 'Dog')],
+        ),
+        isWeb: false,
+        saveFile: ({required fileName, required bytes}) async => null,
+        shareFile: (_) async => fail('Native save must not invoke sharing'),
+      );
+      expect(await service.saveSummary(1, generatedAt: generatedAt), isFalse);
+    },
+  );
 
   group('summaryFileName', () {
     test('sanitizes illegal characters and whitespace', () {
@@ -260,7 +349,9 @@ void main() {
     });
 
     test('throws when pet is missing', () async {
-      final service = ExportService(repository: _ExportTestRepository(pets: []));
+      final service = ExportService(
+        repository: _ExportTestRepository(pets: []),
+      );
       expect(
         () => service.assemblePetSummary(99, generatedAt: generatedAt),
         throwsA(isA<StateError>()),
@@ -299,15 +390,15 @@ void main() {
           ),
         ],
         weights: [
-          WeightLog(
-            petId: petId,
-            date: DateTime(2026, 8, 1),
-            weight: 12.5,
-          ),
+          WeightLog(petId: petId, date: DateTime(2026, 8, 1), weight: 12.5),
         ],
         vets: [
           PetCareVetSummary(
-            vet: Vet(name: 'Dr. Lee', clinic: 'North Clinic', phone: '555-0199'),
+            vet: Vet(
+              name: 'Dr. Lee',
+              clinic: 'North Clinic',
+              phone: '555-0199',
+            ),
             nextAppointment: DateTime(2026, 12, 1),
           ),
         ],

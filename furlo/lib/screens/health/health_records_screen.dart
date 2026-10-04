@@ -115,63 +115,73 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 700),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (state.selectedPet != null)
-                    PetSelectorTabs(
-                      pets: state.pets,
-                      selectedPet: state.selectedPet!,
-                      onSelected: state.selectPet,
+              child: RefreshIndicator(
+                onRefresh: state.refresh,
+                child: CustomScrollView(
+                  slivers: [
+                    if (state.selectedPet != null)
+                      SliverToBoxAdapter(
+                        child: PetSelectorTabs(
+                          pets: state.pets,
+                          selectedPet: state.selectedPet!,
+                          onSelected: state.selectPet,
+                        ),
+                      ),
+                    SliverToBoxAdapter(
+                      child: RecordFilterTabs(
+                        options: filters,
+                        selectedValue: _filter,
+                        onSelected: (type) => setState(() => _filter = type),
+                      ),
                     ),
-                  RecordFilterTabs(
-                    options: filters,
-                    selectedValue: _filter,
-                    onSelected: (type) => setState(() => _filter = type),
-                  ),
-                  if (state.loading)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (state.error != null)
-                    Expanded(child: Center(child: Text(state.error!)))
-                  else if (state.selectedPet == null)
-                    const Expanded(
-                      child: RecordEmptyState(
-                        title: 'Add a pet first',
-                        message: 'Add a pet to keep their health history here.',
-                        icon: Icons.medical_information_outlined,
-                      ),
-                    )
-                  else if (records.isEmpty)
-                    Expanded(
-                      child: RecordEmptyState(
-                        title: state.records.isEmpty
-                            ? 'No health records yet'
-                            : 'No records of this type',
-                        message: state.records.isEmpty
-                            ? 'Keep your pet’s health history in one place.'
-                            : 'Choose another type to see more records.',
-                        icon: Icons.medical_information_outlined,
-                        actionLabel: state.records.isEmpty
-                            ? 'Add record'
-                            : null,
-                        onAction: state.records.isEmpty
-                            ? () => _edit(state)
-                            : null,
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: state.refresh,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.md,
-                            AppSpacing.sm,
-                            AppSpacing.md,
-                            88,
-                          ),
+                    if (state.loading)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (state.error != null)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: Text(state.error!)),
+                      )
+                    else if (state.selectedPet == null)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: RecordEmptyState(
+                          title: 'Add a pet first',
+                          message:
+                              'Add a pet to keep their health history here.',
+                          icon: Icons.medical_information_outlined,
+                        ),
+                      )
+                    else if (records.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: RecordEmptyState(
+                          title: state.records.isEmpty
+                              ? 'No health records yet'
+                              : 'No records of this type',
+                          message: state.records.isEmpty
+                              ? 'Keep your pet’s health history in one place.'
+                              : 'Choose another type to see more records.',
+                          icon: Icons.medical_information_outlined,
+                          actionLabel: state.records.isEmpty
+                              ? 'Add record'
+                              : null,
+                          onAction: state.records.isEmpty
+                              ? () => _edit(state)
+                              : null,
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                          AppSpacing.md,
+                          88,
+                        ),
+                        sliver: SliverList.builder(
                           itemCount: records.length,
                           itemBuilder: (context, index) => _HealthRecordCard(
                             record: records[index],
@@ -180,8 +190,8 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
