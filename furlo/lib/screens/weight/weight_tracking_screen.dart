@@ -85,7 +85,7 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
           leading: const BackButton(),
           title: const Text('Weight Tracking'),
         ),
-        floatingActionButton: state.selectedPet == null
+        floatingActionButton: state.selectedPet == null || state.logs.isEmpty
             ? null
             : FloatingActionButton.extended(
                 onPressed: state.saving ? null : () => _edit(state),

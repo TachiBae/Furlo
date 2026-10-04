@@ -100,4 +100,48 @@ void main() {
       expect(await repository.getFeedingSchedules(miso.id!), isEmpty);
     },
   );
+
+  testWidgets('feeding schedules can be set to not repeat on one date', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+
+    final repository = WebPetRepository();
+    await repository.addPet(Pet(name: 'Mochi', species: 'Dog'));
+    final pets = await repository.getPets();
+    final mochi = pets.single;
+    final state = FurloState(repository);
+    await state.load();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: MaterialApp(home: FeedingScreen(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Feeding Schedule'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'Medication meal');
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Does not repeat').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final saved = (await repository.getFeedingSchedules(mochi.id!)).single;
+    expect(saved.frequency, 'Does not repeat');
+    final selectedDate = saved.scheduledDate!;
+    expect(saved.isScheduledOn(selectedDate), isTrue);
+    expect(
+      saved.isScheduledOn(selectedDate.add(const Duration(days: 1))),
+      isFalse,
+    );
+    expect(find.textContaining('Does not repeat'), findsOneWidget);
+  });
 }

@@ -54,6 +54,26 @@ void main() {
     },
   );
 
+  test('feeding schedule persistence preserves a one-time date', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repository = WebPetRepository();
+    final scheduledDate = DateTime(2026, 10, 4);
+    final saved = await repository.addFeedingSchedule(
+      FeedingEntry(
+        petId: 1,
+        name: 'One-time meal',
+        time: '12:30',
+        frequency: FeedingEntry.doesNotRepeat,
+        scheduledDate: scheduledDate,
+      ),
+    );
+
+    final loaded = (await repository.getFeedingSchedules(1)).single;
+    expect(loaded.frequency, FeedingEntry.doesNotRepeat);
+    expect(loaded.scheduledDate, scheduledDate);
+    expect(loaded.id, saved.id);
+  });
+
   test('daily completion expires on the following date', () {
     final fedAt = DateTime(2026, 2, 3, 20, 0);
     final schedule = FeedingEntry(

@@ -39,6 +39,11 @@ class NotificationSettingsProvider extends ChangeNotifier {
       _permissionGranted = await service.hasPermission();
       if (!await repository.permissionWasRequested()) {
         await _requestOnce();
+        if (_permissionGranted == true) {
+          // The app-start reschedule ran before permission existed; rebuild
+          // the pending reminders now that the user has granted it.
+          await service.rescheduleAll();
+        }
       }
     }
     _loading = false;

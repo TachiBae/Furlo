@@ -6,8 +6,10 @@ import 'package:furlo/models/pet.dart';
 import 'package:furlo/models/vaccination.dart';
 import 'package:furlo/models/vet.dart';
 import 'package:furlo/models/weight_log.dart';
+import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
+import 'package:provider/provider.dart';
 
 class _FakePetRepository implements PetRepository {
   final schedules = <FeedingEntry>[];
@@ -121,7 +123,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final repository = _FakePetRepository();
     await tester.pumpWidget(
-      MaterialApp(home: AddPetScreen(repository: repository)),
+      ChangeNotifierProvider(
+        create: (_) => FurloState(repository),
+        child: MaterialApp(home: AddPetScreen(repository: repository)),
+      ),
     );
 
     await tester.enterText(find.byType(TextFormField).first, 'mochi');

@@ -50,6 +50,47 @@ void main() {
     );
   });
 
+  test('calculates a one-time feeding reminder only at its selected date', () {
+    const enabled = true;
+    final now = DateTime(2026, 10, 2, 7);
+    expect(
+      calculateOneTimeFeedingFireTime(
+        now: now,
+        enabled: enabled,
+        date: DateTime(2026, 10, 2),
+        time: '08:30',
+      ),
+      DateTime(2026, 10, 2, 8, 30),
+    );
+    expect(
+      calculateOneTimeFeedingFireTime(
+        now: now,
+        enabled: enabled,
+        date: DateTime(2026, 10, 3),
+        time: '08:30',
+      ),
+      DateTime(2026, 10, 3, 8, 30),
+    );
+    expect(
+      calculateOneTimeFeedingFireTime(
+        now: DateTime(2026, 10, 2, 9),
+        enabled: enabled,
+        date: DateTime(2026, 10, 2),
+        time: '08:30',
+      ),
+      isNull,
+    );
+    expect(
+      calculateOneTimeFeedingFireTime(
+        now: now,
+        enabled: false,
+        date: DateTime(2026, 10, 3),
+        time: '08:30',
+      ),
+      isNull,
+    );
+  });
+
   test('calculates vaccine and appointment reminder dates', () {
     final now = DateTime(2026, 10, 1, 8);
     final due = DateTime(2026, 10, 10);

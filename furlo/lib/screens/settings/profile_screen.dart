@@ -121,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => NotificationsScreen(
+                    builder: (_) => NotificationSettingsScreen(
                       settings: widget.notificationSettings,
                       service: widget.notificationService,
                     ),

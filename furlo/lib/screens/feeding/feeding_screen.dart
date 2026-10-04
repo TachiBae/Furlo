@@ -104,6 +104,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
     var name = existing?.name ?? '';
     var time = _parseTime(existing?.time ?? '08:00');
     var frequency = existing?.frequency ?? 'Daily';
+    var scheduledDate = existing?.scheduledDate ?? DateTime.now();
     var selectedPetId = existing?.petId ?? petId;
     var daysOfWeek = [...?existing?.daysOfWeek];
     var portionSize = existing?.portionSize ?? '';
@@ -207,25 +208,72 @@ class _FeedingScreenState extends State<FeedingScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: frequency,
                       decoration: _fieldDecoration('Frequency'),
-                      items: const ['Daily', 'Twice daily', 'Weekly', 'Custom']
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value),
-                            ),
-                          )
-                          .toList(),
+                      items:
+                          const [
+                                'Does not repeat',
+                                'Daily',
+                                'Twice daily',
+                                'Weekly',
+                                'Custom',
+                              ]
+                              .map(
+                                (value) => DropdownMenuItem(
+                                  value: value,
+                                  child: Text(value),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setDialogState(() {
                             frequency = value;
-                            if (value == 'Daily' || value == 'Twice daily') {
+                            if (value == 'Daily' ||
+                                value == 'Twice daily' ||
+                                value == FeedingEntry.doesNotRepeat) {
                               daysOfWeek.clear();
                             }
                           });
                         }
                       },
                     ),
+                    if (frequency == FeedingEntry.doesNotRepeat) ...[
+                      const SizedBox(height: 16),
+                      InkWell(
+                        borderRadius: AppRadius.mdRadius,
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final selected = await showDatePicker(
+                            context: context,
+                            initialDate: scheduledDate,
+                            firstDate:
+                                scheduledDate.isBefore(
+                                  DateTime(now.year, now.month, now.day),
+                                )
+                                ? scheduledDate
+                                : DateTime(now.year, now.month, now.day),
+                            lastDate: DateTime(now.year + 10),
+                          );
+                          if (selected != null) {
+                            setDialogState(() => scheduledDate = selected);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: _fieldDecoration(
+                            'Date',
+                            prefixIcon: const Icon(Icons.calendar_today),
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              MaterialLocalizations.of(
+                                context,
+                              ).formatMediumDate(scheduledDate),
+                              style: AppTypography.body,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (frequency == 'Weekly' || frequency == 'Custom') ...[
                       const SizedBox(height: 16),
                       Text('Days of week', style: AppTypography.label),
@@ -316,10 +364,21 @@ class _FeedingScreenState extends State<FeedingScreen> {
                           name: name,
                           time: _formatTime(time),
                           frequency: frequency,
+                          scheduledDate: frequency == FeedingEntry.doesNotRepeat
+                              ? scheduledDate
+                              : null,
                           daysOfWeek: List.unmodifiable(daysOfWeek),
                           portionSize: portionSize.isEmpty ? null : portionSize,
                           remindMe: remindMe,
-                          lastFedAt: existing?.lastFedAt,
+                          lastFedAt:
+                              existing?.frequency != frequency ||
+                                  (frequency == FeedingEntry.doesNotRepeat &&
+                                      !DateUtils.isSameDay(
+                                        existing?.scheduledDate,
+                                        scheduledDate,
+                                      ))
+                              ? null
+                              : existing?.lastFedAt,
                         ),
                       );
                     },
@@ -339,9 +398,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       final selectedPetChanged =
           existing == null && result.petId != _selectedPet?.id;
       final targetPet = selectedPetChanged
-          ? _furloState.pets
-                .where((pet) => pet.id == result.petId)
-                .firstOrNull
+          ? _furloState.pets.where((pet) => pet.id == result.petId).firstOrNull
           : null;
       if (existing == null) {
         await widget.repository.addFeedingSchedule(result);
@@ -361,7 +418,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
   }
 
   Future<void> _markComplete(FeedingEntry entry) async {
-    if (entry.doneToday || entry.id == null || _saving) return;
+    if (entry.isComplete || entry.id == null || _saving) return;
     setState(() => _saving = true);
     try {
       await widget.repository.updateFeedingSchedule(
@@ -450,9 +507,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
   @override
   Widget build(BuildContext context) {
     final furloState = context.watch<FurloState>();
-    final petsWithIds = furloState.pets
-        .where((pet) => pet.id != null)
-        .toList();
+    final petsWithIds = furloState.pets.where((pet) => pet.id != null).toList();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -525,7 +580,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                 return _FeedingScheduleCard(
                                   entry: entry,
                                   status: status,
-                                  onComplete: _saving || entry.doneToday
+                                  onComplete: _saving || entry.isComplete
                                       ? null
                                       : () => _markComplete(entry),
                                   onEdit: _saving
@@ -564,9 +619,25 @@ class _FeedingScreenState extends State<FeedingScreen> {
   }
 
   String _statusFor(FeedingEntry entry) {
-    if (entry.doneToday) return 'Completed';
-    final parts = entry.time.split(':');
+    if (entry.isComplete) return 'Completed';
     final now = DateTime.now();
+    if (entry.frequency == FeedingEntry.doesNotRepeat) {
+      final scheduledDate = entry.scheduledDate;
+      if (scheduledDate == null) return 'Upcoming';
+      final time = _parseTime(entry.time);
+      final scheduled = DateTime(
+        scheduledDate.year,
+        scheduledDate.month,
+        scheduledDate.day,
+        time.hour,
+        time.minute,
+      );
+      if (DateUtils.dateOnly(now).isAfter(DateUtils.dateOnly(scheduled))) {
+        return 'Missed / Overdue';
+      }
+      return now.isAfter(scheduled) ? 'Missed / Overdue' : 'Upcoming';
+    }
+    final parts = entry.time.split(':');
     final scheduled = DateTime(
       now.year,
       now.month,
@@ -692,6 +763,11 @@ class _FeedingScheduleCard extends StatelessWidget {
                     Text(
                       [
                         scheduledTime,
+                        if (entry.frequency == FeedingEntry.doesNotRepeat &&
+                            entry.scheduledDate != null)
+                          MaterialLocalizations.of(
+                            context,
+                          ).formatMediumDate(entry.scheduledDate!),
                         entry.frequency,
                         if (entry.daysOfWeek.isNotEmpty)
                           entry.daysOfWeek
@@ -745,12 +821,12 @@ class _FeedingScheduleCard extends StatelessWidget {
               TextButton.icon(
                 onPressed: onComplete,
                 icon: Icon(
-                  entry.doneToday
+                  entry.isComplete
                       ? Icons.check_circle
                       : Icons.check_circle_outline,
                   size: 18,
                 ),
-                label: Text(entry.doneToday ? 'Done today' : 'Mark fed'),
+                label: Text(entry.isComplete ? 'Done' : 'Mark fed'),
               ),
             ],
           ),

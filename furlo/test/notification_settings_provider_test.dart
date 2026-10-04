@@ -57,6 +57,9 @@ void main() {
     expect(provider.isEnabled(NotificationTypes.dailyFeeding), isTrue);
     expect(provider.isEnabled(NotificationTypes.medication), isTrue);
     expect(service.permissionRequests, 1);
+    // The first permission grant rebuilds reminders the app-start reschedule
+    // could not schedule.
+    expect(service.rescheduleCalls, 1);
 
     await provider.toggle(NotificationTypes.dailyFeeding, false);
     expect(service.cancelledTypes, [NotificationTypes.dailyFeeding]);
@@ -67,7 +70,7 @@ void main() {
       isFalse,
     );
     await provider.toggle(NotificationTypes.dailyFeeding, true);
-    expect(service.rescheduleCalls, 1);
+    expect(service.rescheduleCalls, 2);
     expect(
       await SharedPreferencesNotificationSettingsRepository().isEnabled(
         NotificationTypes.dailyFeeding,
@@ -94,4 +97,17 @@ void main() {
       expect(service.rescheduleCalls, 0);
     },
   );
+
+  test('first permission grant reschedules pending reminders', () async {
+    final repository = SharedPreferencesNotificationSettingsRepository();
+    final service = _FakeNotificationService();
+    final provider = NotificationSettingsProvider(
+      repository: repository,
+      service: service,
+    );
+    await provider.ready;
+    expect(provider.permissionGranted, isTrue);
+    expect(service.permissionRequests, 1);
+    expect(service.rescheduleCalls, 1);
+  });
 }

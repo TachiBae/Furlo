@@ -30,7 +30,10 @@ void main() {
         (await repository.getVaccinationsForPet(mochiId)).single.id,
         record.id,
       );
-      expect(await WebPetRepository().getVaccinationsForPet(mochiId), isEmpty);
+      expect(
+        await WebPetRepository().getVaccinationsForPet(mochiId),
+        hasLength(1),
+      );
       expect(await repository.getVaccinationsForPet(misoId), isEmpty);
 
       await repository.updateVaccination(

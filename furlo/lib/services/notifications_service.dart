@@ -5,6 +5,7 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../data/health_record_types.dart';
+import '../models/feeding_entry.dart';
 import '../models/pet.dart';
 import '../repositories/notification_settings_repository.dart';
 import '../repositories/pet_repository.dart';
@@ -47,6 +48,24 @@ int stableNotificationId(String type, Object recordId) {
   }
   final id = hash & 0x7fffffff;
   return id == 0 ? 1 : id;
+}
+
+DateTime? calculateOneTimeFeedingFireTime({
+  required DateTime now,
+  required bool enabled,
+  required DateTime date,
+  required String time,
+}) {
+  if (!enabled) return null;
+  final parts = time.split(':');
+  final scheduled = DateTime(
+    date.year,
+    date.month,
+    date.day,
+    int.tryParse(parts.first) ?? 8,
+    parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
+  );
+  return scheduled.isAfter(now) ? scheduled : null;
 }
 
 DateTime? calculateNotificationFireTime({
@@ -418,12 +437,28 @@ class LocalNotificationService implements NotificationService {
     for (final entry in schedules) {
       final id = entry.id;
       if (id == null || !entry.remindMe) continue;
-      final feedDate = calculateNotificationFireTime(
-        type: NotificationTypes.dailyFeeding,
-        now: DateTime.now(),
-        enabled: await settings.isEnabled(NotificationTypes.dailyFeeding),
-        time: entry.time,
-      );
+      final now = DateTime.now();
+      final isOneTime = entry.frequency == FeedingEntry.doesNotRepeat;
+      final scheduledDate = entry.scheduledDate;
+      if (isOneTime &&
+          (scheduledDate == null ||
+              scheduledDate.isBefore(DateTime(now.year, now.month, now.day)) ||
+              entry.isComplete)) {
+        continue;
+      }
+      final feedDate = isOneTime
+          ? calculateOneTimeFeedingFireTime(
+              now: now,
+              enabled: await settings.isEnabled(NotificationTypes.dailyFeeding),
+              date: scheduledDate!,
+              time: entry.time,
+            )
+          : calculateNotificationFireTime(
+              type: NotificationTypes.dailyFeeding,
+              now: now,
+              enabled: await settings.isEnabled(NotificationTypes.dailyFeeding),
+              time: entry.time,
+            );
       if (feedDate == null) continue;
       final title = 'Feeding reminder';
       final body = '${pet.name} is due for ${entry.name}.';
@@ -433,15 +468,17 @@ class LocalNotificationService implements NotificationService {
         title,
         body,
         feedDate,
-        repeat: NotificationRepeat.daily,
+        repeat: isOneTime ? NotificationRepeat.none : NotificationRepeat.daily,
       );
-      final missed = calculateNotificationFireTime(
-        type: NotificationTypes.missedMeal,
-        now: DateTime.now(),
-        enabled: await settings.isEnabled(NotificationTypes.missedMeal),
-        time: entry.time,
-        isDone: entry.doneToday,
-      );
+      final missed = isOneTime
+          ? null
+          : calculateNotificationFireTime(
+              type: NotificationTypes.missedMeal,
+              now: now,
+              enabled: await settings.isEnabled(NotificationTypes.missedMeal),
+              time: entry.time,
+              isDone: entry.doneToday,
+            );
       if (missed != null) {
         await schedule(
           NotificationTypes.missedMeal,
