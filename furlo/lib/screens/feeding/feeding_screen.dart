@@ -117,7 +117,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.appColors.surface,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -129,7 +129,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
               Text(
                 'Set up your pet’s meal routine',
                 style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
             ],
@@ -341,7 +341,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                 children: [
                   TextButton(
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
+                      foregroundColor: context.appColors.textPrimary,
                       minimumSize: const Size.fromHeight(48),
                       textStyle: AppTypography.bodyStrong,
                     ),
@@ -440,7 +440,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
         title: Text('Delete schedule?', style: AppTypography.h2),
         content: Text('Delete the ${entry.name} feeding schedule?'),
         actions: [
@@ -478,7 +478,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
   }) {
     final border = OutlineInputBorder(
       borderRadius: AppRadius.mdRadius,
-      borderSide: const BorderSide(color: AppColors.textDisabled, width: 1),
+      borderSide: BorderSide(color: context.appColors.textDisabled, width: 1),
     );
     return InputDecoration(
       labelText: label,
@@ -486,20 +486,24 @@ class _FeedingScreenState extends State<FeedingScreen> {
       hintText: hint,
       prefixIcon: prefixIcon,
       filled: true,
-      fillColor: AppColors.surfaceAlt,
+      fillColor: context.appColors.surfaceAlt,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      labelStyle: AppTypography.label.copyWith(color: AppColors.textSecondary),
-      hintStyle: AppTypography.body.copyWith(color: AppColors.textSecondary),
+      labelStyle: AppTypography.label.copyWith(
+        color: context.appColors.textSecondary,
+      ),
+      hintStyle: AppTypography.body.copyWith(
+        color: context.appColors.textSecondary,
+      ),
       border: border,
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: context.appColors.primary, width: 1.5),
       ),
       errorBorder: border.copyWith(
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+        borderSide: BorderSide(color: context.appColors.danger, width: 1.5),
       ),
       focusedErrorBorder: border.copyWith(
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+        borderSide: BorderSide(color: context.appColors.danger, width: 1.5),
       ),
     );
   }
@@ -509,11 +513,11 @@ class _FeedingScreenState extends State<FeedingScreen> {
     final furloState = context.watch<FurloState>();
     final petsWithIds = furloState.pets.where((pet) => pet.id != null).toList();
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.appColors.bg,
       appBar: AppBar(
         leading: const BackButton(),
         title: Text('Feeding Schedule', style: AppTypography.h2),
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.appColors.bg,
       ),
       body: SafeArea(
         child: Center(
@@ -672,7 +676,7 @@ class _NoPetState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.pets_outlined, size: 44, color: AppColors.primary),
+        Icon(Icons.pets_outlined, size: 44, color: context.appColors.primary),
         const SizedBox(height: AppSpacing.md),
         Text(
           'Add a pet before managing feeding schedules.',
@@ -699,10 +703,10 @@ class _EmptyFeedingState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
+        Icon(
           Icons.restaurant_outlined,
           size: 48,
-          color: AppColors.primary,
+          color: context.appColors.primary,
         ),
         const SizedBox(height: AppSpacing.md),
         Text('No feeding schedules yet', style: AppTypography.h2),
@@ -710,7 +714,9 @@ class _EmptyFeedingState extends StatelessWidget {
         Text(
           'Add a schedule to keep track of your pet’s meals.',
           textAlign: TextAlign.center,
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.body.copyWith(
+            color: context.appColors.textSecondary,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         ElevatedButton.icon(
@@ -743,14 +749,14 @@ class _FeedingScheduleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheduledTime = _parseTime(entry.time).format(context);
     final statusColor = switch (status) {
-      'Completed' => AppColors.accent,
-      'Missed / Overdue' => AppColors.danger,
-      _ => AppColors.info,
+      'Completed' => context.appColors.primary,
+      'Missed / Overdue' => context.appColors.primaryMuted,
+      _ => context.appColors.textSecondary,
     };
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppRadius.lgRadius,
         boxShadow: AppElevation.soft,
       ),
@@ -762,10 +768,10 @@ class _FeedingScheduleCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.16),
+                  color: context.appColors.primary.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.restaurant, color: AppColors.primary),
+                child: Icon(Icons.restaurant, color: context.appColors.primary),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

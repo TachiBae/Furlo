@@ -16,11 +16,14 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status?.toLowerCase()) {
-      'overdue' => AppColors.danger,
-      'due soon' => AppColors.warning,
-      'completed' => AppColors.accent,
-      'upcoming' => AppColors.primary,
-      _ => isActive == true ? AppColors.accent : AppColors.warning,
+      'overdue' => context.appColors.primaryMuted,
+      'due soon' => context.appColors.textSecondary,
+      'completed' => context.appColors.primary,
+      'upcoming' => context.appColors.textSecondary,
+      _ =>
+        isActive == true
+            ? context.appColors.primary
+            : context.appColors.textSecondary,
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -32,7 +35,7 @@ class StatusPill extends StatelessWidget {
       child: Text(
         label,
         style: AppTypography.caption.copyWith(
-          color: color,
+          color: context.appColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
       ),

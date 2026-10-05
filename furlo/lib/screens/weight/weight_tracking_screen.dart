@@ -190,8 +190,10 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                                           _formatDate(log.date),
                                           style: AppTypography.caption.copyWith(
                                             color: log.date == null
-                                                ? AppColors.textDisabled
-                                                : AppColors.textSecondary,
+                                                ? context.appColors.textDisabled
+                                                : context
+                                                      .appColors
+                                                      .textSecondary,
                                           ),
                                         ),
                                         if ((log.notes ?? '').trim().isNotEmpty)
@@ -205,8 +207,9 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                                               overflow: TextOverflow.ellipsis,
                                               style: AppTypography.body
                                                   .copyWith(
-                                                    color:
-                                                        AppColors.textSecondary,
+                                                    color: context
+                                                        .appColors
+                                                        .textSecondary,
                                                   ),
                                             ),
                                           ),
@@ -276,7 +279,7 @@ class _SummaryValue extends StatelessWidget {
   final String value;
   @override
   Widget build(BuildContext context) => Card(
-    color: AppColors.surface,
+    color: context.appColors.surface,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Column(
@@ -285,7 +288,7 @@ class _SummaryValue extends StatelessWidget {
           Text(
             label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -335,7 +338,7 @@ class _WeightTrendChart extends StatelessWidget {
             double.infinity,
           ),
           getDrawingHorizontalLine: (_) => FlLine(
-            color: AppColors.textDisabled.withValues(alpha: .35),
+            color: context.appColors.textDisabled.withValues(alpha: .35),
             strokeWidth: 1,
           ),
         ),
@@ -358,7 +361,7 @@ class _WeightTrendChart extends StatelessWidget {
                   value.toStringAsFixed(1),
                   style: AppTypography.caption.copyWith(
                     fontSize: 9,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ),
@@ -383,7 +386,7 @@ class _WeightTrendChart extends StatelessWidget {
                     _shortDate(chronological[index].date),
                     style: AppTypography.caption.copyWith(
                       fontSize: 9,
-                      color: AppColors.textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                 );
@@ -398,14 +401,14 @@ class _WeightTrendChart extends StatelessWidget {
                 FlSpot(index.toDouble(), chronological[index].weight),
             ],
             isCurved: false,
-            color: AppColors.primary,
+            color: context.appColors.primary,
             barWidth: 2.5,
             dotData: FlDotData(
               show: true,
               getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
                 radius: 4,
-                color: AppColors.accent,
-                strokeColor: AppColors.primary,
+                color: context.appColors.accent,
+                strokeColor: context.appColors.primary,
                 strokeWidth: 1.5,
               ),
             ),
@@ -525,7 +528,7 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
   InputDecoration _decoration(String label) => InputDecoration(
     labelText: label,
     filled: true,
-    fillColor: AppColors.surface,
+    fillColor: context.appColors.surface,
     border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
   );
 }

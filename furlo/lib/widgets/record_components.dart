@@ -43,15 +43,17 @@ class RecordFilterTabs extends StatelessWidget {
             showCheckmark: false,
             label: Text(option.label),
             selected: selected,
-            selectedColor: AppColors.primary,
-            backgroundColor: AppColors.surface,
+            selectedColor: context.appColors.primary,
+            backgroundColor: context.appColors.surface,
             labelStyle: AppTypography.label.copyWith(
               color: selected
-                  ? AppColors.textOnPrimary
-                  : AppColors.textSecondary,
+                  ? context.appColors.textOnPrimary
+                  : context.appColors.textSecondary,
             ),
             side: BorderSide(
-              color: selected ? AppColors.primary : AppColors.textDisabled,
+              color: selected
+                  ? context.appColors.primary
+                  : context.appColors.textDisabled,
             ),
             onSelected: (_) => onSelected(option.value),
           );
@@ -91,13 +93,17 @@ class PetSelectorTabs extends StatelessWidget {
           showCheckmark: false,
           label: Text(pet.name),
           selected: selected,
-          selectedColor: AppColors.primary,
-          backgroundColor: AppColors.surface,
+          selectedColor: context.appColors.primary,
+          backgroundColor: context.appColors.surface,
           labelStyle: AppTypography.label.copyWith(
-            color: selected ? AppColors.textOnPrimary : AppColors.textSecondary,
+            color: selected
+                ? context.appColors.textOnPrimary
+                : context.appColors.textSecondary,
           ),
           side: BorderSide(
-            color: selected ? AppColors.primary : AppColors.textDisabled,
+            color: selected
+                ? context.appColors.primary
+                : context.appColors.textDisabled,
           ),
           onSelected: (_) => onSelected(pet),
         );
@@ -114,11 +120,13 @@ class RecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: AppColors.surface,
+    color: context.appColors.surface,
     margin: const EdgeInsets.only(bottom: 12),
     shape: RoundedRectangleBorder(
       borderRadius: AppRadius.lgRadius,
-      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
+      side: BorderSide(
+        color: context.appColors.primary.withValues(alpha: 0.25),
+      ),
     ),
     child: InkWell(
       onTap: onTap,
@@ -151,14 +159,16 @@ class RecordEmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 48, color: AppColors.primary),
+          Icon(icon, size: 48, color: context.appColors.primary),
           const SizedBox(height: AppSpacing.md),
           Text(title, style: AppTypography.h2, textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.sm),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
           ),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: AppSpacing.lg),
@@ -183,7 +193,7 @@ Future<bool> confirmRecordDelete(
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
         title: Text(title, style: AppTypography.h2),
         content: Text(message),
         actions: [
@@ -219,7 +229,9 @@ class RecordDetailRow extends StatelessWidget {
         width: 96,
         child: Text(
           label,
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.body.copyWith(
+            color: context.appColors.textSecondary,
+          ),
         ),
       ),
       Expanded(
@@ -227,8 +239,8 @@ class RecordDetailRow extends StatelessWidget {
           value,
           style: AppTypography.body.copyWith(
             color: valueIsEmpty
-                ? AppColors.textSecondary
-                : AppColors.textPrimary,
+                ? context.appColors.textSecondary
+                : context.appColors.textPrimary,
           ),
         ),
       ),

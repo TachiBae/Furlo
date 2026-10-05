@@ -140,6 +140,8 @@ class _ExportTestRepository implements PetRepository {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final generatedAt = DateTime(2026, 10, 2, 15, 30);
 
   group('saveSummary', () {

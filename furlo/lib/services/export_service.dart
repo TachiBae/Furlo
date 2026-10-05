@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
@@ -133,11 +134,15 @@ class ExportService {
   }
 
   Future<Uint8List> renderSummary(PetCareSummary summary) async {
+    final regularFont = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+    );
+    final boldFont = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
+    );
     final theme = pw.ThemeData.withFont(
-      base: pw.Font.helvetica(),
-      bold: pw.Font.helveticaBold(),
-      italic: pw.Font.helveticaOblique(),
-      boldItalic: pw.Font.helveticaBoldOblique(),
+      base: regularFont,
+      bold: boldFont,
     );
     final document = pw.Document(theme: theme);
     document.addPage(
@@ -409,50 +414,14 @@ pw.Widget _vetBlock(PetCareVetSummary entry) => pw.Padding(
   ),
 );
 
-String _safePdfText(String input) {
-  const replacements = <int, String>{
-    0x00a0: ' ',
-    0x00a9: '(c)',
-    0x00ae: '(R)',
-    0x00b0: ' degrees',
-    0x00e9: 'e',
-    0x00c9: 'E',
-    0x00f1: 'n',
-    0x00d1: 'N',
-    0x00fc: 'u',
-    0x00dc: 'U',
-    0x00e4: 'a',
-    0x00c4: 'A',
-    0x00f6: 'o',
-    0x00d6: 'O',
-    0x00e5: 'a',
-    0x00c5: 'A',
-    0x00df: 'ss',
-    0x00e6: 'ae',
-    0x00c6: 'AE',
-    0x00f8: 'o',
-    0x00d8: 'O',
-    0x2018: "'",
-    0x2019: "'",
-    0x201c: '"',
-    0x201d: '"',
-    0x2013: '-',
-    0x2014: '-',
-    0x2026: '...',
-    0x2022: '*',
-    0x20ac: 'EUR',
-  };
-  return String.fromCharCodes(
-    input.runes.expand((rune) {
-      if (rune == 9 ||
-          rune == 10 ||
-          rune == 13 ||
-          (rune >= 32 && rune <= 126)) {
-        return [rune];
-      }
-      final replacement = replacements[rune];
-      if (replacement != null) return replacement.codeUnits;
-      return [63];
-    }),
-  );
-}
+String _safePdfText(String input) => String.fromCharCodes(
+  input.runes.map((rune) {
+    if (rune == 9 ||
+        rune == 10 ||
+        rune == 13 ||
+        (rune >= 32 && rune <= 0xffff)) {
+      return rune;
+    }
+    return 63;
+  }),
+);
