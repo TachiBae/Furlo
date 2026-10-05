@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "738197946630",
+    "project_id": "furlo-e4473",
+    "storage_bucket": "furlo-e4473.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:738197946630:android:13087fd32922fec76c9e87",
+        "android_client_info": {
+          "package_name": "com.example.furlo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "738197946630-7ed383enp8kbg1sne2kohd0qv20pbuq5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB868AaYoItpG183vlM7WfmGzc49oFLaJI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "738197946630-7ed383enp8kbg1sne2kohd0qv20pbuq5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "738197946630-7qq158soc5ca7iigfhsgbf18pgduieg8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.furlo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
