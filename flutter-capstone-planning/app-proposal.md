@@ -145,4 +145,9 @@ The other three stay on the stretch list, each anchored to an existing wireframe
 | Data model | Vet contact/association described in prose | Vet–pet relationship made explicit as its own `vet_pets` join table | Wireframe review (Vet Details screen, associated-pets chips) showed the relationship is genuinely many-to-many in the UI, not just describable in a sentence — needed as a real join table to support filtering vets by pet |
 | Storage | Not specified | `sqflite`, defended against `shared_preferences`/Firebase/Supabase | New requirement in this worksheet |
 | Core features | 9 features, no hour estimates | Same 9 features, all kept, with widgets + hours named (~38–40 hours) | Re-scored against real Flutter build pace from m4a4/m5a5; |
-| Auth | Designed in wireframes, status unclear | Confirmed staying as wireframes only | Scoping decision made explicit once the "public repo secrets" question forced a real answer, rather than leaving it ambiguous |
+| Theme | Stretch goal: light/dark preference | Default, Light, and Dark theme choices are saved with `shared_preferences` | Theme preference was completed after the MVP |
+| PDF export | `pdf` plus `share_plus`, intended to support phone sharing and web download | Web downloads directly through the browser; phones offer Save PDF (`file_picker`) and Share | The web share sheet did not provide a dependable file-save action |
+| PDF fonts | Not specified | Noto Sans is bundled for PDF text; emoji and unsupported characters may become `?` | The PDF standard fonts lack Unicode coverage |
+| Photo input | Camera on phone, file picker/sample image on web | Gallery/file picking is used across platforms; camera capture is not built | A shared gallery-selection path works on the supported platforms |
+| Dependencies | None listed | `font_awesome_flutter`, `file_picker`, and `web` are used | Species icons, phone PDF saving, and the browser download helper |
+| Auth | Wireframes only | Not built; Furlo remains a single-device local tracker | Cloud accounts and shared care were not included in the MVP |

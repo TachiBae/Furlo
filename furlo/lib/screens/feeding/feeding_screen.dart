@@ -186,9 +186,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
                           context: context,
                           initialTime: time,
                         );
-                        if (selected != null) {
-                          setDialogState(() => time = selected);
-                        }
+                        if (selected == null || !context.mounted) return;
+                        setDialogState(() => time = selected);
                       },
                       child: InputDecorator(
                         decoration: _fieldDecoration(
@@ -253,9 +252,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                 : DateTime(now.year, now.month, now.day),
                             lastDate: DateTime(now.year + 10),
                           );
-                          if (selected != null) {
-                            setDialogState(() => scheduledDate = selected);
-                          }
+                          if (selected == null || !context.mounted) return;
+                          setDialogState(() => scheduledDate = selected);
                         },
                         child: InputDecorator(
                           decoration: _fieldDecoration(
@@ -405,10 +403,12 @@ class _FeedingScreenState extends State<FeedingScreen> {
       } else {
         await widget.repository.updateFeedingSchedule(result);
       }
+      if (!mounted) return;
       if (targetPet != null) _furloState.selectPet(targetPet);
       await widget.notificationService.rescheduleAll();
       if (!selectedPetChanged) await _loadSchedules();
     } catch (error, stackTrace) {
+      if (!mounted) return;
       debugPrint('Failed to save feeding schedule: $error');
       debugPrintStack(stackTrace: stackTrace);
       _showMessage('The feeding schedule could not be saved.');
@@ -427,6 +427,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       await widget.notificationService.rescheduleAll();
       await _loadSchedules();
     } catch (_) {
+      if (!mounted) return;
       _showMessage('The meal could not be marked complete.');
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -461,6 +462,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       await widget.notificationService.rescheduleAll();
       await _loadSchedules();
     } catch (_) {
+      if (!mounted) return;
       _showMessage('The feeding schedule could not be deleted.');
     }
   }
@@ -806,6 +808,8 @@ class _FeedingScheduleCard extends StatelessWidget {
                         if (entry.portionSize != null) entry.portionSize!,
                         if (entry.remindMe) 'Reminder on',
                       ].join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTypography.caption,
                     ),
                   ],
@@ -831,22 +835,34 @@ class _FeedingScheduleCard extends StatelessWidget {
                   children: [
                     Icon(Icons.circle, color: statusColor, size: 9),
                     const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      status,
-                      style: AppTypography.caption.copyWith(color: statusColor),
+                    Flexible(
+                      child: Text(
+                        status,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption.copyWith(
+                          color: statusColor,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              TextButton.icon(
-                onPressed: onComplete,
-                icon: Icon(
-                  entry.isComplete
-                      ? Icons.check_circle
-                      : Icons.check_circle_outline,
-                  size: 18,
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: onComplete,
+                  icon: Icon(
+                    entry.isComplete
+                        ? Icons.check_circle
+                        : Icons.check_circle_outline,
+                    size: 18,
+                  ),
+                  label: Text(
+                    entry.isComplete ? 'Done' : 'Mark fed',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                label: Text(entry.isComplete ? 'Done' : 'Mark fed'),
               ),
             ],
           ),

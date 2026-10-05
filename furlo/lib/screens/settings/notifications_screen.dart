@@ -34,28 +34,35 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ],
     ),
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.notifications_none,
-              size: 56,
-              color: context.appColors.textSecondary,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text('No notifications yet', style: AppTypography.h2),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Reminders will appear in your device notification center. Use the gear to choose which reminders Furlo sends.',
-              textAlign: TextAlign.center,
-              style: AppTypography.body.copyWith(
-                color: context.appColors.textSecondary,
+    body: LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.notifications_none,
+                    size: 56,
+                    color: context.appColors.textSecondary,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text('No notifications yet', style: AppTypography.h2),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Reminders will appear in your device notification center. Use the gear to choose which reminders Furlo sends.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.body.copyWith(
+                      color: context.appColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     ),

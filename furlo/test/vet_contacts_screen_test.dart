@@ -75,7 +75,10 @@ void main() {
             await tester.scrollUntilVisible(
               find.text('Dr. Lee ${count - 1}'),
               300,
-              scrollable: find.byType(Scrollable).last,
+              scrollable: find.descendant(
+                of: find.byType(VetContactsScreen),
+                matching: find.byType(Scrollable),
+              ).first,
             );
             expect(find.text('Dr. Lee ${count - 1}'), findsOneWidget);
             expect(

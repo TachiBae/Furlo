@@ -229,7 +229,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
       lastDate: now,
       helpText: 'Select birthdate',
     );
-    if (selected != null) setState(() => _birthDate = selected);
+    if (selected == null || !mounted) return;
+    setState(() => _birthDate = selected);
   }
 
   Future<void> _savePet() async {

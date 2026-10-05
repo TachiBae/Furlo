@@ -55,15 +55,24 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
-    _vets = await widget.repository.getAllVets();
-    _linkedPets.clear();
-    for (final vet in _vets) {
+    final vets = await widget.repository.getAllVets();
+    if (!mounted) return;
+    final linkedPets = <int, List<Pet>>{};
+    for (final vet in vets) {
       if (vet.id != null) {
-        _linkedPets[vet.id!] = await widget.repository.getPetsForVet(vet.id!);
+        final pets = await widget.repository.getPetsForVet(vet.id!);
+        if (!mounted) return;
+        linkedPets[vet.id!] = pets;
       }
     }
-    if (mounted) setState(() => _loading = false);
+    if (!mounted) return;
+    _vets = vets;
+    _linkedPets
+      ..clear()
+      ..addAll(linkedPets);
+    setState(() => _loading = false);
   }
 
   Future<void> _openForm([Vet? vet]) async {
@@ -180,7 +189,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
                           ),
                         ),
                       );
-                      if (changed == true) await _load();
+                      if (changed == true && context.mounted) await _load();
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -502,12 +511,13 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (selected != null) {
-      await widget.repository.setNextAppointment(_vet!.id!, pet.id!, selected);
-      await widget.notificationService.rescheduleAll();
-      _changed = true;
-      await _load();
-    }
+    if (selected == null || !mounted) return;
+    await widget.repository.setNextAppointment(_vet!.id!, pet.id!, selected);
+    if (!mounted) return;
+    await widget.notificationService.rescheduleAll();
+    if (!mounted) return;
+    _changed = true;
+    await _load();
   }
 
   Future<void> _delete() async {
@@ -614,8 +624,10 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                                     pet.id!,
                                     null,
                                   );
+                                  if (!mounted) return;
                                   await widget.notificationService
                                       .rescheduleAll();
+                                  if (!mounted) return;
                                   _changed = true;
                                   await _load();
                                 },
@@ -647,7 +659,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                           ),
                         ),
                       );
-                      if (changed == true) {
+                      if (changed == true && context.mounted) {
                         _changed = true;
                         await _load();
                       }

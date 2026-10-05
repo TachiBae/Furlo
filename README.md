@@ -16,14 +16,14 @@ Implemented in the Flutter app under `furlo/`:
 - **Vet contacts** — vets linked to pets (many-to-many), next appointment per pet, phone launch via `url_launcher`
 - **Weight tracking** — weight log CRUD and a trend line chart (`fl_chart`)
 - **Notifications** — local notifications on iOS/Android (`flutter_local_notifications`), per-type toggles in settings, reschedule on app start
-- **Profile and settings** — display name (`shared_preferences`), notification preferences, delete-all-data
-- **Export care summary** — PDF care summary per pet (`pdf`) shared or downloaded (`share_plus`) from the pet profile screen
+- **Profile and settings** — display name, Light and dark themes saved on the device (Default, Light, or Dark), and notification preferences
+- **Export care summary** — PDF care summary per pet. On web, Download PDF saves the file through the browser. On phones, Save PDF opens the system save dialog and Share opens the share sheet. PDF text uses Noto Sans, so accented letters are kept. Emoji and characters the font doesn't contain may appear as `?` or be missing.
 
 ## Known limitations
 
 - **No account or cloud sync** — single device, local data only; two installs do not share data.
-- **Dark theme only** — `MaterialApp` uses `AppTheme.dark`; no in-app light theme toggle.
-- **Web storage is split** — `WebPetRepository` persists **pets** and **feeding schedules** in `shared_preferences`; vaccinations, health records, vets, vet–pet links, and weight logs are held **in memory** and are lost on a full page reload.
+- **Themes** — Default, Light, and Dark are available in settings; the selected choice is saved in SharedPreferences.
+- **Web storage** — `WebPetRepository` persists pets, feeding schedules, vaccinations, health records, vets, vet–pet links, and weight logs in `shared_preferences`.
 - **Web notifications** — `NoOpNotificationService`; reminder UI works but nothing is scheduled.
 - **Bottom nav “My Pets”** — the tab does not open a separate screen; the pet list lives on the home dashboard (“See all” opens the full list).
 - **Stretch goals below** are not implemented.
@@ -34,7 +34,7 @@ Implemented in the Flutter app under `furlo/`:
 - **State:** `provider`
 - **Persistence:** `sqflite` (native), `shared_preferences` (settings and partial web storage)
 - **UI / utilities:** Material 3, `device_preview` (debug), `image_picker`, `url_launcher`, `fl_chart`
-- **Export:** `pdf`, `share_plus`
+- **Export:** `pdf`, `share_plus`, `file_picker`, and `web`
 - **Notifications (native):** `flutter_local_notifications`, `timezone`
 
 ## Data storage
@@ -114,9 +114,9 @@ flutter test
 | Area | Mobile (iOS/Android) | Web |
 | --- | --- | --- |
 | Pet / feeding persistence | SQLite | `shared_preferences` |
-| Vaccinations, health, vets, weight | SQLite | In-memory (session only) |
+| Vaccinations, health, vets, weight | SQLite | `shared_preferences` |
 | Local notifications | Scheduled | No-op service |
-| Export PDF | Share sheet | Download fallback via `share_plus` |
+| Export PDF | Save PDF dialog (`file_picker`) or Share sheet | Download through the browser |
 | Vet phone links | `url_launcher` | Browser-dependent |
 
 ## Project structure (`furlo/lib/`)
@@ -148,10 +148,22 @@ From the product proposal; not in the app today:
 - Calendar view for vaccinations and vet appointments
 - Vet clinic location / map
 - Vet document or receipt scanner
-- Firebase Auth (or other cloud account)
-- Light theme / theme preference
-- Weekly care summary
-- “Ask about my pet” / AI chat
+
+## Not built
+
+- Calendar view
+- Vet map
+- Receipt scanner
+- Multi-user care
+- Breed tips
+- Weekly summary
+- Camera capture
+- Accounts
+- AI assistant
+
+## Font attribution
+
+The bundled PDF font files are Noto Sans. Their license/attribution file was not available in this checkout; confirm the SIL Open Font License against the original font download and include the license with the assets before redistribution.
 
 ## License
 
