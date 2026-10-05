@@ -188,6 +188,7 @@ class _ThemePreferenceRow extends StatelessWidget {
           try {
             await settings.setThemeMode(mode);
           } catch (_) {
+            if (!context.mounted) return;
             onSaveError('Could not save your theme preference.');
           }
         },

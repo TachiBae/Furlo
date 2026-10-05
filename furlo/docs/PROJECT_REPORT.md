@@ -2,7 +2,7 @@
 
 ## 1. Summary
 
-Furlo is a Flutter pet health and care tracker with screens for pet profiles, care records, reminders, and settings (`lib/screens/`). It has separate SQLite and SharedPreferences-backed web pet repositories (`lib/repositories/pet_repository.dart`). The proposal's nine core feature areas have corresponding screens or UI, but the profile data-clear flow and camera capture are absent (`lib/screens/settings/profile_screen.dart`, `lib/screens/pets/pet_onboarding_screen.dart`). In this run, `flutter analyze` passed and all 79 tests passed; real-device behavior is [unverified].
+Furlo is a Flutter pet health and care tracker with screens for pet profiles, care records, reminders, and settings (`lib/screens/`). It has separate SQLite and SharedPreferences-backed web pet repositories (`lib/repositories/pet_repository.dart`). The proposal's nine core feature areas have corresponding screens or UI, but the profile data-clear flow and camera capture are absent (`lib/screens/settings/profile_screen.dart`, `lib/screens/pets/pet_onboarding_screen.dart`). In the current verification run, `flutter analyze` passed, all 99 tests passed across 29 test files, and `flutter build web` succeeded; real-device and browser-interaction behavior remains [unverified].
 
 ## 2. Features
 
@@ -36,20 +36,25 @@ On native/mobile, `createPetRepository()` selects `SqlitePetRepository`; databas
 
 On web, `createPetRepository()` selects `WebPetRepository`, which stores collections in SharedPreferences string lists under `furlo.pets`, `furlo.feeding_schedules`, `furlo.vaccinations`, `furlo.health_records`, `furlo.vets`, `furlo.vet_links`, and `furlo.weight_logs` (`lib/repositories/pet_repository.dart`). Notification settings use SharedPreferences keys; an in-memory fallback is present (`lib/repositories/notification_settings_repository.dart`). The web repository manually removes feeding schedules, vaccinations, health records, vet links, and weight logs when a pet is deleted; deleting a pet keeps its vet contact, matching SQLite foreign-key cascade behavior for the vet link (`lib/repositories/pet_repository.dart`; `test/web_persistence_test.dart`).
 
-`pubspec.yaml` sets Dart SDK constraint `^3.12.2`. Direct dependencies are Flutter SDK, `device_preview`, `provider`, `cupertino_icons`, `image_picker`, `path`, `shared_preferences`, `sqflite`, `url_launcher`, `fl_chart`, `flutter_local_notifications`, `timezone`, `pdf`, `share_plus`, and `font_awesome_flutter`; dev dependencies are `flutter_test` and `flutter_lints` (`pubspec.yaml`).
+`pubspec.yaml` sets Dart SDK constraint `^3.12.2`. Direct dependencies are Flutter SDK, `device_preview`, `provider`, `cupertino_icons`, `image_picker`, `path`, `shared_preferences`, `sqflite`, `url_launcher`, `fl_chart`, `flutter_local_notifications`, `timezone`, `pdf`, `share_plus`, `font_awesome_flutter`, `file_picker`, and `web`; dev dependencies are `flutter_test` and `flutter_lints` (`pubspec.yaml`).
 
 ## 4. Added feature
 
-PDF care-summary export uses `pdf` to generate bytes and `share_plus` to share/download them (`lib/services/export_service.dart`, `pubspec.yaml`). Export is launched from the pet profile screen (`lib/screens/pets/pet_profile_screen.dart`); it is written for native and web sharing, but actual share-sheet/download behavior is [unverified]. Generated filenames follow `furlo-<sanitized-pet-name>-summary-YYYY-MM-DD.pdf` (`lib/services/export_service.dart`). Filename sanitization is implemented by `summaryFileName()` in `lib/services/export_service.dart`. The service uses Helvetica and maps unsupported characters to replacements or `?`; the test output warns that Helvetica has no Unicode support (`lib/services/export_service.dart`, `test/export_service_test.dart`).
+PDF care-summary export uses `pdf` to generate bytes with bundled Noto Sans regular and bold fonts (`assets/fonts/NotoSans-Regular.ttf`, `assets/fonts/NotoSans-Bold.ttf`, `lib/services/export_service.dart`). Web Download PDF starts a browser download; on phones Save PDF opens the system save dialog and Share opens the share sheet. Generated filenames follow `furlo-<sanitized-pet-name>-summary-YYYY-MM-DD.pdf` (`lib/services/export_service.dart`). The source converts supplementary-plane characters such as emoji to `?`; visual glyph coverage and actual platform handoff remain [unverified].
 
 ## 5. Changes from the proposal
 
-| Section | Proposal said | Now | Why |
+| Section | Prelim said | Now says | Why it changed |
 |---|---|---|---|
 | Data model | A `vet_pets` join table should represent many-to-many vet/pet associations (`../flutter-capstone-planning/app-proposal.md`) | SQLite defines `vet_pets`; web stores the corresponding `furlo.vet_links` collection (`lib/repositories/pet_repository.dart`). | Implemented the explicit association model described in the proposal. |
 | Storage | Route 1: SQLite on native, web repository selected with `kIsWeb` (`../flutter-capstone-planning/app-proposal.md`) | Both native SQLite and SharedPreferences web implementations exist (`lib/repositories/pet_repository.dart`). | The proposal's web storage fallback is implemented. |
 | Web photo behavior | Camera on phone; file picker/sample image on web (`../flutter-capstone-planning/app-proposal.md`) | The form calls `ImagePicker` with `ImageSource.gallery`; there is no camera capture branch. Local file-image loading has a conditional IO/stub export (`lib/screens/pets/pet_onboarding_screen.dart`, `lib/utils/pet_file_image.dart`). | The inspected source supports gallery selection, not the promised camera capture. |
-| Added export | PDF plus `share_plus`, intended to work on phone and web (`../flutter-capstone-planning/app-proposal.md`) | PDF creation, sanitized filename, share call, and download fallback are implemented (`lib/services/export_service.dart`). | Export was built; actual platform handoff remains unverified. |
+| Added export | PDF plus `share_plus`, intended to work on phone and web (`../flutter-capstone-planning/app-proposal.md`) | The browser downloads the PDF; phones offer Save PDF (`file_picker`) and Share (`lib/services/export_service.dart`). | The browser share fallback did not provide a dependable file-save action. |
+| PDF fonts | Not specified | Noto Sans is bundled for PDF text; supplementary-plane characters such as emoji are replaced with `?` (`lib/services/export_service.dart`). | The PDF standard fonts lack Unicode coverage. |
+| Theme | Stretch goal: light/dark preference (`../flutter-capstone-planning/app-proposal.md`) | Built; Default, Light, and Dark choices are saved with `shared_preferences` and restored at startup (`lib/utils/app_theme.dart`, `lib/app.dart`). | Theme preference was completed after the MVP. |
+| Photo input | Camera on phone, file picker on web (`../flutter-capstone-planning/app-proposal.md`) | Gallery/file picker is used across platforms; camera capture is not built (`lib/screens/pets/pet_onboarding_screen.dart`). | One gallery-selection path is used; camera capture remains outside the app. |
+| Dependencies | Not listed in the preliminary proposal | `font_awesome_flutter`, `file_picker`, and `web` are added (`pubspec.yaml`). | Species icons, native PDF saving, and browser download support. |
+| Auth | Wireframes only (`../flutter-capstone-planning/app-proposal.md`) | Accounts and sign-in are not built. | Furlo remains a single-device local tracker. |
 | Stretch feature beyond proposal core | Export was listed as a stretch feature (`../flutter-capstone-planning/app-proposal.md`) | Pet profile includes “Export care summary” (`lib/screens/pets/pet_profile_screen.dart`). | This implements the selected stretch feature. |
 | Pet breed picker | The nine core feature table does not specify a searchable breed catalog (`../flutter-capstone-planning/app-proposal.md`) | Species-specific searchable dog and cat breed lists are defined and used by onboarding (`lib/data/pet_breeds.dart`, `lib/screens/pets/pet_onboarding_screen.dart`). | Searchable breed selection is implemented beyond the listed core-feature requirements. |
 | Profile settings | The core feature list calls for profile/settings values stored in SharedPreferences or SQLite (`../flutter-capstone-planning/app-proposal.md`) | The profile screen saves a display name, but no clear-all-data UI appears (`lib/screens/settings/profile_screen.dart`). | Display-name settings are implemented; the profile screen has no user-facing clear-all-data flow. |
@@ -63,8 +68,10 @@ PDF care-summary export uses `pdf` to generate bytes and `share_plus` to share/d
 Commands were run from `furlo` during this report task:
 
 - `flutter pub get` — exit code 0; dependencies resolved.
-- `flutter analyze` — exit code 0; “No issues found!”
-- `flutter test` — exit code 0; **79 tests, 79 passed, 0 failed** (79 declarations in 25 test files; the runner ended with “All tests passed!”). Failing test names: none. PDF tests emitted Helvetica Unicode-support warnings.
+- `flutter analyze` — exit code 0; “No issues found!”.
+- `flutter test --reporter expanded` — exit code 0; **99 tests passed, 0 failed** across 29 test files; the runner ended with “All tests passed!”.
+- `flutter build web` — exit code 0; web build completed successfully.
+
 
 Source inventory from the requested `lib` directories:
 
@@ -73,7 +80,7 @@ Source inventory from the requested `lib` directories:
 - Providers (6): `lib/providers/furlo_state.dart`, `lib/providers/health_records_provider.dart`, `lib/providers/home_reminders_provider.dart`, `lib/providers/notification_settings_provider.dart`, `lib/providers/vaccinations_provider.dart`, `lib/providers/weight_tracking_provider.dart`.
 - Repositories (3): `lib/repositories/app_settings_repository.dart`, `lib/repositories/notification_settings_repository.dart`, `lib/repositories/pet_repository.dart`.
 - Models (6): `lib/models/feeding_entry.dart`, `lib/models/health_record.dart`, `lib/models/pet.dart`, `lib/models/vaccination.dart`, `lib/models/vet.dart`, `lib/models/weight_log.dart`.
-- Tests: 25 files and 79 test/testWidgets declarations under `furlo/test`.
+- Tests: 29 files and 99 test/testWidgets declarations under `furlo/test`, including short-viewport, theme restoration, and both-theme screen smoke coverage.
 
 Test-file coverage, from test names and assertions:
 
@@ -104,6 +111,10 @@ Test-file coverage, from test names and assertions:
 | `test/weight_screen_test.dart` | Weight chart empty, one-entry, and 30-entry rendering. |
 | `test/weight_tracking_test.dart` | Weight model, invalid-weight rejection, and change calculations. |
 | `test/widget_test.dart` | Startup routes to onboarding without pets and home with a saved pet. |
+| `test/short_viewport_overflow_test.dart` | Feeding, vaccination, health, vet, weight, and vet-detail screens at short viewport sizes and text scales. |
+| `test/notifications_short_viewport_test.dart` | Notifications empty state at 400×300, two text scales, and both themes. |
+| `test/vet_contacts_screen_test.dart` | Vet card reachability by scrolling across data counts, viewport sizes, and text scales; Call tap target. |
+| `test/theme_smoke_test.dart` | Saved theme restoration plus all twelve requested screens in light and dark themes. |
 
 ## 7. Platform behavior
 
@@ -111,16 +122,16 @@ Test-file coverage, from test names and assertions:
 - Pet photo selection requests the gallery (`ImageSource.gallery`) and catches picker errors (`lib/screens/pets/pet_onboarding_screen.dart`). The proposal's camera capture is absent from the inspected app source. File image access is isolated with a conditional IO/stub export (`lib/utils/pet_file_image.dart`, `lib/utils/pet_file_image_io.dart`, `lib/utils/pet_file_image_stub.dart`). Actual browser picker behavior is [unverified].
 - Notification service creation returns `NoOpNotificationService` on web and `LocalNotificationService` otherwise (`lib/services/notifications_service.dart`). Notification settings show a web-only message that reminders fire only on mobile (`lib/screens/settings/notifications_screen.dart`). Native permission and notification delivery are [unverified] because they were not exercised on a device.
 - `DevicePreview` wraps `FurloApp` in `main.dart` (`lib/main.dart`).
-- PDF export uses `SharePlus` with `downloadFallbackEnabled: true` and no explicit `kIsWeb` branch (`lib/services/export_service.dart`); phone share sheet and browser download behavior are [unverified].
+- PDF export uses bundled Noto Sans; web uses the browser download helper, and native offers file save and share (`lib/services/export_service.dart`). Actual browser download and phone dialogs remain [unverified].
 
 ## 8. Known limitations
 
-- PDF rendering uses Helvetica, and the full test run printed: “Helvetica has no Unicode support” and “Helvetica-Bold has no Unicode support” (`lib/services/export_service.dart`, output from `flutter test`). `_safePdfText` has explicit replacements for selected characters and falls back to `?` for unsupported code points; complete non-Latin name rendering is not supported by this implementation (`lib/services/export_service.dart`).
-- `NotificationsScreen` lays out a centered, non-scrollable `Column` containing an icon and explanatory text (`lib/screens/settings/notifications_screen.dart`). Overflow at short window heights is a layout risk; no short-height overflow test was run.
+- Noto Sans is bundled for PDF text; supplementary-plane characters such as emoji are converted to `?` (`lib/services/export_service.dart`). The fonts' license/attribution file was not present in the inspected repository, and visual glyph coverage still needs manual checking.
+- `NotificationsScreen`'s empty state now scrolls when its content exceeds the available height and stays centered when it fits; short-height overflow coverage is in `test/notifications_short_viewport_test.dart`.
 - The profile screen supports display-name editing and notification preferences but has no clear-all-data control (`lib/screens/settings/profile_screen.dart`). Repository clear-all methods exist and are covered for web, but a user-facing confirmed flow is absent (`lib/repositories/pet_repository.dart`, `test/clear_all_data_test.dart`).
 - The proposal's camera capture is not present; only gallery selection is found (`lib/screens/pets/pet_onboarding_screen.dart`).
 - TODOs found in source/project files: `android/app/build.gradle.kts:19` (application ID), `android/app/build.gradle.kts:31` (release signing), `linux/flutter/CMakeLists.txt:9` and `windows/flutter/CMakeLists.txt:9` (generated CMake template TODOs). No TODO/FIXME markers were found in Dart files under `lib`.
-- [unverified] Real-device notification delivery, native SQLite persistence across actual app restart, browser screen reachability, actual PDF sharing/download, and real photo-picker operation were not tested in this task.
+- [unverified] Real-device notification delivery, native SQLite persistence across actual app restart, browser screen reachability, actual PDF sharing/download, actual visual theme rendering, and real photo-picker operation were not tested in this task.
 
 ## 9. Not built
 
@@ -129,12 +140,11 @@ Among the proposal's stretch goals (`../flutter-capstone-planning/app-proposal.m
 1. Multi-user/shared pet care.
 2. Calendar view for vaccination/vet appointments.
 3. Vet clinic map/location UI.
-4. Light/dark theme preference.
-5. Vet document/receipt scanner.
-6. Pet breed/weight-context tips.
-7. Weekly care summary.
+4. Vet document/receipt scanner.
+5. Pet breed/weight-context tips.
+6. Weekly care summary.
 
-Authentication and AI-assistant behavior are omitted per task scope.
+Accounts and an AI assistant are not built. Default, Light, and Dark theme choices are implemented and persisted (`lib/utils/app_theme.dart`).
 
 The pet-photo camera capture mentioned in proposal platform behavior is also not implemented; the form uses gallery selection (`lib/screens/pets/pet_onboarding_screen.dart`).
 
@@ -170,6 +180,8 @@ flutter run -d web-server
 
 ## 12. Screenshots
 
+Screenshots were not captured in this automated run. The image references below list the intended screenshot filenames; add current captures in both themes after manual QA.
+
 ![Home](screenshots/home.png)
 
 ![Pet profile](screenshots/pet-profile.png)
@@ -193,8 +205,8 @@ flutter run -d web-server
 1. Run and manually verify Android/iOS persistence, permission handling, and at least one delivered notification.
 2. Run the web app and manually navigate every screen; exercise browser photo selection and PDF download/share.
 3. Add or formally de-scope the proposed pet camera-capture behavior.
-4. Address PDF font coverage for accented and non-Latin pet names; Helvetica warnings were emitted by the current PDF test.
-5. Exercise short-height layouts, particularly the non-scrollable Notifications empty-state column.
+4. Manually inspect PDF output for accented and unsupported characters; automated tests check PDF generation but not visual glyph rendering.
+5. Exercise short-height layouts in a browser or emulator, including Feeding and the scrollable Notifications empty state.
 6. Add a confirmed clear-all-data control to Profile & Settings or explicitly remove that promised user-facing behavior from the scope.
 7. Replace the Android template application ID and configure release signing before a release build (`android/app/build.gradle.kts`).
 8. Complete app-specific TODOs and review generated Linux/Windows CMake template TODOs (`linux/flutter/CMakeLists.txt`, `windows/flutter/CMakeLists.txt`).

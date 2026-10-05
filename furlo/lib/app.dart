@@ -34,12 +34,13 @@ class _FurloAppState extends State<FurloApp> {
         settings: _notificationSettings,
       );
   late final ThemeSettings _themeSettings = ThemeSettings();
+  late final Future<void> _themeLoad;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_themeSettings.load());
-    _initializeNotifications();
+    _themeLoad = _themeSettings.load();
+    unawaited(_initializeNotifications());
   }
 
   @override
@@ -61,19 +62,32 @@ class _FurloAppState extends State<FurloApp> {
         ),
         ChangeNotifierProvider<ThemeSettings>.value(value: _themeSettings),
       ],
-      child: Consumer<ThemeSettings>(
-        builder: (context, themeSettings, _) => MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Furlo',
-          locale: DevicePreview.locale(context),
-          builder: DevicePreview.appBuilder,
-          theme: themeSettings.themeData,
-          home: _StartupGate(
-            repository: _repository,
-            notificationSettings: _notificationSettings,
-            notificationService: _notificationService,
-          ),
-        ),
+      child: FutureBuilder<void>(
+        future: _themeLoad,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const ColoredBox(
+              color: Color(0xFF121218),
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFFF5F4F8)),
+              ),
+            );
+          }
+          return Consumer<ThemeSettings>(
+            builder: (context, themeSettings, _) => MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Furlo',
+              locale: DevicePreview.locale(context),
+              builder: DevicePreview.appBuilder,
+              theme: themeSettings.themeData,
+              home: _StartupGate(
+                repository: _repository,
+                notificationSettings: _notificationSettings,
+                notificationService: _notificationService,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
