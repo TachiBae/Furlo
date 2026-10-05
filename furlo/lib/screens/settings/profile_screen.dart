@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../repositories/app_settings_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
@@ -105,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? 'Not set'
                       : _displayName,
                   style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
                 trailing: const Icon(Icons.chevron_right),
@@ -113,6 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               _GroupHeading('Preferences'),
+              _ThemePreferenceRow(onSaveError: _showMessage),
               ListTile(
                 minTileHeight: 56,
                 leading: const Icon(Icons.notifications_outlined),
@@ -145,6 +147,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+      ),
+    ),
+  );
+}
+
+class _ThemePreferenceRow extends StatelessWidget {
+  const _ThemePreferenceRow({required this.onSaveError});
+
+  final ValueChanged<String> onSaveError;
+
+  String _label(AppThemeChoice choice) => switch (choice) {
+    AppThemeChoice.defaultTheme => 'Default',
+    AppThemeChoice.light => 'Light',
+    AppThemeChoice.dark => 'Dark',
+  };
+
+  @override
+  Widget build(BuildContext context) => Consumer<ThemeSettings>(
+    builder: (context, settings, _) => ListTile(
+      minTileHeight: 56,
+      leading: const Icon(Icons.contrast_outlined),
+      title: const Text('Theme'),
+      subtitle: Text(
+        settings.persistenceError == null
+            ? _label(settings.choice)
+            : 'Preference could not be restored; using Default',
+      ),
+      trailing: DropdownButton<AppThemeChoice>(
+        value: settings.choice,
+        underline: const SizedBox.shrink(),
+        items: AppThemeChoice.values
+            .map(
+              (mode) =>
+                  DropdownMenuItem(value: mode, child: Text(_label(mode))),
+            )
+            .toList(),
+        onChanged: (mode) async {
+          if (mode == null) return;
+          try {
+            await settings.setThemeMode(mode);
+          } catch (_) {
+            onSaveError('Could not save your theme preference.');
+          }
+        },
       ),
     ),
   );
@@ -209,7 +255,7 @@ class _GroupHeading extends StatelessWidget {
     padding: const EdgeInsets.only(left: AppSpacing.md, top: AppSpacing.sm),
     child: Text(
       title,
-      style: AppTypography.label.copyWith(color: AppColors.primary),
+      style: AppTypography.label.copyWith(color: context.appColors.primary),
     ),
   );
 }

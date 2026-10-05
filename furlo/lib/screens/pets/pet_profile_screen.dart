@@ -127,7 +127,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     try {
       final action = await showModalBottomSheet<String>(
         context: context,
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.lgRadius),
         builder: (sheetContext) => SafeArea(
           child: Padding(
@@ -139,9 +139,9 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
                   ),
-                  leading: const Icon(
+                  leading: Icon(
                     Icons.download_rounded,
-                    color: AppColors.primary,
+                    color: context.appColors.primary,
                   ),
                   title: Text(
                     kIsWeb ? 'Download PDF' : 'Save PDF',
@@ -153,7 +153,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
                   ),
-                  leading: const Icon(Icons.share, color: AppColors.primary),
+                  leading: Icon(Icons.share, color: context.appColors.primary),
                   title: Text('Share', style: AppTypography.bodyStrong),
                   onTap: () => Navigator.of(sheetContext).pop('share'),
                 ),
@@ -222,8 +222,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.textPrimary,
+              backgroundColor: context.appColors.danger,
+              foregroundColor: context.appColors.textOnDanger,
             ),
             child: const Text('Delete pet'),
           ),
@@ -299,7 +299,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         .where((item) => item.id == widget.petId)
         .firstOrNull;
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.appColors.bg,
       appBar: AppBar(
         title: const Text('Pet Profile'),
         actions: [
@@ -322,7 +322,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
               child: Text(
                 'Could not load this pet.',
                 style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
             );
@@ -337,20 +337,20 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: context.appColors.surface,
                       borderRadius: AppRadius.lgRadius,
                     ),
                     child: Column(
                       children: [
                         CircleAvatar(
                           radius: 52,
-                          backgroundColor: AppColors.primaryMuted,
+                          backgroundColor: context.appColors.primaryMuted,
                           backgroundImage: photo,
                           child: photo == null
-                              ? const Icon(
+                              ? Icon(
                                   Icons.pets,
                                   size: 42,
-                                  color: AppColors.textPrimary,
+                                  color: context.appColors.textPrimary,
                                 )
                               : null,
                         ),
@@ -363,13 +363,13 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                               pet.breed!,
                           ].join(' · '),
                           style: AppTypography.body.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.appColors.textSecondary,
                           ),
                         ),
                         Text(
                           petAgeLabel(pet.birthDate),
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.appColors.textSecondary,
                           ),
                         ),
                       ],
@@ -420,8 +420,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _deleting || _exporting ? null : _delete,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.danger,
-                        side: const BorderSide(color: AppColors.danger),
+                        foregroundColor: context.appColors.danger,
+                        side: BorderSide(color: context.appColors.danger),
                       ),
                       icon: const Icon(Icons.delete_outline),
                       label: Text(_deleting ? 'Deleting…' : 'Delete pet'),
@@ -439,7 +439,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   Widget _details(Pet pet) => Container(
     padding: const EdgeInsets.all(AppSpacing.md),
     decoration: BoxDecoration(
-      color: AppColors.surface,
+      color: context.appColors.surface,
       borderRadius: AppRadius.mdRadius,
     ),
     child: Column(
@@ -467,7 +467,9 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           width: 108,
           child: Text(
             label,
-            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
           ),
         ),
         Expanded(
@@ -475,8 +477,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
             value?.trim().isNotEmpty == true ? value! : 'Not provided',
             style: AppTypography.body.copyWith(
               color: value?.trim().isNotEmpty == true
-                  ? AppColors.textPrimary
-                  : AppColors.textDisabled,
+                  ? context.appColors.textPrimary
+                  : context.appColors.textDisabled,
             ),
           ),
         ),
@@ -485,7 +487,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   );
 
   Widget _linkTile(String label) => Material(
-    color: AppColors.surface,
+    color: context.appColors.surface,
     borderRadius: AppRadius.mdRadius,
     child: InkWell(
       onTap: () => _openLink(label),
@@ -496,17 +498,17 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Row(
             children: [
-              Icon(_icon(label), color: AppColors.primary),
+              Icon(_icon(label), color: context.appColors.primary),
               const SizedBox(width: AppSpacing.md),
               Expanded(child: Text(label, style: AppTypography.bodyStrong)),
               Text(
                 '${_counts[label] ?? 0}',
                 style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              Icon(Icons.chevron_right, color: context.appColors.textSecondary),
             ],
           ),
         ),

@@ -30,7 +30,7 @@ class OnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.bg,
+    backgroundColor: context.appColors.bg,
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
@@ -63,7 +63,7 @@ class OnboardingScreen extends StatelessWidget {
                       Text(
                         'Keep schedules, health records, and daily habits seamlessly organized.',
                         style: AppTypography.body.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -177,7 +177,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     context: context,
     isScrollControlled: true,
     constraints: BoxConstraints.tightFor(width: fieldWidth),
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.appColors.surface,
     shape: RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
     builder: (_) => _SearchableSelectionSheet(
       title: title,
@@ -283,13 +283,13 @@ class _AddPetScreenState extends State<AddPetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.appColors.bg,
       appBar: AppBar(
         title: Text(
           widget.existingPet == null ? 'Add New Pet' : 'Edit Pet',
           style: AppTypography.h2,
         ),
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.appColors.bg,
         centerTitle: true,
       ),
       body: SafeArea(
@@ -315,7 +315,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                                     : petFileImage(_photoPath!));
                           return CircleAvatar(
                             radius: 54,
-                            backgroundColor: AppColors.surface,
+                            backgroundColor: context.appColors.surface,
                             backgroundImage: photo,
                             child: photo == null
                                 ? const Icon(
@@ -389,8 +389,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
                                               : FontAwesomeIcons.cat,
                                           size: 24,
                                           color: _species == species
-                                              ? AppColors.accent
-                                              : AppColors.textSecondary,
+                                              ? context.appColors.accent
+                                              : context.appColors.textSecondary,
                                         ),
                                       ),
                                       const SizedBox(width: AppSpacing.md),
@@ -400,15 +400,15 @@ class _AddPetScreenState extends State<AddPetScreen> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: _species == species
-                                                ? AppColors.accent
-                                                : AppColors.textPrimary,
+                                                ? context.appColors.accent
+                                                : context.appColors.textPrimary,
                                           ),
                                         ),
                                       ),
                                       if (_species == species)
-                                        const Icon(
+                                        Icon(
                                           Icons.check,
-                                          color: AppColors.accent,
+                                          color: context.appColors.accent,
                                         ),
                                     ],
                                   ),
@@ -430,7 +430,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                         itemHeight: 48,
                         isExpanded: true,
                         menuMaxHeight: 300,
-                        dropdownColor: AppColors.surface,
+                        dropdownColor: context.appColors.surface,
                         borderRadius: AppRadius.mdRadius,
                         onChanged: (value) => setState(() {
                           _species = value;
@@ -465,8 +465,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
                               _breed ?? '',
                               style: TextStyle(
                                 color: _species == null
-                                    ? AppColors.textDisabled
-                                    : AppColors.textPrimary,
+                                    ? context.appColors.textDisabled
+                                    : context.appColors.textPrimary,
                               ),
                             ),
                           ),
@@ -570,9 +570,9 @@ class _SearchableSelectionSheetState extends State<_SearchableSelectionSheet> {
             MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
           ),
           child: SizedBox(
-            height: (MediaQuery.sizeOf(context).height * 0.6 -
-                    (AppSpacing.lg * 2))
-                .clamp(0.0, MediaQuery.sizeOf(context).height * 0.6),
+            height:
+                (MediaQuery.sizeOf(context).height * 0.6 - (AppSpacing.lg * 2))
+                    .clamp(0.0, MediaQuery.sizeOf(context).height * 0.6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -593,7 +593,7 @@ class _SearchableSelectionSheetState extends State<_SearchableSelectionSheet> {
                           child: Text(
                             widget.emptyMessage,
                             style: AppTypography.body.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.appColors.textSecondary,
                             ),
                           ),
                         )
@@ -615,22 +615,22 @@ class _SearchableSelectionSheetState extends State<_SearchableSelectionSheet> {
                                       : FontAwesomeIcons.cat,
                                   size: 24,
                                   color: selected
-                                      ? AppColors.accent
-                                      : AppColors.textSecondary,
+                                      ? context.appColors.accent
+                                      : context.appColors.textSecondary,
                                 ),
                               ),
                               title: Text(
                                 option,
                                 style: AppTypography.body.copyWith(
                                   color: selected
-                                      ? AppColors.accent
-                                      : AppColors.textPrimary,
+                                      ? context.appColors.accent
+                                      : context.appColors.textPrimary,
                                 ),
                               ),
                               trailing: selected
-                                  ? const Icon(
+                                  ? Icon(
                                       Icons.check,
-                                      color: AppColors.accent,
+                                      color: context.appColors.accent,
                                     )
                                   : null,
                               onTap: () => Navigator.of(context).pop(option),

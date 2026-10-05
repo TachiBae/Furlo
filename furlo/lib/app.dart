@@ -13,11 +13,7 @@ import 'services/notifications_service.dart';
 import 'utils/app_theme.dart';
 
 class FurloApp extends StatefulWidget {
-  const FurloApp({
-    super.key,
-    this.repository,
-    this.notificationService,
-  });
+  const FurloApp({super.key, this.repository, this.notificationService});
 
   final PetRepository? repository;
   final NotificationService? notificationService;
@@ -37,39 +33,54 @@ class _FurloAppState extends State<FurloApp> {
         repository: _repository,
         settings: _notificationSettings,
       );
+  late final ThemeSettings _themeSettings = ThemeSettings();
 
   @override
   void initState() {
     super.initState();
+    unawaited(_themeSettings.load());
     _initializeNotifications();
+  }
+
+  @override
+  void dispose() {
+    _themeSettings.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) {
+            final state = FurloState(_repository);
+            unawaited(state.load());
+            return state;
+          },
+        ),
+        ChangeNotifierProvider<ThemeSettings>.value(value: _themeSettings),
+      ],
+      child: Consumer<ThemeSettings>(
+        builder: (context, themeSettings, _) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Furlo',
+          locale: DevicePreview.locale(context),
+          builder: DevicePreview.appBuilder,
+          theme: themeSettings.themeData,
+          home: _StartupGate(
+            repository: _repository,
+            notificationSettings: _notificationSettings,
+            notificationService: _notificationService,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _initializeNotifications() async {
     await _notificationService.initialize();
     await _notificationService.rescheduleAll();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) {
-        final state = FurloState(_repository);
-        unawaited(state.load());
-        return state;
-      },
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Furlo',
-        locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
-        theme: AppTheme.dark,
-        home: _StartupGate(
-          repository: _repository,
-          notificationSettings: _notificationSettings,
-          notificationService: _notificationService,
-        ),
-      ),
-    );
   }
 }
 

@@ -284,8 +284,8 @@ class _VaccinationCard extends StatelessWidget {
                 onPressed: onComplete,
                 style: TextButton.styleFrom(
                   foregroundColor: vaccination.isCompleted
-                      ? AppColors.textSecondary
-                      : AppColors.accent,
+                      ? context.appColors.textSecondary
+                      : context.appColors.accent,
                   minimumSize: const Size(48, 48),
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.sm,
@@ -470,7 +470,7 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
                     child: Text(
                       'Select when this vaccine was given.',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.danger,
+                        color: context.appColors.danger,
                       ),
                     ),
                   ),
@@ -491,7 +491,7 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
                     child: Text(
                       'Next due date cannot be before the date given.',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.danger,
+                        color: context.appColors.danger,
                       ),
                     ),
                   ),
@@ -519,7 +519,7 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
     labelText: label,
     hintText: hint,
     filled: true,
-    fillColor: AppColors.surfaceAlt,
+    fillColor: context.appColors.surfaceAlt,
     border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
   );
 }
@@ -545,7 +545,7 @@ class _DateField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: AppColors.surfaceAlt,
+        fillColor: context.appColors.surfaceAlt,
         border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
         suffixIcon: value == null
             ? const Icon(Icons.calendar_month_outlined)

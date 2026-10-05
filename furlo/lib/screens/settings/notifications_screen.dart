@@ -40,10 +40,10 @@ class NotificationsScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.notifications_none,
               size: 56,
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
             ),
             const SizedBox(height: AppSpacing.md),
             Text('No notifications yet', style: AppTypography.h2),
@@ -52,7 +52,7 @@ class NotificationsScreen extends StatelessWidget {
               'Reminders will appear in your device notification center. Use the gear to choose which reminders Furlo sends.',
               textAlign: TextAlign.center,
               style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
           ],
@@ -190,7 +190,7 @@ class _NotificationsViewState extends State<_NotificationsView>
           child: Text(title, style: AppTypography.h2),
         ),
         Card(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.lgRadius),
           child: Column(
@@ -216,7 +216,7 @@ class _NotificationsViewState extends State<_NotificationsView>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                   value: state.isEnabled(options[index].type),
@@ -268,14 +268,19 @@ class _InfoBanner extends StatelessWidget {
   final bool muted;
   @override
   Widget build(BuildContext context) => Card(
-    color: AppColors.surface,
+    color: context.appColors.surface,
     margin: EdgeInsets.zero,
     child: Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: muted ? AppColors.textSecondary : AppColors.accent),
+          Icon(
+            icon,
+            color: muted
+                ? context.appColors.textSecondary
+                : context.appColors.accent,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
@@ -284,7 +289,7 @@ class _InfoBanner extends StatelessWidget {
                 Text(
                   message,
                   style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
                 if (action != null)

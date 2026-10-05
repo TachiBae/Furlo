@@ -250,7 +250,9 @@ class _HealthRecordCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Reminder: ${record.reminderFrequency ?? ''}',
-              style: AppTypography.caption.copyWith(color: AppColors.accent),
+              style: AppTypography.caption.copyWith(
+                color: context.appColors.accent,
+              ),
             ),
           ],
           const SizedBox(height: AppSpacing.sm),
@@ -283,7 +285,9 @@ class _NotesPreview extends StatelessWidget {
           width: 96,
           child: Text(
             'Notes',
-            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
           ),
         ),
         Expanded(
@@ -293,8 +297,8 @@ class _NotesPreview extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: AppTypography.body.copyWith(
               color: value.isEmpty
-                  ? AppColors.textSecondary
-                  : AppColors.textPrimary,
+                  ? context.appColors.textSecondary
+                  : context.appColors.textPrimary,
             ),
           ),
         ),
@@ -460,7 +464,7 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
                                 : _formatDate(_date),
                             style: _date == null
                                 ? AppTypography.body.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.appColors.textSecondary,
                                   )
                                 : AppTypography.body,
                           ),
@@ -537,7 +541,7 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
     labelText: label,
     hintText: hint,
     filled: true,
-    fillColor: AppColors.surfaceAlt,
+    fillColor: context.appColors.surfaceAlt,
     border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
   );
 }

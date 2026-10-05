@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:furlo/repositories/app_settings_repository.dart';
 import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
+import 'package:furlo/utils/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {
   String value = '';
@@ -20,6 +23,85 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  double contrast(Color foreground, Color background) {
+    final light = foreground.computeLuminance();
+    final dark = background.computeLuminance();
+    final high = light > dark ? light : dark;
+    final low = light > dark ? dark : light;
+    return (high + 0.05) / (low + 0.05);
+  }
+
+  test('both palettes meet body-text contrast and remain grayscale', () {
+    for (final palette in [AppPalette.light, AppPalette.dark]) {
+      for (final color in [
+        palette.bg,
+        palette.surface,
+        palette.surfaceAlt,
+        palette.primary,
+        palette.primaryMuted,
+        palette.accent,
+        palette.textPrimary,
+        palette.textSecondary,
+        palette.textDisabled,
+      ]) {
+        final argb = color.toARGB32();
+        final red = (argb >> 16) & 0xFF;
+        final green = (argb >> 8) & 0xFF;
+        final blue = argb & 0xFF;
+        expect(red, green);
+        expect(green, blue);
+      }
+      expect(
+        contrast(palette.textPrimary, palette.bg),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrast(palette.textPrimary, palette.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrast(palette.textSecondary, palette.bg),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrast(palette.textSecondary, palette.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+    }
+  });
+
+  test('theme choice defaults to Default and restores saved choices', () async {
+    final settings = ThemeSettings();
+    expect(settings.choice, AppThemeChoice.defaultTheme);
+
+    await settings.setThemeMode(AppThemeChoice.dark);
+    final restored = ThemeSettings();
+    await restored.load();
+    expect(restored.choice, AppThemeChoice.dark);
+
+    await restored.setThemeMode(AppThemeChoice.defaultTheme);
+    final reset = ThemeSettings();
+    await reset.load();
+    expect(reset.choice, AppThemeChoice.defaultTheme);
+  });
+
+  test('legacy system and unknown theme values migrate to Default', () async {
+    for (final saved in ['system', 'unrecognized']) {
+      SharedPreferences.setMockInitialValues({
+        ThemeSettings.preferenceKey: saved,
+      });
+      final settings = ThemeSettings();
+      await settings.load();
+      expect(settings.choice, AppThemeChoice.defaultTheme);
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString(ThemeSettings.preferenceKey), 'default');
+    }
+  });
+
   test('display name validation requires trimmed text up to 40 characters', () {
     expect(validateDisplayName(null), 'Enter a display name');
     expect(validateDisplayName('   '), 'Enter a display name');
@@ -33,14 +115,18 @@ void main() {
     final settings = _FakeAppSettingsRepository();
     final repository = WebPetRepository();
     final notifications = SharedPreferencesNotificationSettingsRepository();
+    final themeSettings = ThemeSettings();
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: ProfileScreen(
-          repository: repository,
-          appSettings: settings,
-          notificationSettings: notifications,
-          notificationService: const NoOpNotificationService(),
+      ChangeNotifierProvider.value(
+        value: themeSettings,
+        child: MaterialApp(
+          home: ProfileScreen(
+            repository: repository,
+            appSettings: settings,
+            notificationSettings: notifications,
+            notificationService: const NoOpNotificationService(),
+          ),
         ),
       ),
     );
@@ -55,16 +141,58 @@ void main() {
     expect(find.text('Ada Lovelace'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: ProfileScreen(
-          repository: repository,
-          appSettings: settings,
-          notificationSettings: notifications,
-          notificationService: const NoOpNotificationService(),
+      ChangeNotifierProvider.value(
+        value: themeSettings,
+        child: MaterialApp(
+          home: ProfileScreen(
+            repository: repository,
+            appSettings: settings,
+            notificationSettings: notifications,
+            notificationService: const NoOpNotificationService(),
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text('Ada Lovelace'), findsOneWidget);
+  });
+
+  testWidgets('theme row offers and saves Default, Light, and Dark', (
+    tester,
+  ) async {
+    final themeSettings = ThemeSettings();
+    await themeSettings.load();
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: themeSettings,
+        child: MaterialApp(
+          home: ProfileScreen(
+            repository: WebPetRepository(),
+            appSettings: _FakeAppSettingsRepository(),
+            notificationSettings:
+                SharedPreferencesNotificationSettingsRepository(),
+            notificationService: const NoOpNotificationService(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Default'), findsNWidgets(2));
+    await tester.tap(find.byType(DropdownButton<AppThemeChoice>));
+    await tester.pumpAndSettle();
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
+    await tester.tap(find.text('Dark').last);
+    await tester.pumpAndSettle();
+
+    expect(themeSettings.choice, AppThemeChoice.dark);
+    expect(
+      SharedPreferences.getInstance().then(
+        (preferences) => preferences.getString(ThemeSettings.preferenceKey),
+      ),
+      completion('dark'),
+    );
   });
 }

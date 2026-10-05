@@ -165,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.appColors.bg,
       builder: (sheetContext) => SafeArea(
         child: SizedBox(
           height: MediaQuery.sizeOf(context).height * 0.75,
@@ -344,16 +344,16 @@ class _HomeBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BottomAppBar(
-    color: AppColors.surface,
+    color: context.appColors.surface,
     elevation: 8,
     padding: EdgeInsets.zero,
     child: SafeArea(
       top: false,
       child: Container(
         height: 68,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(color: AppColors.textDisabled, width: 0.35),
+            top: BorderSide(color: context.appColors.textDisabled, width: 0.35),
           ),
         ),
         child: Row(
@@ -415,16 +415,20 @@ class _AddPetNavItem extends StatelessWidget {
       message: 'Add Pet',
       child: Center(
         child: Material(
-          color: AppColors.primary,
+          color: context.appColors.primary,
           shape: const CircleBorder(),
           elevation: 4,
           child: InkWell(
             onTap: onTap,
             customBorder: const CircleBorder(),
-            child: const SizedBox(
+            child: SizedBox(
               width: 48,
               height: 48,
-              child: Icon(Icons.add, size: 27, color: AppColors.textOnPrimary),
+              child: Icon(
+                Icons.add,
+                size: 27,
+                color: context.appColors.textOnPrimary,
+              ),
             ),
           ),
         ),
@@ -453,8 +457,8 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconColor = selected
-        ? AppColors.textPrimary
-        : AppColors.textSecondary;
+        ? context.appColors.textPrimary
+        : context.appColors.textSecondary;
     return Semantics(
       button: true,
       selected: selected,
@@ -477,7 +481,7 @@ class _NavItem extends StatelessWidget {
                   height: 36,
                   decoration: BoxDecoration(
                     color: selected
-                        ? AppColors.primary.withValues(alpha: 0.22)
+                        ? context.appColors.primary.withValues(alpha: 0.22)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -502,10 +506,10 @@ class _NavItem extends StatelessWidget {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: AppColors.danger,
+                              color: context.appColors.primaryMuted,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.surface,
+                                color: context.appColors.surface,
                                 width: 1,
                               ),
                             ),
@@ -521,7 +525,7 @@ class _NavItem extends StatelessWidget {
                       ? Text(
                           label,
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.appColors.textPrimary,
                             fontSize: 10,
                           ),
                           maxLines: 1,
@@ -562,7 +566,7 @@ class _DashboardHeader extends StatelessWidget {
             Text(
               _formatDate(date),
               style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
           ],
@@ -616,7 +620,7 @@ class _SectionHeading extends StatelessWidget {
       Expanded(
         child: Text(
           title,
-          style: AppTypography.h2.copyWith(color: AppColors.primary),
+          style: AppTypography.h2.copyWith(color: context.appColors.primary),
         ),
       ),
       if (action != null) TextButton(onPressed: onAction, child: Text(action!)),
@@ -643,7 +647,7 @@ class _PetTile extends StatelessWidget {
         ? MemoryImage(base64Decode(data.substring(data.indexOf(',') + 1)))
         : null;
     return Material(
-      color: AppColors.surface,
+      color: context.appColors.surface,
       borderRadius: AppRadius.lgRadius,
       child: InkWell(
         onTap: onTap,
@@ -655,8 +659,8 @@ class _PetTile extends StatelessWidget {
             borderRadius: AppRadius.lgRadius,
             border: Border.all(
               color: selected
-                  ? AppColors.accent
-                  : AppColors.primary.withValues(alpha: 0.5),
+                  ? context.appColors.accent
+                  : context.appColors.primary.withValues(alpha: 0.5),
               width: selected ? 2 : 1,
             ),
           ),
@@ -665,10 +669,10 @@ class _PetTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 25,
-                backgroundColor: AppColors.primaryMuted,
+                backgroundColor: context.appColors.primaryMuted,
                 backgroundImage: image,
                 child: image == null
-                    ? const Icon(Icons.pets, color: AppColors.textPrimary)
+                    ? Icon(Icons.pets, color: context.appColors.textPrimary)
                     : null,
               ),
               const Spacer(),
@@ -705,7 +709,9 @@ class _AddPetTile extends StatelessWidget {
     child: OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.7)),
+        side: BorderSide(
+          color: context.appColors.primary.withValues(alpha: 0.7),
+        ),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.lgRadius),
       ),
       child: const Column(
@@ -726,19 +732,19 @@ class _AddFirstPetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: AppColors.surface,
+    color: context.appColors.surface,
     child: Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
-          const Icon(Icons.pets, color: AppColors.primary, size: 32),
+          Icon(Icons.pets, color: context.appColors.primary, size: 32),
           const SizedBox(width: AppSpacing.md),
           const Expanded(
             child: Text('Add a pet to start keeping their care in one place.'),
           ),
           IconButton(
             onPressed: onTap,
-            icon: const Icon(Icons.add_circle, color: AppColors.primary),
+            icon: Icon(Icons.add_circle, color: context.appColors.primary),
           ),
         ],
       ),
@@ -753,7 +759,7 @@ class _ReminderEmptyCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSpacing.md),
     decoration: BoxDecoration(
-      color: AppColors.surface,
+      color: context.appColors.surface,
       borderRadius: AppRadius.lgRadius,
     ),
     child: Row(
@@ -762,10 +768,10 @@ class _ReminderEmptyCard extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.15),
+            color: context.appColors.accent.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check, color: AppColors.accent),
+          child: Icon(Icons.check, color: context.appColors.accent),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
@@ -811,13 +817,13 @@ class _HomeRemindersSection extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.appColors.surface,
               borderRadius: AppRadius.lgRadius,
             ),
             child: Text(
               'Your reminders could not be loaded. Try again later.',
               style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
           );
@@ -859,13 +865,13 @@ class _ReminderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final urgencyColor = switch (reminder.urgency) {
-      ReminderUrgency.overdue => AppColors.danger,
-      ReminderUrgency.today => AppColors.warning,
-      ReminderUrgency.upcoming => AppColors.textSecondary,
+      ReminderUrgency.overdue => context.appColors.primaryMuted,
+      ReminderUrgency.today => context.appColors.primary,
+      ReminderUrgency.upcoming => context.appColors.textSecondary,
     };
     final trailing = reminder.time ?? _dateLabel(reminder.date);
     return Material(
-      color: AppColors.surface,
+      color: context.appColors.surface,
       borderRadius: AppRadius.mdRadius,
       child: InkWell(
         onTap: onTap,
@@ -894,7 +900,7 @@ class _ReminderTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                       ),
                     ],
@@ -908,7 +914,7 @@ class _ReminderTile extends StatelessWidget {
                     Text(
                       trailing,
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.appColors.textPrimary,
                       ),
                     ),
                     Text(
@@ -920,7 +926,10 @@ class _ReminderTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(width: AppSpacing.xs),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                Icon(
+                  Icons.chevron_right,
+                  color: context.appColors.textSecondary,
+                ),
               ],
             ),
           ),
@@ -971,7 +980,7 @@ class _AllPetsScreen extends StatelessWidget {
               child: Text(
                 'No pets yet.',
                 style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
             )
@@ -1071,7 +1080,7 @@ class _QuickActions extends StatelessWidget {
       itemBuilder: (context, index) {
         final action = actions[index];
         return Material(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: AppRadius.mdRadius,
           child: InkWell(
             borderRadius: AppRadius.mdRadius,
@@ -1080,7 +1089,7 @@ class _QuickActions extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Row(
                 children: [
-                  Icon(action.icon, color: AppColors.primary, size: 21),
+                  Icon(action.icon, color: context.appColors.primary, size: 21),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(action.label, style: AppTypography.bodyStrong),

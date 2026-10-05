@@ -199,7 +199,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
                               child: Text(
                                 vet.clinic!,
                                 style: AppTypography.body.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: context.appColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -413,7 +413,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: context.appColors.surface,
         border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
       ),
     ),
@@ -557,7 +557,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                       child: Text(
                         vet.clinic!,
                         style: AppTypography.body.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                       ),
                     ),
@@ -577,7 +577,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                   Text('Next appointments', style: AppTypography.h2),
                   ..._pets.map(
                     (pet) => Card(
-                      color: AppColors.surface,
+                      color: context.appColors.surface,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
@@ -594,8 +594,8 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                                     _date(_appointments[pet.id]),
                                     style: AppTypography.caption.copyWith(
                                       color: _appointments[pet.id] == null
-                                          ? AppColors.textDisabled
-                                          : AppColors.textPrimary,
+                                          ? context.appColors.textDisabled
+                                          : context.appColors.textPrimary,
                                     ),
                                   ),
                                 ],
@@ -680,8 +680,10 @@ class _PetChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Chip(
     label: Text(label),
-    backgroundColor: AppColors.primaryMuted,
-    labelStyle: AppTypography.caption.copyWith(color: AppColors.textPrimary),
+    backgroundColor: context.appColors.primaryMuted,
+    labelStyle: AppTypography.caption.copyWith(
+      color: context.appColors.textPrimary,
+    ),
     visualDensity: VisualDensity.compact,
   );
 }
