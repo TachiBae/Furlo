@@ -55,8 +55,8 @@ void main() {
 
   test('toMap and fromMap preserve vaccination fields', () {
     final vaccination = Vaccination(
-      id: 12,
-      petId: 5,
+      id: '12',
+      petId: '5',
       vaccineName: 'Rabies',
       dateGiven: DateTime(2026, 2, 3),
       nextDueDate: DateTime(2027, 2, 3),

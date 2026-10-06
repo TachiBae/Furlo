@@ -11,9 +11,11 @@ class NotificationsScreen extends StatelessWidget {
     super.key,
     required this.settings,
     required this.service,
+    this.storageScope,
   });
   final NotificationSettingsRepository settings;
   final NotificationService service;
+  final String? storageScope;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -28,6 +30,7 @@ class NotificationsScreen extends StatelessWidget {
               builder: (_) => NotificationSettingsScreen(
                 settings: settings,
                 service: service,
+                storageScope: storageScope,
               ),
             ),
           ),
@@ -74,15 +77,20 @@ class NotificationSettingsScreen extends StatelessWidget {
     super.key,
     required this.settings,
     required this.service,
+    this.storageScope,
   });
 
   final NotificationSettingsRepository settings;
   final NotificationService service;
+  final String? storageScope;
 
   @override
   Widget build(BuildContext context) => ChangeNotifierProvider(
-    create: (_) =>
-        NotificationSettingsProvider(repository: settings, service: service),
+    create: (_) => NotificationSettingsProvider(
+      repository: settings,
+      service: service,
+      storageScope: storageScope,
+    ),
     child: const _NotificationsView(),
   );
 }

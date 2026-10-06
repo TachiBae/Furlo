@@ -22,7 +22,10 @@ import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
 import 'package:furlo/screens/vets/vet_contacts_screen.dart';
 import 'package:furlo/screens/weight/weight_tracking_screen.dart';
+import 'package:furlo/services/auth_service.dart';
 import 'package:furlo/services/notifications_service.dart';
+import 'helpers/fake_auth_service.dart';
+import 'helpers/fake_account_onboarding_repository.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,6 +46,14 @@ void main() {
         FurloApp(
           repository: repository,
           notificationService: const NoOpNotificationService(),
+          accountOnboardingRepository: FakeAccountOnboardingRepository(),
+          authService: FakeAuthService(
+            initialUser: const AuthUser(
+              uid: 'theme-test-user',
+              email: 'theme@example.test',
+              displayName: null,
+            ),
+          ),
         ),
       );
       await tester.pump();
@@ -68,15 +79,15 @@ void main() {
     for (final theme in [AppTheme.light, AppTheme.dark]) {
       SharedPreferences.setMockInitialValues({});
       final repository = WebPetRepository();
-      await repository.addPet(Pet(id: 1, name: 'Mochi', species: 'Dog'));
+      await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
       final pets = await repository.getPets();
       final pet = pets.single;
       await repository.addFeedingSchedule(
-        FeedingEntry(petId: 1, name: 'Breakfast', time: '08:00'),
+        FeedingEntry(petId: '1', name: 'Breakfast', time: '08:00'),
       );
       await repository.addVaccination(
         Vaccination(
-          petId: 1,
+          petId: '1',
           vaccineName: 'Rabies',
           dateGiven: DateTime(2026, 1, 1),
           nextDueDate: DateTime(2027, 1, 1),
@@ -84,19 +95,16 @@ void main() {
       );
       await repository.addHealthRecord(
         HealthRecord(
-          petId: 1,
+          petId: '1',
           title: 'Checkup',
           date: DateTime(2026, 1, 1),
           type: HealthRecordTypes.checkup,
         ),
       );
-      await repository.addVet(
-        Vet(name: 'Dr. Lee', phone: '555-0100'),
-        [1],
-      );
+      await repository.addVet(Vet(name: 'Dr. Lee', phone: '555-0100'), ['1']);
       final vet = (await repository.getAllVets()).single;
       await repository.addWeightLog(
-        WeightLog(petId: 1, date: DateTime(2026, 1, 1), weight: 8.2),
+        WeightLog(petId: '1', date: DateTime(2026, 1, 1), weight: 8.2),
       );
       final state = FurloState(repository);
       await state.load();
@@ -124,20 +132,28 @@ void main() {
         ),
         ChangeNotifierProvider.value(
           value: state,
-          child: PetProfileScreen(petId: 1, repository: repository),
+          child: PetProfileScreen(petId: '1', repository: repository),
         ),
         ChangeNotifierProvider.value(
           value: state,
           child: FeedingScreen(repository: repository),
         ),
         VaccinationScreen(repository: repository, pets: pets, selectedPet: pet),
-        HealthRecordsScreen(repository: repository, pets: pets, selectedPet: pet),
+        HealthRecordsScreen(
+          repository: repository,
+          pets: pets,
+          selectedPet: pet,
+        ),
         ChangeNotifierProvider.value(
           value: state,
           child: VetContactsScreen(repository: repository),
         ),
         VetDetailsScreen(repository: repository, vet: vet),
-        WeightTrackingScreen(repository: repository, pets: pets, selectedPet: pet),
+        WeightTrackingScreen(
+          repository: repository,
+          pets: pets,
+          selectedPet: pet,
+        ),
         NotificationsScreen(
           settings: notifications,
           service: const NoOpNotificationService(),

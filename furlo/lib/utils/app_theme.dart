@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_diagnostics.dart';
+
 class AppPalette {
   const AppPalette({
     required this.bg,
@@ -122,11 +124,11 @@ class ThemeSettings extends ChangeNotifier {
   static const preferenceKey = 'app.theme_mode';
 
   AppThemeChoice _choice = AppThemeChoice.defaultTheme;
-  String? _persistenceError;
+  bool _persistenceFailed = false;
 
   AppThemeChoice get choice => _choice;
   ThemeData get themeData => AppTheme.forChoice(_choice);
-  String? get persistenceError => _persistenceError;
+  bool get persistenceFailed => _persistenceFailed;
 
   Future<void> load() async {
     try {
@@ -145,10 +147,11 @@ class ThemeSettings extends ChangeNotifier {
           throw StateError('The Default theme preference was not saved.');
         }
       }
-      _persistenceError = null;
-    } catch (error) {
+      _persistenceFailed = false;
+    } catch (_) {
       _choice = AppThemeChoice.defaultTheme;
-      _persistenceError = 'Theme preference could not be restored: $error';
+      _persistenceFailed = true;
+      logAppDiagnostic('Theme preference restore failed.');
     }
     notifyListeners();
   }
@@ -163,7 +166,7 @@ class ThemeSettings extends ChangeNotifier {
     });
     if (!stored) throw StateError('The theme preference was not saved.');
     _choice = choice;
-    _persistenceError = null;
+    _persistenceFailed = false;
     notifyListeners();
   }
 }

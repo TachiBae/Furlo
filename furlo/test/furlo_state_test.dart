@@ -15,7 +15,7 @@ void main() {
   });
 
   test('load reads pets and initializes selection', () async {
-    final pet = Pet(id: 1, name: 'Milo', species: 'Dog');
+    final pet = Pet(id: '1', name: 'Milo', species: 'Dog');
     await repository.addPet(pet);
     var notifications = 0;
     state.addListener(() => notifications++);
@@ -25,7 +25,7 @@ void main() {
     expect(state.isLoading, isFalse);
     expect(state.loadError, isNull);
     expect(state.pets.single.name, 'Milo');
-    expect(state.selectedPet?.id, 1);
+    expect(state.selectedPet?.id, '1');
     expect(notifications, 2);
   });
 
@@ -45,11 +45,11 @@ void main() {
   test(
     'update writes through repository and updates selected pet data',
     () async {
-      await repository.addPet(Pet(id: 1, name: 'Milo', species: 'Dog'));
+      await repository.addPet(Pet(id: '1', name: 'Milo', species: 'Dog'));
       await state.load();
       var notifications = 0;
       state.addListener(() => notifications++);
-      final updatedPet = Pet(id: 1, name: 'Milo Jr', species: 'Dog');
+      final updatedPet = Pet(id: '1', name: 'Milo Jr', species: 'Dog');
 
       await state.updatePet(updatedPet);
 
@@ -63,19 +63,19 @@ void main() {
   test(
     'delete chooses a remaining pet or null and publishes changes',
     () async {
-      await repository.addPet(Pet(id: 1, name: 'Milo', species: 'Dog'));
-      await repository.addPet(Pet(id: 2, name: 'Luna', species: 'Cat'));
+      await repository.addPet(Pet(id: '1', name: 'Milo', species: 'Dog'));
+      await repository.addPet(Pet(id: '2', name: 'Luna', species: 'Cat'));
       await state.load();
       state.selectPet(state.pets.last);
       var notifications = 0;
       state.addListener(() => notifications++);
 
-      await state.deletePet(2);
+      await state.deletePet('2');
 
-      expect(state.pets.map((pet) => pet.id), [1]);
-      expect(state.selectedPet?.id, 1);
+      expect(state.pets.map((pet) => pet.id), ['1']);
+      expect(state.selectedPet?.id, '1');
       expect(notifications, 1);
-      await state.deletePet(1);
+      await state.deletePet('1');
       expect(state.pets, isEmpty);
       expect(state.selectedPet, isNull);
       expect(notifications, 2);

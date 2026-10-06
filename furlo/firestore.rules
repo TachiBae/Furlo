@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /accountMetadata/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['requiresFirstPet'])
+        && request.resource.data.requiresFirstPet is bool;
+      allow delete: if false;
+    }
+
+    // Pet data for one account: pets, feedings, vaccinations, healthRecords,
+    // weightLogs, vets and vetLinks. A user may only touch their own subtree.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

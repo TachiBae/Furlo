@@ -6,9 +6,11 @@ import 'package:provider/provider.dart';
 import '../../models/feeding_entry.dart';
 import '../../models/pet.dart';
 import '../../providers/furlo_state.dart';
+import '../../repositories/notification_settings_repository.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/app_diagnostics.dart';
 import '../pets/pet_onboarding_screen.dart';
 
 class FeedingScreen extends StatefulWidget {
@@ -16,10 +18,12 @@ class FeedingScreen extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
+    this.storageScope,
   });
 
   final PetRepository repository;
   final NotificationService notificationService;
+  final String? storageScope;
 
   @override
   State<FeedingScreen> createState() => _FeedingScreenState();
@@ -27,7 +31,7 @@ class FeedingScreen extends StatefulWidget {
 
 class _FeedingScreenState extends State<FeedingScreen> {
   late final FurloState _furloState;
-  int? _observedSelectedPetId;
+  String? _observedSelectedPetId;
   List<FeedingEntry> _schedules = [];
   bool _loading = true;
   bool _saving = false;
@@ -80,6 +84,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       }
     } catch (_) {
       if (mounted) {
+        logAppDiagnostic('Feeding schedule load failed.');
         setState(() {
           _schedules = [];
           _loading = false;
@@ -89,7 +94,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
     }
   }
 
-  Future<void> _choosePet(int? petId) async {
+  Future<void> _choosePet(String? petId) async {
     final selected = _furloState.pets
         .where((pet) => pet.id == petId)
         .firstOrNull;
@@ -144,14 +149,14 @@ class _FeedingScreenState extends State<FeedingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (existing == null && petsWithIds.length > 1) ...[
-                      DropdownButtonFormField<int>(
+                      DropdownButtonFormField<String>(
                         key: ValueKey('schedule-pet-$selectedPetId'),
                         initialValue: selectedPetId,
                         decoration: _fieldDecoration('Pet'),
                         items: petsWithIds
                             .map(
                               (pet) => DropdownMenuItem(
-                                value: pet.id,
+                                value: pet.id!,
                                 child: Text(pet.name),
                               ),
                             )
@@ -407,10 +412,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
       if (targetPet != null) _furloState.selectPet(targetPet);
       await widget.notificationService.rescheduleAll();
       if (!selectedPetChanged) await _loadSchedules();
-    } catch (error, stackTrace) {
+    } catch (_) {
       if (!mounted) return;
-      debugPrint('Failed to save feeding schedule: $error');
-      debugPrintStack(stackTrace: stackTrace);
+      logAppDiagnostic('Feeding schedule save failed.');
       _showMessage('The feeding schedule could not be saved.');
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -541,7 +545,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                     bottom: AppSpacing.md,
                                   ),
                                   child: petsWithIds.length > 1
-                                      ? DropdownButtonFormField<int>(
+                                      ? DropdownButtonFormField<String>(
                                           key: ValueKey(_selectedPet?.id),
                                           initialValue: _selectedPet?.id,
                                           decoration: const InputDecoration(
@@ -550,7 +554,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                           items: petsWithIds
                                               .map(
                                                 (pet) => DropdownMenuItem(
-                                                  value: pet.id,
+                                                  value: pet.id!,
                                                   child: Text(pet.name),
                                                 ),
                                               )
@@ -633,7 +637,14 @@ class _FeedingScreenState extends State<FeedingScreen> {
   Future<void> _addPet() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => AddPetScreen(repository: widget.repository),
+        builder: (_) => AddPetScreen(
+          repository: widget.repository,
+          notificationSettings: SharedPreferencesNotificationSettingsRepository(
+            storageScope: widget.storageScope,
+          ),
+          notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
+        ),
       ),
     );
   }

@@ -14,34 +14,34 @@ void main() {
     () async {
       SharedPreferences.setMockInitialValues({});
       final repository = WebPetRepository();
-      await repository.addPet(Pet(id: 1, name: 'Milo', species: 'Dog'));
-      await repository.addPet(Pet(id: 2, name: 'Luna', species: 'Cat'));
+      await repository.addPet(Pet(id: '1', name: 'Milo', species: 'Dog'));
+      await repository.addPet(Pet(id: '2', name: 'Luna', species: 'Cat'));
       await repository.addFeedingSchedule(
-        FeedingEntry(petId: 1, name: 'Dinner', time: '18:00'),
+        FeedingEntry(petId: '1', name: 'Dinner', time: '18:00'),
       );
       await repository.addVaccination(
-        Vaccination(petId: 1, vaccineName: 'Rabies'),
+        Vaccination(petId: '1', vaccineName: 'Rabies'),
       );
       await repository.addHealthRecord(
-        HealthRecord(petId: 1, title: 'Checkup', type: 'Vet Visit'),
+        HealthRecord(petId: '1', title: 'Checkup', type: 'Vet Visit'),
       );
       await repository.addWeightLog(
-        WeightLog(petId: 1, date: DateTime(2026, 10, 1), weight: 8.2),
+        WeightLog(petId: '1', date: DateTime(2026, 10, 1), weight: 8.2),
       );
       final vet = await repository.addVet(
         Vet(name: 'Dr. Lee', phone: '5551234567'),
-        [1, 2],
+        ['1', '2'],
       );
 
-      await repository.deletePet(1);
+      await repository.deletePet('1');
 
       expect(await repository.getPets(), hasLength(1));
-      expect(await repository.getFeedingSchedules(1), isEmpty);
-      expect(await repository.getVaccinationsForPet(1), isEmpty);
-      expect(await repository.getHealthRecordsForPet(1), isEmpty);
-      expect(await repository.getWeightLogsForPet(1), isEmpty);
-      expect(await repository.getVetsForPet(1), isEmpty);
-      expect((await repository.getVetsForPet(2)).single.id, vet.id);
+      expect(await repository.getFeedingSchedules('1'), isEmpty);
+      expect(await repository.getVaccinationsForPet('1'), isEmpty);
+      expect(await repository.getHealthRecordsForPet('1'), isEmpty);
+      expect(await repository.getWeightLogsForPet('1'), isEmpty);
+      expect(await repository.getVetsForPet('1'), isEmpty);
+      expect((await repository.getVetsForPet('2')).single.id, vet.id);
     },
   );
 }

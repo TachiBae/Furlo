@@ -27,7 +27,7 @@ class _FakePetRepository implements PetRepository {
   }
 
   @override
-  Future<void> deletePet(int id) async {}
+  Future<void> deletePet(String id) async {}
 
   @override
   Future<void> clearAllData() async {}
@@ -37,18 +37,18 @@ class _FakePetRepository implements PetRepository {
 
   @override
   Future<FeedingEntry> addFeedingSchedule(FeedingEntry entry) async {
-    final saved = entry.copyWith(id: _nextId++);
+    final saved = entry.copyWith(id: '${_nextId++}');
     schedules.add(saved);
     return saved;
   }
 
   @override
-  Future<void> deleteFeedingSchedule(int id, int petId) async {
+  Future<void> deleteFeedingSchedule(String id, String petId) async {
     schedules.removeWhere((entry) => entry.id == id && entry.petId == petId);
   }
 
   @override
-  Future<List<FeedingEntry>> getFeedingSchedules(int petId) async =>
+  Future<List<FeedingEntry>> getFeedingSchedules(String petId) async =>
       schedules.where((entry) => entry.petId == petId).toList();
 
   @override
@@ -60,7 +60,7 @@ class _FakePetRepository implements PetRepository {
   }
 
   @override
-  Future<List<Vaccination>> getVaccinationsForPet(int petId) async => [];
+  Future<List<Vaccination>> getVaccinationsForPet(String petId) async => [];
 
   @override
   Future<Vaccination> addVaccination(Vaccination vaccination) async =>
@@ -70,10 +70,10 @@ class _FakePetRepository implements PetRepository {
   Future<void> updateVaccination(Vaccination vaccination) async {}
 
   @override
-  Future<void> deleteVaccination(int id, int petId) async {}
+  Future<void> deleteVaccination(String id, String petId) async {}
 
   @override
-  Future<List<HealthRecord>> getHealthRecordsForPet(int petId) async => [];
+  Future<List<HealthRecord>> getHealthRecordsForPet(String petId) async => [];
 
   @override
   Future<HealthRecord> addHealthRecord(HealthRecord record) async => record;
@@ -82,35 +82,40 @@ class _FakePetRepository implements PetRepository {
   Future<void> updateHealthRecord(HealthRecord record) async {}
 
   @override
-  Future<void> deleteHealthRecord(int id, int petId) async {}
+  Future<void> deleteHealthRecord(String id, String petId) async {}
 
   @override
   Future<List<Vet>> getAllVets() async => [];
   @override
-  Future<List<Vet>> getVetsForPet(int petId) async => [];
+  Future<List<Vet>> getVetsForPet(String petId) async => [];
   @override
-  Future<Vet?> getVetById(int id) async => null;
+  Future<Vet?> getVetById(String id) async => null;
   @override
-  Future<List<Pet>> getPetsForVet(int vetId) async => [];
+  Future<List<Pet>> getPetsForVet(String vetId) async => [];
   @override
-  Future<List<VetPetAssociation>> getVetPetAssociations(int vetId) async => [];
+  Future<List<VetPetAssociation>> getVetPetAssociations(String vetId) async =>
+      [];
   @override
-  Future<Vet> addVet(Vet vet, List<int> petIds) async => vet;
+  Future<Vet> addVet(Vet vet, List<String> petIds) async => vet;
   @override
-  Future<void> updateVet(Vet vet, List<int> petIds) async {}
+  Future<void> updateVet(Vet vet, List<String> petIds) async {}
   @override
-  Future<void> deleteVet(int id) async {}
+  Future<void> deleteVet(String id) async {}
   @override
-  Future<void> setNextAppointment(int vetId, int petId, DateTime? date) async {}
+  Future<void> setNextAppointment(
+    String vetId,
+    String petId,
+    DateTime? date,
+  ) async {}
 
   @override
-  Future<List<WeightLog>> getWeightLogsForPet(int petId) async => [];
+  Future<List<WeightLog>> getWeightLogsForPet(String petId) async => [];
   @override
   Future<WeightLog> addWeightLog(WeightLog log) async => log;
   @override
   Future<void> updateWeightLog(WeightLog log) async {}
   @override
-  Future<void> deleteWeightLog(int id, int petId) async {}
+  Future<void> deleteWeightLog(String id, String petId) async {}
 }
 
 void main() {

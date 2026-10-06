@@ -1,5 +1,5 @@
 class Pet {
-  final int? id;
+  final String? id;
   final String name;
   final String species;
   final String? breed;

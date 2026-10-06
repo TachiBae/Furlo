@@ -158,8 +158,8 @@ Future<void> _checkShortViewport(
     for (final filled in [false, true]) {
       SharedPreferences.setMockInitialValues({});
       final repository = WebPetRepository();
-      await repository.addPet(Pet(id: 1, name: 'Mochi', species: 'Dog'));
-      await repository.addPet(Pet(id: 2, name: 'Miso', species: 'Cat'));
+      await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
+      await repository.addPet(Pet(id: '2', name: 'Miso', species: 'Cat'));
       final pets = await repository.getPets();
       final screen = await createScreen(repository, pets, filled);
       await tester.pumpWidget(

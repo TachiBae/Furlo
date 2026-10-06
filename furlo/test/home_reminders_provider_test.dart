@@ -7,7 +7,7 @@ import 'package:furlo/providers/home_reminders_provider.dart';
 
 void main() {
   final today = DateTime(2026, 10, 2, 13);
-  final pets = [Pet(id: 1, name: 'Milo', species: 'Dog')];
+  final pets = [Pet(id: '1', name: 'Milo', species: 'Dog')];
 
   TodayReminderResult build({
     List<FeedingEntry> feedings = const [],
@@ -30,22 +30,22 @@ void main() {
       final result = build(
         vaccinations: [
           Vaccination(
-            petId: 1,
+            petId: '1',
             vaccineName: 'Overdue',
             nextDueDate: DateTime(2026, 10, 1),
           ),
           Vaccination(
-            petId: 1,
+            petId: '1',
             vaccineName: 'Due today',
             nextDueDate: DateTime(2026, 10, 2),
           ),
           Vaccination(
-            petId: 1,
+            petId: '1',
             vaccineName: 'Seven days',
             nextDueDate: DateTime(2026, 10, 9),
           ),
           Vaccination(
-            petId: 1,
+            petId: '1',
             vaccineName: 'Eight days',
             nextDueDate: DateTime(2026, 10, 10),
           ),
@@ -67,14 +67,14 @@ void main() {
       final result = build(
         feedings: [
           FeedingEntry(
-            petId: 1,
+            petId: '1',
             name: 'Breakfast',
             time: '08:00',
             lastFedAt: DateTime(2026, 10, 2, 8),
           ),
-          FeedingEntry(petId: 1, name: 'Dinner', time: '18:00'),
+          FeedingEntry(petId: '1', name: 'Dinner', time: '18:00'),
           FeedingEntry(
-            petId: 1,
+            petId: '1',
             name: 'Monday only',
             time: '10:00',
             frequency: 'Custom',
@@ -91,7 +91,7 @@ void main() {
   test('one-time feedings appear only on their scheduled date', () {
     final scheduledDate = DateTime(today.year, today.month, today.day);
     final oneTimeMeal = FeedingEntry(
-      petId: 1,
+      petId: '1',
       name: 'One-time meal',
       time: '15:00',
       frequency: FeedingEntry.doesNotRepeat,
@@ -133,7 +133,7 @@ void main() {
   test('one-time feeding completion is evaluated on its scheduled date', () {
     final scheduledDate = DateTime(today.year, today.month, today.day);
     final meal = FeedingEntry(
-      petId: 1,
+      petId: '1',
       name: 'One-time meal',
       time: '15:00',
       frequency: FeedingEntry.doesNotRepeat,
@@ -146,22 +146,22 @@ void main() {
 
   test('orders overdue reminders before today and upcoming reminders', () {
     final result = build(
-      feedings: [FeedingEntry(petId: 1, name: 'Meal', time: '08:00')],
+      feedings: [FeedingEntry(petId: '1', name: 'Meal', time: '08:00')],
       vaccinations: [
         Vaccination(
-          petId: 1,
+          petId: '1',
           vaccineName: 'Later',
           nextDueDate: DateTime(2026, 10, 3),
         ),
         Vaccination(
-          petId: 1,
+          petId: '1',
           vaccineName: 'Past',
           nextDueDate: DateTime(2026, 9, 30),
         ),
       ],
       healthRecords: [
         HealthRecord(
-          petId: 1,
+          petId: '1',
           title: 'Medicine',
           type: 'Medication',
           date: DateTime(2026, 10, 1),
@@ -185,19 +185,19 @@ void main() {
       final result = build(
         appointments: [
           VetAppointmentReminder(
-            petId: 1,
+            petId: '1',
             vetName: 'Dr Lee',
             date: DateTime(2026, 10, 5),
           ),
           VetAppointmentReminder(
-            petId: 1,
+            petId: '1',
             vetName: 'Dr Kim',
             date: DateTime(2026, 10, 6),
           ),
         ],
         healthRecords: [
           HealthRecord(
-            petId: 1,
+            petId: '1',
             title: 'Weekly dose',
             type: 'Medication',
             date: DateTime(2026, 9, 25),
@@ -205,7 +205,7 @@ void main() {
             reminderActive: true,
           ),
           HealthRecord(
-            petId: 1,
+            petId: '1',
             title: 'Disabled dose',
             type: 'Medication',
             date: DateTime(2026, 9, 25),
@@ -225,7 +225,7 @@ void main() {
   test('returns no reminders when there is no matching data', () {
     expect(
       build(
-        availablePets: [Pet(id: 2, name: 'Luna', species: 'Cat')],
+        availablePets: [Pet(id: '2', name: 'Luna', species: 'Cat')],
       ).allItems,
       isEmpty,
     );
@@ -236,7 +236,7 @@ void main() {
       vaccinations: List.generate(
         7,
         (index) => Vaccination(
-          petId: 1,
+          petId: '1',
           vaccineName: 'Vaccine $index',
           nextDueDate: DateTime(2026, 10, 3),
         ),

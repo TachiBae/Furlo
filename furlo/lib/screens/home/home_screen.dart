@@ -28,11 +28,13 @@ class HomeScreen extends StatefulWidget {
     required this.repository,
     required this.notificationSettings,
     required this.notificationService,
+    this.storageScope,
   });
 
   final PetRepository repository;
   final NotificationSettingsRepository notificationSettings;
   final NotificationService notificationService;
+  final String? storageScope;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -40,7 +42,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final AppSettingsRepository _appSettings =
-      SharedPreferencesAppSettingsRepository();
+      SharedPreferencesAppSettingsRepository(storageScope: widget.storageScope);
   late final HomeRemindersProvider _remindersProvider = HomeRemindersProvider(
     widget.repository,
   );
@@ -77,7 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _addPet() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AddPetScreen(repository: widget.repository),
+        builder: (_) => AddPetScreen(
+          repository: widget.repository,
+          notificationSettings: widget.notificationSettings,
+          notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
+        ),
       ),
     );
   }
@@ -89,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
           petId: pet.id!,
           repository: widget.repository,
           notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
         ),
       ),
     );
@@ -114,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appSettings: _appSettings,
       notificationSettings: widget.notificationSettings,
       notificationService: widget.notificationService,
+      storageScope: widget.storageScope,
     ),
   );
 
@@ -136,6 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = FeedingScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
         );
       case ReminderType.vaccination:
         screen = VaccinationScreen(
@@ -148,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = VetContactsScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
         );
       case ReminderType.medication:
         screen = HealthRecordsScreen(
@@ -222,6 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NotificationsScreen(
             settings: widget.notificationSettings,
             service: widget.notificationService,
+            storageScope: widget.storageScope,
           ),
         );
         break;
@@ -310,6 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onOpen: _open,
                         repository: widget.repository,
                         notificationService: widget.notificationService,
+                        storageScope: widget.storageScope,
                         pets: pets,
                         selectedPet: selectedPet,
                       ),
@@ -1009,12 +1022,14 @@ class _QuickActions extends StatelessWidget {
     required this.onOpen,
     required this.repository,
     required this.notificationService,
+    required this.storageScope,
     required this.pets,
     required this.selectedPet,
   });
   final ValueChanged<Widget> onOpen;
   final PetRepository repository;
   final NotificationService notificationService;
+  final String? storageScope;
   final List<Pet> pets;
   final Pet? selectedPet;
 
@@ -1027,6 +1042,7 @@ class _QuickActions extends StatelessWidget {
         FeedingScreen(
           repository: repository,
           notificationService: notificationService,
+          storageScope: storageScope,
         ),
       ),
       _ActionData(
@@ -1055,6 +1071,7 @@ class _QuickActions extends StatelessWidget {
         VetContactsScreen(
           repository: repository,
           notificationService: notificationService,
+          storageScope: storageScope,
         ),
       ),
       _ActionData(

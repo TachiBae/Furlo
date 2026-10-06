@@ -100,14 +100,15 @@ void main() {
           service.signInWithEmail('person@example.test', 'test-password'),
           throwsA(same(failure)),
         );
-        final user = await service.registerWithEmail(
+        final result = await service.registerWithEmail(
           'person@example.test',
           'test-password',
         );
 
-        expect(user.uid, 'fake-user');
+        expect(result.user.uid, 'fake-user');
+        expect(result.isNewAccount, isTrue);
         expect(service.calls, ['signInWithEmail', 'registerWithEmail']);
-        expect(service.currentUser, user);
+        expect(service.currentUser, result.user);
 
         service.failNextRegister(failure);
         await expectLater(
@@ -119,7 +120,7 @@ void main() {
           'registerWithEmail',
           'registerWithEmail',
         ]);
-        expect(service.currentUser, user);
+        expect(service.currentUser, result.user);
       },
     );
   });

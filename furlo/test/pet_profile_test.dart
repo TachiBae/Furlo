@@ -29,7 +29,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({});
     final repository = WebPetRepository();
-    await repository.addPet(Pet(id: 1, name: 'Mochi', species: 'Dog'));
+    await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
     final state = FurloState(repository);
     await state.load();
 
@@ -37,7 +37,7 @@ void main() {
       ChangeNotifierProvider.value(
         value: state,
         child: MaterialApp(
-          home: PetProfileScreen(petId: 1, repository: repository),
+          home: PetProfileScreen(petId: '1', repository: repository),
         ),
       ),
     );

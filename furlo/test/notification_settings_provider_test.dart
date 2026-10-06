@@ -24,14 +24,15 @@ class _FakeNotificationService implements NotificationService {
   @override
   Future<void> schedule(
     String type,
-    int id,
+    String id,
     String title,
     String body,
     DateTime dateTime, {
     NotificationRepeat repeat = NotificationRepeat.none,
   }) async {}
   @override
-  Future<void> cancel(int id) async {}
+  Future<void> cancel(String type, String id) async {}
+
   @override
   Future<void> cancelAllOfType(String type) async {
     cancelledTypes.add(type);
@@ -41,6 +42,9 @@ class _FakeNotificationService implements NotificationService {
   Future<void> rescheduleAll() async {
     rescheduleCalls++;
   }
+
+  @override
+  Future<void> clearScheduled() async {}
 }
 
 void main() {
@@ -63,6 +67,7 @@ void main() {
 
     await provider.toggle(NotificationTypes.dailyFeeding, false);
     expect(service.cancelledTypes, [NotificationTypes.dailyFeeding]);
+    addTearDown(provider.dispose);
     expect(
       await SharedPreferencesNotificationSettingsRepository().isEnabled(
         NotificationTypes.dailyFeeding,
@@ -95,6 +100,35 @@ void main() {
       expect(service.permissionRequests, 1);
       expect(await repository.isEnabled(NotificationTypes.medication), isTrue);
       expect(service.rescheduleCalls, 0);
+    },
+  );
+
+  test(
+    'user setting an option off affects only their scoped preference',
+    () async {
+      final aliceRepository = SharedPreferencesNotificationSettingsRepository(
+        storageScope: 'alice',
+      );
+      final bobRepository = SharedPreferencesNotificationSettingsRepository(
+        storageScope: 'bob',
+      );
+      final service = _FakeNotificationService();
+      final provider = NotificationSettingsProvider(
+        repository: aliceRepository,
+        service: service,
+        storageScope: 'alice',
+      );
+      addTearDown(provider.dispose);
+      await provider.ready;
+
+      await provider.toggle(NotificationTypes.dailyFeeding, false);
+
+      expect(provider.isEnabled(NotificationTypes.dailyFeeding), isFalse);
+      expect(
+        await bobRepository.isEnabled(NotificationTypes.dailyFeeding),
+        isTrue,
+      );
+      expect(service.cancelledTypes, [NotificationTypes.dailyFeeding]);
     },
   );
 

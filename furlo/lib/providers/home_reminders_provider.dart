@@ -18,7 +18,7 @@ class VetAppointmentReminder {
     required this.date,
   });
 
-  final int petId;
+  final String petId;
   final String vetName;
   final DateTime date;
 }
@@ -34,7 +34,7 @@ class HomeReminder {
     this.date,
   });
 
-  final int petId;
+  final String petId;
   final String petName;
   final String title;
   final ReminderType type;

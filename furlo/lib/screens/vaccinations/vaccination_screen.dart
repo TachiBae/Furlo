@@ -323,7 +323,7 @@ class VaccinationFormScreen extends StatefulWidget {
     this.existing,
   });
 
-  final int petId;
+  final String petId;
   final String species;
   final Vaccination? existing;
 

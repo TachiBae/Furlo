@@ -9,6 +9,7 @@ import '../models/feeding_entry.dart';
 import '../models/pet.dart';
 import '../repositories/notification_settings_repository.dart';
 import '../repositories/pet_repository.dart';
+import '../utils/user_storage_scope.dart';
 
 enum NotificationRepeat { none, daily, weekly }
 
@@ -19,28 +20,34 @@ abstract interface class NotificationService {
   Future<void> openAppSettings();
   Future<void> schedule(
     String type,
-    int id,
+    String id,
     String title,
     String body,
     DateTime dateTime, {
     NotificationRepeat repeat = NotificationRepeat.none,
   });
-  Future<void> cancel(int id);
+  Future<void> cancel(String type, String id);
   Future<void> cancelAllOfType(String type);
   Future<void> rescheduleAll();
+  Future<void> clearScheduled();
 }
 
 NotificationService createNotificationService({
   required PetRepository repository,
   required NotificationSettingsRepository settings,
+  String? storageScope,
 }) => kIsWeb
     ? const NoOpNotificationService()
-    : LocalNotificationService(repository: repository, settings: settings);
+    : LocalNotificationService(
+        repository: repository,
+        settings: settings,
+        storageScope: storageScope,
+      );
 
 /// Uses a deterministic FNV-1a hash instead of String.hashCode, which is not
 /// guaranteed to be stable across runtime instances.
-int stableNotificationId(String type, Object recordId) {
-  final source = '$type:$recordId';
+int stableNotificationId(String type, Object recordId, {String? scope}) {
+  final source = scope == null ? '$type:$recordId' : '$scope:$type:$recordId';
   var hash = 0x811c9dc5;
   for (final unit in source.codeUnits) {
     hash ^= unit;
@@ -48,6 +55,15 @@ int stableNotificationId(String type, Object recordId) {
   }
   final id = hash & 0x7fffffff;
   return id == 0 ? 1 : id;
+}
+
+/// Returns whether a pending reminder payload belongs to [storageScope].
+/// Legacy payloads have `type|recordId`; scoped payloads prefix a namespace.
+bool notificationPayloadIsOwnedByScope(String payload, {String? storageScope}) {
+  final fields = payload.split('|');
+  if (storageScope == null) return fields.length == 2;
+  return fields.length >= 3 &&
+      fields.first == userStorageScopeToken(storageScope);
 }
 
 DateTime? calculateOneTimeFeedingFireTime({
@@ -165,25 +181,32 @@ class NoOpNotificationService implements NotificationService {
   @override
   Future<void> schedule(
     String type,
-    int id,
+    String id,
     String title,
     String body,
     DateTime dateTime, {
     NotificationRepeat repeat = NotificationRepeat.none,
   }) async {}
   @override
-  Future<void> cancel(int id) async {}
+  Future<void> cancel(String type, String id) async {}
   @override
   Future<void> cancelAllOfType(String type) async {}
   @override
   Future<void> rescheduleAll() async {}
+  @override
+  Future<void> clearScheduled() async {}
 }
 
 class LocalNotificationService implements NotificationService {
-  LocalNotificationService({required this.repository, required this.settings});
+  LocalNotificationService({
+    required this.repository,
+    required this.settings,
+    this.storageScope,
+  });
 
   final PetRepository repository;
   final NotificationSettingsRepository settings;
+  final String? storageScope;
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static const _timezoneChannel = MethodChannel('furlo/device_timezone');
@@ -306,7 +329,7 @@ class LocalNotificationService implements NotificationService {
   @override
   Future<void> schedule(
     String type,
-    int id,
+    String id,
     String title,
     String body,
     DateTime dateTime, {
@@ -317,8 +340,8 @@ class LocalNotificationService implements NotificationService {
     }
     await _scheduleWithId(
       type,
-      stableNotificationId(type, id),
-      id,
+      stableNotificationId(type, id, scope: storageScope),
+      storageScope == null ? id : '${userStorageScopeToken(storageScope!)}:$id',
       title,
       body,
       dateTime,
@@ -347,7 +370,10 @@ class LocalNotificationService implements NotificationService {
         NotificationRepeat.daily => DateTimeComponents.time,
         NotificationRepeat.weekly => DateTimeComponents.dayOfWeekAndTime,
       };
-      final payload = '$type|$recordKey';
+      final scopePrefix = storageScope == null
+          ? ''
+          : '${userStorageScopeToken(storageScope!)}|';
+      final payload = '$scopePrefix$type|$recordKey';
       final details = const NotificationDetails(
         android: AndroidNotificationDetails(
           'furlo_reminders',
@@ -392,20 +418,69 @@ class LocalNotificationService implements NotificationService {
   }
 
   @override
-  Future<void> cancel(int id) async {
-    try {
-      await initialize();
-      await _plugin.cancel(id: id);
-    } catch (_) {}
+  Future<void> cancel(String type, String id) async {
+    final scopedId = stableNotificationId(type, id, scope: storageScope);
+    await _cancelOwnedNotifications((payload) {
+      final prefix = storageScope == null
+          ? '$type|$id'
+          : '${userStorageScopeToken(storageScope!)}|$type|';
+      return storageScope == null
+          ? payload == '$type|$id'
+          : payload.startsWith(prefix) && payload.endsWith(':$id');
+    }, notificationId: scopedId);
   }
 
   @override
   Future<void> cancelAllOfType(String type) async {
+    final prefix = storageScope == null
+        ? '$type|'
+        : '${userStorageScopeToken(storageScope!)}|$type|';
+    await _cancelOwnedNotifications(
+      (payload) => payload.startsWith(prefix),
+      notificationTypes: {type},
+    );
+  }
+
+  @override
+  Future<void> clearScheduled() async {
+    await _cancelOwnedNotifications(
+      (payload) => notificationPayloadIsOwnedByScope(
+        payload,
+        storageScope: storageScope,
+      ),
+    );
+  }
+
+  (String, String)? _notificationFromPayload(String payload) {
+    if (!notificationPayloadIsOwnedByScope(
+      payload,
+      storageScope: storageScope,
+    )) {
+      return null;
+    }
+    final fields = payload.split('|');
+    if (storageScope == null) return (fields.first, fields.last);
+    return (fields[1], fields.sublist(2).join('|'));
+  }
+
+  Future<void> _cancelOwnedNotifications(
+    bool Function(String payload) owns, {
+    int? notificationId,
+    Set<String>? notificationTypes,
+  }) async {
     try {
       await initialize();
       final pending = await _plugin.pendingNotificationRequests();
       for (final request in pending) {
-        if (request.payload?.startsWith('$type|') == true) {
+        final payload = request.payload;
+        final notification = payload == null
+            ? null
+            : _notificationFromPayload(payload);
+        if ((notificationId == null || request.id == notificationId) &&
+            (notificationTypes == null ||
+                notificationTypes.contains(notification?.$1)) &&
+            payload != null &&
+            owns(payload)) {
           await _plugin.cancel(id: request.id);
         }
       }
@@ -416,7 +491,7 @@ class LocalNotificationService implements NotificationService {
   Future<void> rescheduleAll() async {
     try {
       await initialize();
-      await _plugin.cancelAll();
+      await clearScheduled();
       if (!await hasPermission()) return;
       final pets = await repository.getPets();
       for (final pet in pets) {
@@ -432,7 +507,7 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleFeeding(Pet pet, int petId) async {
+  Future<void> _scheduleFeeding(Pet pet, String petId) async {
     final schedules = await repository.getFeedingSchedules(petId);
     for (final entry in schedules) {
       final id = entry.id;
@@ -491,7 +566,7 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleVaccinations(Pet pet, int petId) async {
+  Future<void> _scheduleVaccinations(Pet pet, String petId) async {
     final records = await repository.getVaccinationsForPet(petId);
     for (final vaccination in records) {
       final id = vaccination.id;
@@ -530,7 +605,7 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleAppointments(Pet pet, int petId) async {
+  Future<void> _scheduleAppointments(Pet pet, String petId) async {
     final vets = await repository.getVetsForPet(petId);
     for (final vet in vets) {
       final vetId = vet.id;
@@ -558,7 +633,7 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleMedication(Pet pet, int petId) async {
+  Future<void> _scheduleMedication(Pet pet, String petId) async {
     final records = await repository.getHealthRecordsForPet(petId);
     for (final record in records) {
       if (record.type != HealthRecordTypes.medication ||
@@ -581,11 +656,14 @@ class LocalNotificationService implements NotificationService {
           final id = stableNotificationId(
             NotificationTypes.medication,
             '${record.id}:$monthOffset',
+            scope: storageScope,
           );
           await _scheduleWithId(
             NotificationTypes.medication,
             id,
-            record.id!,
+            storageScope == null
+                ? record.id!
+                : '${userStorageScopeToken(storageScope!)}:${record.id!}',
             'Medication reminder',
             '${pet.name} is due for ${record.title}.',
             occurrence,
@@ -632,8 +710,7 @@ class LocalNotificationService implements NotificationService {
     return DateTime(first.year, first.month, day.clamp(1, lastDay), 9);
   }
 
-  int _appointmentId(int vetId, int petId) =>
-      stableNotificationId(NotificationTypes.vetAppointment, '$vetId:$petId');
+  String _appointmentId(String vetId, String petId) => '$vetId:$petId';
 
   String _date(DateTime date) => '${_month(date.month)} ${date.day}';
   String _month(int month) => const [

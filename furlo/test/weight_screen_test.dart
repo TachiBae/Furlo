@@ -12,12 +12,12 @@ void main() {
   Future<(WebPetRepository, Pet)> createRepository(int count) async {
     SharedPreferences.setMockInitialValues({});
     final repository = WebPetRepository();
-    final pet = Pet(id: 1, name: 'Mochi', species: 'Dog');
+    final pet = Pet(id: '1', name: 'Mochi', species: 'Dog');
     await repository.addPet(pet);
     for (var index = 0; index < count; index++) {
       await repository.addWeightLog(
         WeightLog(
-          petId: 1,
+          petId: '1',
           date: DateTime(2026, 1, 1).add(Duration(days: index)),
           weight: 8 + index / 10,
         ),

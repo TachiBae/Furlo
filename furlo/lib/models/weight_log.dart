@@ -1,6 +1,6 @@
 class WeightLog {
-  final int? id;
-  final int petId;
+  final String? id;
+  final String petId;
   final DateTime? date;
   final double weight;
   final String? notes;
@@ -22,8 +22,8 @@ class WeightLog {
   };
 
   factory WeightLog.fromMap(Map<String, Object?> map) => WeightLog(
-    id: int.tryParse(map['id']?.toString() ?? ''),
-    petId: int.parse(map['pet_id']?.toString() ?? '0'),
+    id: map['id']?.toString(),
+    petId: map['pet_id']?.toString() ?? '',
     date: DateTime.tryParse(map['date']?.toString() ?? ''),
     weight: double.parse(map['weight']?.toString() ?? '0'),
     notes: map['notes']?.toString(),

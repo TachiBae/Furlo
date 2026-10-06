@@ -69,7 +69,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '738197946630',
     projectId: 'furlo-e4473',
     storageBucket: 'furlo-e4473.firebasestorage.app',
-    iosClientId: '738197946630-7qq158soc5ca7iigfhsgbf18pgduieg8.apps.googleusercontent.com',
+    iosClientId:
+        '738197946630-7qq158soc5ca7iigfhsgbf18pgduieg8.apps.googleusercontent.com',
     iosBundleId: 'com.example.furlo',
   );
 }
