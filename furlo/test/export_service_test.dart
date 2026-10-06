@@ -26,28 +26,28 @@ class _ExportTestRepository implements PetRepository {
   final List<HealthRecord> healthRecords;
   final List<WeightLog> weights;
   final List<Vet> vets;
-  final Map<int, List<VetPetAssociation>> associationsByVetId;
+  final Map<String, List<VetPetAssociation>> associationsByVetId;
 
   @override
   Future<List<Pet>> getPets() async => pets;
 
   @override
-  Future<List<Vaccination>> getVaccinationsForPet(int petId) async =>
+  Future<List<Vaccination>> getVaccinationsForPet(String petId) async =>
       vaccinations.where((item) => item.petId == petId).toList();
 
   @override
-  Future<List<HealthRecord>> getHealthRecordsForPet(int petId) async =>
+  Future<List<HealthRecord>> getHealthRecordsForPet(String petId) async =>
       healthRecords.where((item) => item.petId == petId).toList();
 
   @override
-  Future<List<WeightLog>> getWeightLogsForPet(int petId) async =>
+  Future<List<WeightLog>> getWeightLogsForPet(String petId) async =>
       weights.where((item) => item.petId == petId).toList();
 
   @override
-  Future<List<Vet>> getVetsForPet(int petId) async => vets;
+  Future<List<Vet>> getVetsForPet(String petId) async => vets;
 
   @override
-  Future<List<VetPetAssociation>> getVetPetAssociations(int vetId) async =>
+  Future<List<VetPetAssociation>> getVetPetAssociations(String vetId) async =>
       associationsByVetId[vetId] ?? [];
 
   @override
@@ -57,13 +57,13 @@ class _ExportTestRepository implements PetRepository {
   Future<void> updatePet(Pet pet) async => throw UnimplementedError();
 
   @override
-  Future<void> deletePet(int id) async => throw UnimplementedError();
+  Future<void> deletePet(String id) async => throw UnimplementedError();
 
   @override
   Future<void> clearAllData() async => throw UnimplementedError();
 
   @override
-  Future<List<FeedingEntry>> getFeedingSchedules(int petId) async => [];
+  Future<List<FeedingEntry>> getFeedingSchedules(String petId) async => [];
 
   @override
   Future<FeedingEntry> addFeedingSchedule(FeedingEntry entry) async =>
@@ -74,7 +74,7 @@ class _ExportTestRepository implements PetRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> deleteFeedingSchedule(int id, int petId) async =>
+  Future<void> deleteFeedingSchedule(String id, String petId) async =>
       throw UnimplementedError();
 
   @override
@@ -86,7 +86,7 @@ class _ExportTestRepository implements PetRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> deleteHealthRecord(int id, int petId) async =>
+  Future<void> deleteHealthRecord(String id, String petId) async =>
       throw UnimplementedError();
 
   @override
@@ -98,33 +98,36 @@ class _ExportTestRepository implements PetRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> deleteVaccination(int id, int petId) async =>
+  Future<void> deleteVaccination(String id, String petId) async =>
       throw UnimplementedError();
 
   @override
   Future<List<Vet>> getAllVets() async => vets;
 
   @override
-  Future<Vet?> getVetById(int id) async => throw UnimplementedError();
+  Future<Vet?> getVetById(String id) async => throw UnimplementedError();
 
   @override
-  Future<List<Pet>> getPetsForVet(int vetId) async =>
+  Future<List<Pet>> getPetsForVet(String vetId) async =>
       throw UnimplementedError();
 
   @override
-  Future<Vet> addVet(Vet vet, List<int> petIds) async =>
+  Future<Vet> addVet(Vet vet, List<String> petIds) async =>
       throw UnimplementedError();
 
   @override
-  Future<void> updateVet(Vet vet, List<int> petIds) async =>
+  Future<void> updateVet(Vet vet, List<String> petIds) async =>
       throw UnimplementedError();
 
   @override
-  Future<void> deleteVet(int id) async => throw UnimplementedError();
+  Future<void> deleteVet(String id) async => throw UnimplementedError();
 
   @override
-  Future<void> setNextAppointment(int vetId, int petId, DateTime? date) async =>
-      throw UnimplementedError();
+  Future<void> setNextAppointment(
+    String vetId,
+    String petId,
+    DateTime? date,
+  ) async => throw UnimplementedError();
 
   @override
   Future<WeightLog> addWeightLog(WeightLog log) async =>
@@ -135,7 +138,7 @@ class _ExportTestRepository implements PetRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> deleteWeightLog(int id, int petId) async =>
+  Future<void> deleteWeightLog(String id, String petId) async =>
       throw UnimplementedError();
 }
 
@@ -150,7 +153,7 @@ void main() {
       () async {
         final service = ExportService(
           repository: _ExportTestRepository(
-            pets: [Pet(id: 1, name: 'Milo / Pup', species: 'Dog')],
+            pets: [Pet(id: '1', name: 'Milo / Pup', species: 'Dog')],
           ),
           saveFile: ({required fileName, required bytes}) async {
             expect(fileName, 'furlo-milo-pup-summary-2026-10-02.pdf');
@@ -159,31 +162,34 @@ void main() {
             return '/Downloads/$fileName';
           },
         );
-        expect(await service.saveSummary(1, generatedAt: generatedAt), isTrue);
+        expect(
+          await service.saveSummary('1', generatedAt: generatedAt),
+          isTrue,
+        );
       },
     );
 
     test('returns false when the native save function is canceled', () async {
       final service = ExportService(
         repository: _ExportTestRepository(
-          pets: [Pet(id: 1, name: 'Milo', species: 'Dog')],
+          pets: [Pet(id: '1', name: 'Milo', species: 'Dog')],
         ),
         saveFile: ({required fileName, required bytes}) async => null,
       );
-      expect(await service.saveSummary(1, generatedAt: generatedAt), isFalse);
+      expect(await service.saveSummary('1', generatedAt: generatedAt), isFalse);
     });
 
     test('propagates save errors for the UI to handle', () async {
       final service = ExportService(
         repository: _ExportTestRepository(
-          pets: [Pet(id: 1, name: 'Milo', species: 'Dog')],
+          pets: [Pet(id: '1', name: 'Milo', species: 'Dog')],
         ),
         saveFile: ({required fileName, required bytes}) async {
           throw StateError('Save failed');
         },
       );
       await expectLater(
-        service.saveSummary(1, generatedAt: generatedAt),
+        service.saveSummary('1', generatedAt: generatedAt),
         throwsStateError,
       );
     });
@@ -195,7 +201,7 @@ void main() {
       var downloaded = false;
       final service = ExportService(
         repository: _ExportTestRepository(
-          pets: [Pet(id: 1, name: 'Milo / Pup', species: 'Dog')],
+          pets: [Pet(id: '1', name: 'Milo / Pup', species: 'Dog')],
         ),
         isWeb: true,
         saveFile: ({required fileName, required bytes}) async {
@@ -209,7 +215,7 @@ void main() {
           expect(String.fromCharCodes(bytes.take(4)), '%PDF');
         },
       );
-      expect(await service.saveSummary(1, generatedAt: generatedAt), isTrue);
+      expect(await service.saveSummary('1', generatedAt: generatedAt), isTrue);
       expect(downloaded, isTrue);
     },
   );
@@ -219,13 +225,13 @@ void main() {
     () async {
       final service = ExportService(
         repository: _ExportTestRepository(
-          pets: [Pet(id: 1, name: 'Milo', species: 'Dog')],
+          pets: [Pet(id: '1', name: 'Milo', species: 'Dog')],
         ),
         isWeb: false,
         saveFile: ({required fileName, required bytes}) async => null,
         shareFile: (_) async => fail('Native save must not invoke sharing'),
       );
-      expect(await service.saveSummary(1, generatedAt: generatedAt), isFalse);
+      expect(await service.saveSummary('1', generatedAt: generatedAt), isFalse);
     },
   );
 
@@ -255,7 +261,7 @@ void main() {
 
   group('assemblePetSummary', () {
     test('loads pet with empty related records', () async {
-      const petId = 7;
+      const petId = '7';
       final repository = _ExportTestRepository(
         pets: [
           Pet(
@@ -284,7 +290,7 @@ void main() {
     });
 
     test('loads full related data and vet appointments', () async {
-      const petId = 3;
+      const petId = '3';
       final repository = _ExportTestRepository(
         pets: [
           Pet(
@@ -297,7 +303,7 @@ void main() {
         ],
         vaccinations: [
           Vaccination(
-            id: 1,
+            id: '1',
             petId: petId,
             vaccineName: 'Rabies',
             dateGiven: DateTime(2026, 1, 10),
@@ -306,7 +312,7 @@ void main() {
         ],
         healthRecords: [
           HealthRecord(
-            id: 1,
+            id: '1',
             petId: petId,
             title: 'Annual checkup',
             date: DateTime(2026, 9, 1),
@@ -316,19 +322,24 @@ void main() {
         ],
         weights: [
           WeightLog(
-            id: 1,
+            id: '1',
             petId: petId,
             date: DateTime(2026, 9, 15),
             weight: 4.2,
           ),
         ],
         vets: [
-          Vet(id: 9, name: 'Dr. Smith', clinic: 'City Vet', phone: '555-0100'),
+          Vet(
+            id: '9',
+            name: 'Dr. Smith',
+            clinic: 'City Vet',
+            phone: '555-0100',
+          ),
         ],
         associationsByVetId: {
-          9: [
+          '9': [
             VetPetAssociation(
-              vetId: 9,
+              vetId: '9',
               petId: petId,
               nextAppointmentDate: DateTime(2026, 11, 5),
             ),
@@ -355,7 +366,7 @@ void main() {
         repository: _ExportTestRepository(pets: []),
       );
       expect(
-        () => service.assemblePetSummary(99, generatedAt: generatedAt),
+        () => service.assemblePetSummary('99', generatedAt: generatedAt),
         throwsA(isA<StateError>()),
       );
     });
@@ -363,7 +374,7 @@ void main() {
 
   group('renderSummary', () {
     test('returns non-empty PDF bytes', () async {
-      const petId = 1;
+      const petId = '1';
       final summary = PetCareSummary(
         pet: Pet(
           id: petId,

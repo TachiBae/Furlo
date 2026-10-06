@@ -16,9 +16,11 @@ class VetContactsScreen extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
+    this.storageScope,
   });
   final PetRepository repository;
   final NotificationService notificationService;
+  final String? storageScope;
 
   @override
   State<VetContactsScreen> createState() => _VetContactsScreenState();
@@ -28,7 +30,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
   bool _loading = true;
   String _filter = 'all';
   List<Vet> _vets = [];
-  final Map<int, List<Pet>> _linkedPets = {};
+  final Map<String, List<Pet>> _linkedPets = {};
   late final FurloState _furloState;
 
   @override
@@ -59,7 +61,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
     setState(() => _loading = true);
     final vets = await widget.repository.getAllVets();
     if (!mounted) return;
-    final linkedPets = <int, List<Pet>>{};
+    final linkedPets = <String, List<Pet>>{};
     for (final vet in vets) {
       if (vet.id != null) {
         final pets = await widget.repository.getPetsForVet(vet.id!);
@@ -76,7 +78,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
   }
 
   Future<void> _openForm([Vet? vet]) async {
-    List<int> ids = [];
+    List<String> ids = [];
     if (vet?.id != null) {
       ids = (await widget.repository.getPetsForVet(
         vet!.id!,
@@ -89,6 +91,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
         builder: (_) => VetFormScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
           vet: vet,
           linkedPetIds: ids,
         ),
@@ -185,6 +188,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
                           builder: (_) => VetDetailsScreen(
                             repository: widget.repository,
                             notificationService: widget.notificationService,
+                            storageScope: widget.storageScope,
                             vet: vet,
                           ),
                         ),
@@ -272,13 +276,15 @@ class VetFormScreen extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
+    this.storageScope,
     this.vet,
     this.linkedPetIds = const [],
   });
   final PetRepository repository;
   final NotificationService notificationService;
+  final String? storageScope;
   final Vet? vet;
-  final List<int> linkedPetIds;
+  final List<String> linkedPetIds;
   @override
   State<VetFormScreen> createState() => _VetFormScreenState();
 }
@@ -291,7 +297,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
   late final _email = TextEditingController(text: widget.vet?.email ?? '');
   late final _address = TextEditingController(text: widget.vet?.address ?? '');
   late final _notes = TextEditingController(text: widget.vet?.notes ?? '');
-  late final Set<int> _selected = {...widget.linkedPetIds};
+  late final Set<String> _selected = {...widget.linkedPetIds};
   bool _saving = false;
 
   @override
@@ -435,10 +441,12 @@ class VetDetailsScreen extends StatefulWidget {
     required this.repository,
     required this.vet,
     this.notificationService = const NoOpNotificationService(),
+    this.storageScope,
   });
   final PetRepository repository;
   final Vet vet;
   final NotificationService notificationService;
+  final String? storageScope;
   @override
   State<VetDetailsScreen> createState() => _VetDetailsScreenState();
 }
@@ -448,7 +456,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
   bool _changed = false;
   Vet? _vet;
   List<Pet> _pets = [];
-  Map<int, DateTime?> _appointments = {};
+  Map<String, DateTime?> _appointments = {};
   @override
   void initState() {
     super.initState();
@@ -654,6 +662,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                           builder: (_) => VetFormScreen(
                             repository: widget.repository,
                             notificationService: widget.notificationService,
+                            storageScope: widget.storageScope,
                             vet: vet,
                             linkedPetIds: _pets.map((pet) => pet.id!).toList(),
                           ),

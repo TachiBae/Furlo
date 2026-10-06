@@ -11,10 +11,10 @@ import '../../models/pet.dart';
 import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
+import '../../services/account_onboarding_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/pet_file_image.dart';
-import '../home/home_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({
@@ -22,11 +22,13 @@ class OnboardingScreen extends StatelessWidget {
     required this.repository,
     required this.notificationSettings,
     required this.notificationService,
+    this.storageScope,
   });
 
   final PetRepository repository;
   final NotificationSettingsRepository notificationSettings;
   final NotificationService notificationService;
+  final String? storageScope;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -77,6 +79,7 @@ class OnboardingScreen extends StatelessWidget {
                                 repository: repository,
                                 notificationSettings: notificationSettings,
                                 notificationService: notificationService,
+                                storageScope: storageScope,
                               ),
                             ),
                           ),
@@ -102,12 +105,18 @@ class AddPetScreen extends StatefulWidget {
     required this.repository,
     this.notificationSettings,
     this.notificationService = const NoOpNotificationService(),
+    this.storageScope,
+    this.accountOnboardingRepository,
+    this.onFirstPetSaved,
     this.existingPet,
   });
 
   final PetRepository repository;
   final NotificationSettingsRepository? notificationSettings;
   final NotificationService notificationService;
+  final String? storageScope;
+  final AccountOnboardingRepository? accountOnboardingRepository;
+  final Future<void> Function()? onFirstPetSaved;
   final Pet? existingPet;
 
   @override
@@ -124,6 +133,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
   String? _photoPath;
   Uint8List? _photoBytes;
   bool _saving = false;
+  bool _newPetSaved = false;
 
   @override
   void initState() {
@@ -247,27 +257,24 @@ class _AddPetScreenState extends State<AddPetScreen> {
         photoPath: _photoPath,
       );
       if (widget.existingPet == null) {
-        await context.read<FurloState>().addPet(pet);
+        if (!_newPetSaved) {
+          await context.read<FurloState>().addPet(pet);
+          _newPetSaved = true;
+        }
       } else {
         await context.read<FurloState>().updatePet(pet);
       }
       if (!mounted) return;
+      if (widget.existingPet == null && widget.onFirstPetSaved != null) {
+        await widget.onFirstPetSaved!.call();
+        if (!mounted) return;
+        return;
+      }
       if (widget.existingPet != null) {
         Navigator.of(context).pop(pet);
         return;
       }
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(
-            repository: widget.repository,
-            notificationSettings:
-                widget.notificationSettings ??
-                SharedPreferencesNotificationSettingsRepository(),
-            notificationService: widget.notificationService,
-          ),
-        ),
-        (_) => false,
-      );
+      Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/user_storage_scope.dart';
+
 abstract interface class AppSettingsRepository {
   Future<String> getDisplayName();
   Future<void> setDisplayName(String value);
@@ -7,8 +9,15 @@ abstract interface class AppSettingsRepository {
 }
 
 class SharedPreferencesAppSettingsRepository implements AppSettingsRepository {
-  static const _displayNameKey = 'profile.display_name';
-  static String? _memoryDisplayName;
+  SharedPreferencesAppSettingsRepository({this.storageScope});
+
+  final String? storageScope;
+  static const _legacyDisplayNameKey = 'profile.display_name';
+  static final Map<String, String> _memoryDisplayNames = {};
+
+  String get _displayNameKey => storageScope == null
+      ? _legacyDisplayNameKey
+      : 'profile.user.${userStorageScopeToken(storageScope!)}.display_name';
 
   Future<SharedPreferences?> _preferences() async {
     try {
@@ -21,13 +30,15 @@ class SharedPreferencesAppSettingsRepository implements AppSettingsRepository {
   @override
   Future<String> getDisplayName() async {
     final preferences = await _preferences();
-    return preferences?.getString(_displayNameKey) ?? _memoryDisplayName ?? '';
+    return preferences?.getString(_displayNameKey) ??
+        _memoryDisplayNames[_displayNameKey] ??
+        '';
   }
 
   @override
   Future<void> setDisplayName(String value) async {
     final trimmed = value.trim();
-    _memoryDisplayName = trimmed;
+    _memoryDisplayNames[_displayNameKey] = trimmed;
     final preferences = await _preferences();
     if (preferences != null) {
       await preferences.setString(_displayNameKey, trimmed);
@@ -36,7 +47,7 @@ class SharedPreferencesAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> clearDisplayName() async {
-    _memoryDisplayName = null;
+    _memoryDisplayNames.remove(_displayNameKey);
     final preferences = await _preferences();
     await preferences?.remove(_displayNameKey);
   }

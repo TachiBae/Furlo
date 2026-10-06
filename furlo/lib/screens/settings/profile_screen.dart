@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import '../../repositories/app_settings_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../repositories/pet_repository.dart';
+import '../../services/auth_service.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/auth_error_messages.dart';
+import '../../utils/app_diagnostics.dart';
 import 'notifications_screen.dart';
 
 const _buildName = String.fromEnvironment(
@@ -27,12 +30,14 @@ class ProfileScreen extends StatefulWidget {
     required this.appSettings,
     required this.notificationSettings,
     required this.notificationService,
+    this.storageScope,
   });
 
   final PetRepository repository;
   final AppSettingsRepository appSettings;
   final NotificationSettingsRepository notificationSettings;
   final NotificationService notificationService;
+  final String? storageScope;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -41,6 +46,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String _displayName = '';
   bool _loading = true;
+  bool _signingOut = false;
 
   @override
   void initState() {
@@ -81,6 +87,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _signOut(AuthService authService) async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+    try {
+      await authService.signOut();
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(authErrorMessage(error.code));
+    } catch (_) {
+      logAppDiagnostic('Sign-out failed.');
+      if (mounted) _showMessage(authErrorMessage(AuthErrorCode.unknown));
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -95,6 +117,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
               _GroupHeading('Account'),
+              if (Provider.of<AuthService?>(context, listen: false)
+                  case final authService?) ...[
+                ListTile(
+                  minTileHeight: 56,
+                  leading: const Icon(Icons.email_outlined),
+                  title: const Text('Email'),
+                  subtitle: Text(
+                    authService.currentUser?.email ?? 'Not available',
+                  ),
+                ),
+                ListTile(
+                  minTileHeight: 56,
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Sign out'),
+                  trailing: _signingOut
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : null,
+                  onTap: _signingOut ? null : () => _signOut(authService),
+                ),
+              ],
               ListTile(
                 minTileHeight: 56,
                 leading: const Icon(Icons.person_outline),
@@ -126,6 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (_) => NotificationSettingsScreen(
                       settings: widget.notificationSettings,
                       service: widget.notificationService,
+                      storageScope: widget.storageScope,
                     ),
                   ),
                 ),
@@ -170,7 +216,7 @@ class _ThemePreferenceRow extends StatelessWidget {
       leading: const Icon(Icons.contrast_outlined),
       title: const Text('Theme'),
       subtitle: Text(
-        settings.persistenceError == null
+        !settings.persistenceFailed
             ? _label(settings.choice)
             : 'Preference could not be restored; using Default',
       ),

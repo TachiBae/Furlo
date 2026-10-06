@@ -87,7 +87,7 @@ class ExportService {
   );
 
   Future<PetCareSummary> assemblePetSummary(
-    int petId, {
+    String petId, {
     DateTime? generatedAt,
   }) async {
     final pets = await _repository.getPets();
@@ -140,10 +140,7 @@ class ExportService {
     final boldFont = pw.Font.ttf(
       await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
     );
-    final theme = pw.ThemeData.withFont(
-      base: regularFont,
-      bold: boldFont,
-    );
+    final theme = pw.ThemeData.withFont(base: regularFont, bold: boldFont);
     final document = pw.Document(theme: theme);
     document.addPage(
       pw.MultiPage(
@@ -242,7 +239,7 @@ class ExportService {
 
   /// Returns false when the native save dialog is canceled.
   /// Web completes after starting a download; it cannot confirm disk storage.
-  Future<bool> saveSummary(int petId, {DateTime? generatedAt}) async {
+  Future<bool> saveSummary(String petId, {DateTime? generatedAt}) async {
     final summary = await assemblePetSummary(petId, generatedAt: generatedAt);
     final bytes = await renderSummary(summary);
     if (_isWeb) {
@@ -259,7 +256,7 @@ class ExportService {
     return result != null;
   }
 
-  Future<void> shareSummary(int petId, {DateTime? generatedAt}) async {
+  Future<void> shareSummary(String petId, {DateTime? generatedAt}) async {
     final summary = await assemblePetSummary(petId, generatedAt: generatedAt);
     final bytes = await renderSummary(summary);
     final filename = summaryFileName(summary.pet.name, summary.generatedAt);

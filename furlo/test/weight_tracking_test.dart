@@ -5,15 +5,15 @@ import 'package:furlo/utils/weight_tracking.dart';
 void main() {
   test('weight log toMap and fromMap preserve values', () {
     final log = WeightLog(
-      id: 3,
-      petId: 8,
+      id: '3',
+      petId: '8',
       date: DateTime(2026, 10, 2),
       weight: 8.25,
       notes: 'checkup',
     );
     final restored = WeightLog.fromMap(log.toMap());
-    expect(restored.id, 3);
-    expect(restored.petId, 8);
+    expect(restored.id, '3');
+    expect(restored.petId, '8');
     expect(restored.date, DateTime(2026, 10, 2));
     expect(restored.weight, 8.25);
     expect(restored.notes, 'checkup');
@@ -35,14 +35,14 @@ void main() {
     'change since previous uses latest date and returns null for one entry',
     () {
       final older = WeightLog(
-        id: 1,
-        petId: 1,
+        id: '1',
+        petId: '1',
         date: DateTime(2026, 9, 1),
         weight: 9.6,
       );
       final latest = WeightLog(
-        id: 2,
-        petId: 1,
+        id: '2',
+        petId: '1',
         date: DateTime(2026, 10, 1),
         weight: 10,
       );
@@ -53,8 +53,16 @@ void main() {
   );
 
   test('change can be a neutral negative value', () {
-    final older = WeightLog(petId: 1, date: DateTime(2026, 9, 1), weight: 10.2);
-    final latest = WeightLog(petId: 1, date: DateTime(2026, 10, 1), weight: 10);
+    final older = WeightLog(
+      petId: '1',
+      date: DateTime(2026, 9, 1),
+      weight: 10.2,
+    );
+    final latest = WeightLog(
+      petId: '1',
+      date: DateTime(2026, 10, 1),
+      weight: 10,
+    );
     expect(weightChangeSincePrevious([latest, older]), closeTo(-.2, .00001));
   });
 }

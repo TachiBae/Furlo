@@ -1,8 +1,8 @@
 import '../data/health_record_types.dart';
 
 class HealthRecord {
-  final int? id;
-  final int petId;
+  final String? id;
+  final String petId;
   final String title;
   final DateTime? date;
   final String type;
@@ -22,8 +22,8 @@ class HealthRecord {
   });
 
   factory HealthRecord.fromMap(Map<String, Object?> map) => HealthRecord(
-    id: int.tryParse(map['id']?.toString() ?? ''),
-    petId: int.parse(map['pet_id']?.toString() ?? '0'),
+    id: map['id']?.toString(),
+    petId: map['pet_id']?.toString() ?? '',
     title: map['title']?.toString() ?? '',
     date: DateTime.tryParse(map['date']?.toString() ?? ''),
     type: map['type']?.toString() ?? HealthRecordTypes.other,
@@ -51,7 +51,7 @@ class HealthRecord {
         : 0,
   };
 
-  HealthRecord copyWith({int? id}) => HealthRecord(
+  HealthRecord copyWith({String? id}) => HealthRecord(
     id: id ?? this.id,
     petId: petId,
     title: title,

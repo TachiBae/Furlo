@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/user_storage_scope.dart';
+
 abstract final class NotificationTypes {
   static const dailyFeeding = 'daily_feeding';
   static const missedMeal = 'missed_meal';
@@ -30,10 +32,25 @@ abstract interface class NotificationSettingsRepository {
 
 class SharedPreferencesNotificationSettingsRepository
     implements NotificationSettingsRepository {
-  static const _keyPrefix = 'notification.enabled.';
-  static const _permissionRequestedKey = 'notification.permission_requested';
+  SharedPreferencesNotificationSettingsRepository({this.storageScope});
+
+  final String? storageScope;
+  static const _legacyKeyPrefix = 'notification.enabled.';
+  static const _legacyPermissionRequestedKey =
+      'notification.permission_requested';
   static final Map<String, bool> _webMemory = {};
-  static bool? _permissionMemory;
+  static final Map<String, bool> _permissionMemory = {};
+
+  String _key(String type) => storageScope == null
+      ? '$_legacyKeyPrefix$type'
+      : 'notification.user.${userStorageScopeToken(storageScope!)}.enabled.$type';
+
+  String get _permissionKey => storageScope == null
+      ? _legacyPermissionRequestedKey
+      : 'notification.user.${userStorageScopeToken(storageScope!)}.permission_requested';
+
+  String get _memoryScope =>
+      storageScope == null ? 'legacy' : userStorageScopeToken(storageScope!);
 
   Future<SharedPreferences?> _preferences() async {
     try {
@@ -49,9 +66,12 @@ class SharedPreferencesNotificationSettingsRepository
   Future<bool> isEnabled(String type) async {
     if (!NotificationTypes.all.contains(type)) return false;
     final preferences = await _preferences();
-    if (preferences == null) return kIsWeb ? (_webMemory[type] ?? true) : true;
-    return preferences.getBool('$_keyPrefix$type') ??
-        (kIsWeb ? (_webMemory[type] ?? true) : true);
+    final key = _key(type);
+    if (preferences == null) {
+      return kIsWeb ? (_webMemory[key] ?? true) : true;
+    }
+    return preferences.getBool(key) ??
+        (kIsWeb ? (_webMemory[key] ?? true) : true);
   }
 
   @override
@@ -63,42 +83,54 @@ class SharedPreferencesNotificationSettingsRepository
   Future<void> setEnabled(String type, bool enabled) async {
     if (!NotificationTypes.all.contains(type)) return;
     final preferences = await _preferences();
+    final key = _key(type);
     if (preferences == null) {
-      if (kIsWeb) _webMemory[type] = enabled;
+      if (kIsWeb) _webMemory[key] = enabled;
       return;
     }
-    final stored = await preferences.setBool('$_keyPrefix$type', enabled);
-    if (kIsWeb && !stored) _webMemory[type] = enabled;
+    final stored = await preferences.setBool(key, enabled);
+    if (stored) {
+      _webMemory.remove(key);
+    } else if (kIsWeb) {
+      _webMemory[key] = enabled;
+    }
   }
 
   @override
   Future<bool> permissionWasRequested() async {
     final preferences = await _preferences();
     if (preferences == null) {
-      return kIsWeb ? (_permissionMemory ?? false) : false;
+      return kIsWeb ? (_permissionMemory[_memoryScope] ?? false) : false;
     }
-    return preferences.getBool(_permissionRequestedKey) ?? false;
+    return preferences.getBool(_permissionKey) ?? false;
   }
 
   @override
   Future<void> markPermissionRequested() async {
     final preferences = await _preferences();
     if (preferences == null) {
-      if (kIsWeb) _permissionMemory = true;
+      if (kIsWeb) _permissionMemory[_memoryScope] = true;
       return;
     }
-    await preferences.setBool(_permissionRequestedKey, true);
+    final stored = await preferences.setBool(_permissionKey, true);
+    if (stored) {
+      _permissionMemory.remove(_memoryScope);
+    } else if (kIsWeb) {
+      _permissionMemory[_memoryScope] = true;
+    }
   }
 
   @override
   Future<void> clearAll() async {
-    _webMemory.clear();
-    _permissionMemory = false;
+    for (final type in NotificationTypes.all) {
+      _webMemory.remove(_key(type));
+    }
+    _permissionMemory.remove(_memoryScope);
     final preferences = await _preferences();
     if (preferences == null) return;
     for (final type in NotificationTypes.all) {
-      await preferences.remove('$_keyPrefix$type');
+      await preferences.remove(_key(type));
     }
-    await preferences.remove(_permissionRequestedKey);
+    await preferences.remove(_permissionKey);
   }
 }

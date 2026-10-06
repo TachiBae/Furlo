@@ -422,7 +422,7 @@ class _WeightTrendChart extends StatelessWidget {
 
 class WeightEntryFormScreen extends StatefulWidget {
   const WeightEntryFormScreen({super.key, required this.petId, this.existing});
-  final int petId;
+  final String petId;
   final WeightLog? existing;
   @override
   State<WeightEntryFormScreen> createState() => _WeightEntryFormScreenState();

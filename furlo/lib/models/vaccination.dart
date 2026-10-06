@@ -28,8 +28,8 @@ String deriveVaccinationStatus(
 }
 
 class Vaccination {
-  final int? id;
-  final int petId;
+  final String? id;
+  final String petId;
   final String vaccineName;
   final DateTime? dateGiven;
   final DateTime? nextDueDate;
@@ -46,8 +46,8 @@ class Vaccination {
   }) : status = deriveVaccinationStatus(nextDueDate, isCompleted: isCompleted);
 
   factory Vaccination.fromMap(Map<String, Object?> map) => Vaccination(
-    id: int.tryParse(map['id']?.toString() ?? ''),
-    petId: int.parse(map['pet_id']?.toString() ?? '0'),
+    id: map['id']?.toString(),
+    petId: map['pet_id']?.toString() ?? '',
     vaccineName: map['vaccine_name']?.toString() ?? '',
     dateGiven: DateTime.tryParse(map['date_given']?.toString() ?? ''),
     nextDueDate: DateTime.tryParse(map['next_due_date']?.toString() ?? ''),
@@ -72,8 +72,8 @@ class Vaccination {
   };
 
   Vaccination copyWith({
-    int? id,
-    int? petId,
+    String? id,
+    String? petId,
     String? vaccineName,
     DateTime? dateGiven,
     DateTime? nextDueDate,

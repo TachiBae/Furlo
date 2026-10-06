@@ -310,7 +310,7 @@ class _NotesPreview extends StatelessWidget {
 class HealthRecordFormScreen extends StatefulWidget {
   const HealthRecordFormScreen({super.key, required this.petId, this.existing});
 
-  final int petId;
+  final String petId;
   final HealthRecord? existing;
 
   @override

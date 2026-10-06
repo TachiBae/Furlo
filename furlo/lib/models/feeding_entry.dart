@@ -1,8 +1,8 @@
 class FeedingEntry {
   static const doesNotRepeat = 'Does not repeat';
 
-  final int? id;
-  final int petId;
+  final String? id;
+  final String petId;
   final String name;
 
   /// Local time of day in `HH:mm` format.
@@ -70,8 +70,8 @@ class FeedingEntry {
       lastFedAt!.day == date.day;
 
   FeedingEntry copyWith({
-    int? id,
-    int? petId,
+    String? id,
+    String? petId,
     String? name,
     String? time,
     String? frequency,

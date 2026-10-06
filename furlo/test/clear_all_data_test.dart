@@ -14,28 +14,28 @@ void main() {
     () async {
       SharedPreferences.setMockInitialValues({});
       final repository = WebPetRepository();
-      await repository.addPet(Pet(id: 1, name: 'Milo', species: 'Dog'));
+      await repository.addPet(Pet(id: '1', name: 'Milo', species: 'Dog'));
       await repository.addFeedingSchedule(
-        FeedingEntry(petId: 1, name: 'Dinner', time: '18:00'),
+        FeedingEntry(petId: '1', name: 'Dinner', time: '18:00'),
       );
       await repository.addVaccination(
-        Vaccination(petId: 1, vaccineName: 'Rabies'),
+        Vaccination(petId: '1', vaccineName: 'Rabies'),
       );
       await repository.addHealthRecord(
-        HealthRecord(petId: 1, title: 'Medicine', type: 'Medication'),
+        HealthRecord(petId: '1', title: 'Medicine', type: 'Medication'),
       );
       await repository.addWeightLog(
-        WeightLog(petId: 1, date: DateTime(2026, 10, 3), weight: 8.4),
+        WeightLog(petId: '1', date: DateTime(2026, 10, 3), weight: 8.4),
       );
-      await repository.addVet(Vet(name: 'Dr Lee', phone: '5551234567'), [1]);
+      await repository.addVet(Vet(name: 'Dr Lee', phone: '5551234567'), ['1']);
 
       await repository.clearAllData();
 
       expect(await repository.getPets(), isEmpty);
-      expect(await repository.getFeedingSchedules(1), isEmpty);
-      expect(await repository.getVaccinationsForPet(1), isEmpty);
-      expect(await repository.getHealthRecordsForPet(1), isEmpty);
-      expect(await repository.getWeightLogsForPet(1), isEmpty);
+      expect(await repository.getFeedingSchedules('1'), isEmpty);
+      expect(await repository.getVaccinationsForPet('1'), isEmpty);
+      expect(await repository.getHealthRecordsForPet('1'), isEmpty);
+      expect(await repository.getWeightLogsForPet('1'), isEmpty);
       expect(await repository.getAllVets(), isEmpty);
     },
   );

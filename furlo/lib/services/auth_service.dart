@@ -13,6 +13,13 @@ class AuthUser {
   final String? displayName;
 }
 
+class AuthResult {
+  const AuthResult({required this.user, this.isNewAccount = false});
+
+  final AuthUser user;
+  final bool isNewAccount;
+}
+
 enum AuthErrorCode {
   invalidCredentials,
   userNotFound,
@@ -51,9 +58,10 @@ abstract interface class AuthService {
   AuthUser? get currentUser;
   Stream<AuthUser?> get authStateChanges;
 
+  Future<void> markNewAccountForFirstPet(String uid);
   Future<AuthUser> signInWithEmail(String email, String password);
-  Future<AuthUser> registerWithEmail(String email, String password);
-  Future<AuthUser> signInWithGoogle();
+  Future<AuthResult> registerWithEmail(String email, String password);
+  Future<AuthResult> signInWithGoogle();
   Future<void> sendPasswordReset(String email);
   Future<void> signOut();
 }

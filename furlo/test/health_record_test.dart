@@ -6,8 +6,8 @@ import 'package:furlo/utils/health_record_validation.dart';
 void main() {
   test('health record toMap and fromMap preserve nullable reminder values', () {
     final record = HealthRecord(
-      id: 4,
-      petId: 2,
+      id: '4',
+      petId: '2',
       title: 'Medication check',
       date: DateTime(2026, 8, 13),
       type: HealthRecordTypes.medication,
@@ -30,7 +30,7 @@ void main() {
   test('non-medication records preserve null reminder fields', () {
     final decoded = HealthRecord.fromMap(
       HealthRecord(
-        petId: 3,
+        petId: '3',
         title: 'Annual exam',
         date: DateTime(2026, 1, 2),
         type: HealthRecordTypes.checkup,

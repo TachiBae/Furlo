@@ -4,12 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../repositories/notification_settings_repository.dart';
+
 import '../../models/pet.dart';
 import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/export_service.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/app_diagnostics.dart';
 import '../../utils/pet_file_image.dart';
 import '../feeding/feeding_screen.dart';
 import '../health/health_records_screen.dart';
@@ -49,13 +52,15 @@ class PetProfileScreen extends StatefulWidget {
     required this.petId,
     required this.repository,
     this.notificationService = const NoOpNotificationService(),
+    this.storageScope,
     this.onPetDeleted,
   });
 
-  final int petId;
+  final String petId;
   final PetRepository repository;
   final NotificationService notificationService;
-  final ValueChanged<int>? onPetDeleted;
+  final String? storageScope;
+  final ValueChanged<String>? onPetDeleted;
 
   @override
   State<PetProfileScreen> createState() => _PetProfileScreenState();
@@ -109,8 +114,15 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     if (pet == null) return;
     final saved = await Navigator.of(context).push<Pet>(
       MaterialPageRoute(
-        builder: (_) =>
-            AddPetScreen(repository: widget.repository, existingPet: pet),
+        builder: (_) => AddPetScreen(
+          repository: widget.repository,
+          notificationSettings: SharedPreferencesNotificationSettingsRepository(
+            storageScope: widget.storageScope,
+          ),
+          notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
+          existingPet: pet,
+        ),
       ),
     );
     if (saved != null && mounted) {
@@ -181,8 +193,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
       } else {
         await service.shareSummary(widget.petId);
       }
-    } catch (error, stackTrace) {
-      debugPrint('Care summary export failed: $error\n$stackTrace');
+    } catch (_) {
+      logAppDiagnostic('Care summary export failed.');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -261,6 +273,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         screen = FeedingScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
         );
       case 'Vaccinations':
         screen = VaccinationScreen(
@@ -280,6 +293,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         screen = VetContactsScreen(
           repository: widget.repository,
           notificationService: widget.notificationService,
+          storageScope: widget.storageScope,
         );
       default:
         screen = WeightTrackingScreen(

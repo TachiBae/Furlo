@@ -1,5 +1,5 @@
 class Vet {
-  final int? id;
+  final String? id;
   final String name;
   final String? clinic;
   final String? phone;
@@ -28,7 +28,7 @@ class Vet {
   };
 
   factory Vet.fromMap(Map<String, Object?> map) => Vet(
-    id: int.tryParse(map['id']?.toString() ?? ''),
+    id: map['id']?.toString(),
     name: map['name']?.toString() ?? '',
     clinic: map['clinic']?.toString(),
     phone: map['phone']?.toString(),
@@ -38,7 +38,7 @@ class Vet {
   );
 
   Vet copyWith({
-    int? id,
+    String? id,
     String? name,
     String? clinic,
     String? phone,
@@ -57,8 +57,8 @@ class Vet {
 }
 
 class VetPetAssociation {
-  final int vetId;
-  final int petId;
+  final String vetId;
+  final String petId;
   final DateTime? nextAppointmentDate;
 
   const VetPetAssociation({
@@ -75,8 +75,8 @@ class VetPetAssociation {
 
   factory VetPetAssociation.fromMap(Map<String, Object?> map) =>
       VetPetAssociation(
-        vetId: int.parse(map['vet_id'].toString()),
-        petId: int.parse(map['pet_id'].toString()),
+        vetId: map['vet_id'].toString(),
+        petId: map['pet_id'].toString(),
         nextAppointmentDate: DateTime.tryParse(
           map['next_appointment_date']?.toString() ?? '',
         ),
