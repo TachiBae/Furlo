@@ -42,18 +42,18 @@ void main() {
       );
       await tester.tap(find.byIcon(Icons.add_circle).first);
       await tester.pumpAndSettle();
-      expect(find.text('Add New Pet'), findsOneWidget);
+      expect(find.text('Add pet'), findsOneWidget);
 
       await tester.enterText(find.byType(TextFormField).first, 'Pip');
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Dog').last);
       await tester.pumpAndSettle();
-      for (var i = 0; i < 6 && find.text('Save Pet').evaluate().isEmpty; i++) {
+      for (var i = 0; i < 6 && find.text('Save pet').evaluate().isEmpty; i++) {
         await tester.drag(find.byType(ListView).last, const Offset(0, -500));
         await tester.pumpAndSettle();
       }
-      await tester.tap(find.text('Save Pet'));
+      await tester.tap(find.text('Save pet'));
       await tester.pumpAndSettle();
 
       // The save must succeed and land back on the dashboard.
@@ -65,7 +65,14 @@ void main() {
       expect((await repository.getPets()).length, 1);
       expect((await repository.getPets()).single.name, 'Pip');
       expect(find.text('Quick Actions'), findsOneWidget);
-      expect(find.text('Add New Pet'), findsNothing);
+      // The Add pet screen is dismissed; only the dashboard tile remains.
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Add pet'),
+        ),
+        findsNothing,
+      );
     },
   );
 }

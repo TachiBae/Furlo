@@ -120,7 +120,7 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
             : FloatingActionButton.extended(
                 onPressed: state.saving ? null : () => _edit(state),
                 icon: const Icon(Icons.add),
-                label: const Text('Add vaccine'),
+                label: const Text('Add vaccination'),
               ),
         body: SafeArea(
           child: Center(

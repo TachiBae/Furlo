@@ -322,7 +322,7 @@ void main() {
       );
       await tester.tap(find.byKey(const Key('sign-in-submit')));
       await tester.pumpAndSettle();
-      expect(find.text('Add New Pet'), findsOneWidget);
+      expect(find.text('Add pet'), findsOneWidget);
     },
   );
 
@@ -351,7 +351,7 @@ void main() {
       service.googleCreatesNewAccount = false;
       await tester.tap(find.text('Continue with Google'));
       await tester.pumpAndSettle();
-      expect(find.text('Add New Pet'), findsOneWidget);
+      expect(find.text('Add pet'), findsOneWidget);
     },
   );
 

@@ -68,7 +68,7 @@ Widget authScreenScaffold({
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                title == 'Sign in' ? 'Welcome to Furlo' : title,
+                title == 'Sign in' ? 'Welcome back' : title,
                 style: AppTypography.h1,
                 textAlign: TextAlign.center,
               ),

@@ -57,7 +57,7 @@ class OnboardingScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        "Track Your Pet's Care",
+                        "Track your pet's care",
                         style: AppTypography.h1,
                         textAlign: TextAlign.center,
                       ),
@@ -84,7 +84,7 @@ class OnboardingScreen extends StatelessWidget {
                             ),
                           ),
                           style: AppComponents.primaryButton,
-                          child: const Text('Get Started'),
+                          child: const Text('Get started'),
                         ),
                       ),
                     ],
@@ -294,7 +294,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
       backgroundColor: context.appColors.bg,
       appBar: AppBar(
         title: Text(
-          widget.existingPet == null ? 'Add New Pet' : 'Edit Pet',
+          widget.existingPet == null ? 'Add pet' : 'Edit Pet',
         ),
         backgroundColor: context.appColors.bg,
         centerTitle: true,
@@ -513,8 +513,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
                           )
                         : Text(
                             widget.existingPet == null
-                                ? 'Save Pet'
-                                : 'Save Changes',
+                                ? 'Save pet'
+                                : 'Save changes',
                           ),
                   ),
                 ],

@@ -170,9 +170,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(pets, isNotEmpty);
-    await tester.ensureVisible(find.text('Add Feeding Schedule'));
+    await tester.ensureVisible(find.text('Add feeding schedule'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add Feeding Schedule'));
+    await tester.tap(find.text('Add feeding schedule'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: 'open dialog at 2.0 scale');
     expect(find.text('Save'), findsOneWidget);

@@ -426,11 +426,11 @@ class _AddPetNavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
+  Widget build(BuildContext context) =>    Semantics(
     button: true,
-    label: 'Add Pet',
+    label: 'Add pet',
     child: Tooltip(
-      message: 'Add Pet',
+      message: 'Add pet',
       child: Center(
         child: Material(
           color: context.appColors.primary,

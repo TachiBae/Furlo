@@ -80,7 +80,7 @@ void main() {
       AppPalette.light,
       AppPalette.dark,
     ]) {
-      // Overdue / Missed status captions render in `danger` on cards.
+      // Overdue status captions render in `danger` on cards.
       expect(
         contrast(palette.danger, palette.surface),
         greaterThanOrEqualTo(4.5),

@@ -139,7 +139,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dog').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save Pet'));
+    await tester.tap(find.text('Save pet'));
     await tester.pumpAndSettle();
 
     expect(repository.savedPet?.name, 'Mochi');

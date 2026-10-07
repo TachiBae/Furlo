@@ -56,7 +56,7 @@ class NotificationsScreen extends StatelessWidget {
                   Text('No notifications yet', style: AppTypography.h2),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Reminders will appear in your device notification center. Use the gear to choose which reminders Furlo sends.',
+                    'Reminders will appear in your device notification center. Open settings to choose which reminders Furlo sends.',
                     textAlign: TextAlign.center,
                     style: AppTypography.body.copyWith(
                       color: context.appColors.textSecondary,
@@ -139,7 +139,7 @@ class _NotificationsViewState extends State<_NotificationsView>
             if (state.isWeb) ...[
               _InfoBanner(
                 icon: Icons.info_outline,
-                message: 'Reminders only fire on the mobile app',
+                message: 'Reminders only work on the mobile app',
                 muted: true,
               ),
               const SizedBox(height: AppSpacing.md),

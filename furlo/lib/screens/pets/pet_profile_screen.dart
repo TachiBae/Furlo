@@ -186,7 +186,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
             content: Text(
               saved
                   ? (kIsWeb ? 'PDF download started.' : 'PDF saved.')
-                  : 'PDF save canceled.',
+                  : 'PDF save cancelled.',
             ),
           ),
         );
