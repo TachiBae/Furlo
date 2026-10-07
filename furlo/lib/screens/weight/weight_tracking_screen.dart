@@ -114,7 +114,13 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                   else if (state.error != null)
                     SliverFillRemaining(
                       hasScrollBody: false,
-                      child: Center(child: Text(state.error!)),
+                      child: RecordEmptyState(
+                        icon: Icons.error_outline,
+                        title: state.error!,
+                        message: 'Check your connection, then try again.',
+                        actionLabel: 'Try again',
+                        onAction: state.refresh,
+                      ),
                     )
                   else if (state.selectedPet == null)
                     const SliverFillRemaining(
