@@ -153,132 +153,135 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('Vet Contacts')),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: RecordFilterTabs(
-              options: filters,
-              selectedValue: _filter,
-              onSelected: (value) {
-                if (value != 'all') {
-                  final selectedPet = pets
-                      .where((pet) => pet.id.toString() == value)
-                      .firstOrNull;
-                  if (selectedPet != null) _furloState.selectPet(selectedPet);
-                }
-                setState(() => _filter = value);
-              },
-            ),
-          ),
-          if (_loading)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_loadError)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: RecordEmptyState(
-                icon: Icons.error_outline,
-                title: 'Vet contacts could not be loaded.',
-                message: 'Check your connection, then try again.',
-                actionLabel: 'Try again',
-                onAction: () => _load(),
-              ),
-            )
-          else if (visible.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: RecordEmptyState(
-                title: 'No vets yet',
-                message: _filter == 'all'
-                    ? 'Add a vet contact to keep important details close.'
-                    : 'No vets are linked to this pet yet.',
-                icon: Icons.local_hospital_outlined,
-                actionLabel: 'Add vet',
-                onAction: () => _openForm(),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-              sliver: SliverList.builder(
-                itemCount: visible.length,
-                itemBuilder: (context, index) {
-                  final vet = visible[index];
-                  return RecordCard(
-                    onTap: () async {
-                      final changed = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VetDetailsScreen(
-                            repository: widget.repository,
-                            notificationService: widget.notificationService,
-                            storageScope: widget.storageScope,
-                            vet: vet,
-                          ),
-                        ),
-                      );
-                      if (changed == true && context.mounted) await _load();
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            vet.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.h2,
-                          ),
-                          if ((vet.clinic ?? '').trim().isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 3),
-                              child: Text(
-                                vet.clinic!,
-                                style: AppTypography.body.copyWith(
-                                  color: context.appColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  vet.phone ?? '',
-                                  style: AppTypography.body,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              OutlinedButton.icon(
-                                onPressed: () => _call(vet),
-                                style: AppComponents.secondaryButton.copyWith(
-                                  minimumSize:
-                                      const WidgetStatePropertyAll<Size>(
-                                        Size(64, 48),
-                                      ),
-                                ),
-                                icon: const Icon(Icons.call_outlined),
-                                label: const Text('Call'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: _petChips(_linkedPets[vet.id] ?? []),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: RecordFilterTabs(
+                options: filters,
+                selectedValue: _filter,
+                onSelected: (value) {
+                  if (value != 'all') {
+                    final selectedPet = pets
+                        .where((pet) => pet.id.toString() == value)
+                        .firstOrNull;
+                    if (selectedPet != null) _furloState.selectPet(selectedPet);
+                  }
+                  setState(() => _filter = value);
                 },
               ),
             ),
-        ],
+            if (_loading)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_loadError)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: RecordEmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Vet contacts could not be loaded.',
+                  message: 'Check your connection, then try again.',
+                  actionLabel: 'Try again',
+                  onAction: () => _load(),
+                ),
+              )
+            else if (visible.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: RecordEmptyState(
+                  title: 'No vets yet',
+                  message: _filter == 'all'
+                      ? 'Add a vet contact to keep important details close.'
+                      : 'No vets are linked to this pet yet.',
+                  icon: Icons.local_hospital_outlined,
+                  actionLabel: 'Add vet',
+                  onAction: () => _openForm(),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+                sliver: SliverList.builder(
+                  itemCount: visible.length,
+                  itemBuilder: (context, index) {
+                    final vet = visible[index];
+                    return RecordCard(
+                      onTap: () async {
+                        final changed = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VetDetailsScreen(
+                              repository: widget.repository,
+                              notificationService: widget.notificationService,
+                              storageScope: widget.storageScope,
+                              vet: vet,
+                            ),
+                          ),
+                        );
+                        if (changed == true && context.mounted) await _load();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              vet.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.h2,
+                            ),
+                            if ((vet.clinic ?? '').trim().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 3),
+                                child: Text(
+                                  vet.clinic!,
+                                  style: AppTypography.body.copyWith(
+                                    color: context.appColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    vet.phone ?? '',
+                                    style: AppTypography.body,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => _call(vet),
+                                  style: AppComponents.secondaryButton.copyWith(
+                                    minimumSize:
+                                        const WidgetStatePropertyAll<Size>(
+                                          Size(64, 48),
+                                        ),
+                                  ),
+                                  icon: const Icon(Icons.call_outlined),
+                                  label: const Text('Call'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: _petChips(_linkedPets[vet.id] ?? []),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(),
