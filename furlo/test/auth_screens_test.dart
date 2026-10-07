@@ -102,21 +102,22 @@ void main() {
     }
   });
 
-  testWidgets('sign-in accepts existing passwords shorter than eight characters', (
-    tester,
-  ) async {
-    final service = FakeAuthService();
-    await tester.pumpWidget(
-      MaterialApp(home: SignInScreen(authService: service)),
-    );
-    await tester.enterText(find.byKey(const Key('auth-email')), 'a@b.test');
-    await tester.enterText(find.byKey(const Key('auth-password')), 'abc');
-    await tester.tap(find.byKey(const Key('sign-in-submit')));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'sign-in accepts existing passwords shorter than eight characters',
+    (tester) async {
+      final service = FakeAuthService();
+      await tester.pumpWidget(
+        MaterialApp(home: SignInScreen(authService: service)),
+      );
+      await tester.enterText(find.byKey(const Key('auth-email')), 'a@b.test');
+      await tester.enterText(find.byKey(const Key('auth-password')), 'abc');
+      await tester.tap(find.byKey(const Key('sign-in-submit')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Use at least 8 characters'), findsNothing);
-    expect(service.calls, contains('signInWithEmail'));
-  });
+      expect(find.text('Use at least 8 characters'), findsNothing);
+      expect(service.calls, contains('signInWithEmail'));
+    },
+  );
 
   testWidgets('unknown exceptions show only the generic auth message', (
     tester,
@@ -184,9 +185,7 @@ void main() {
     );
     expect(
       tester
-          .widget<Text>(
-            find.text(authErrorMessage(AuthErrorCode.networkError)),
-          )
+          .widget<Text>(find.text(authErrorMessage(AuthErrorCode.networkError)))
           .style
           ?.color,
       AppPalette.light.danger,

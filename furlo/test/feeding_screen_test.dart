@@ -181,20 +181,14 @@ void main() {
       // Save with no days selected: blocked with an inline error.
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
-      expect(
-        find.text('Choose at least one day of the week'),
-        findsOneWidget,
-      );
+      expect(find.text('Choose at least one day of the week'), findsOneWidget);
       expect(find.text('Dinner'), findsOneWidget); // dialog still open
       expect(await repository.getFeedingSchedules(mochi.id!), isEmpty);
 
       // Picking a day clears the error and allows the save.
       await tester.tap(find.byTooltip('Monday'));
       await tester.pumpAndSettle();
-      expect(
-        find.text('Choose at least one day of the week'),
-        findsNothing,
-      );
+      expect(find.text('Choose at least one day of the week'), findsNothing);
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 

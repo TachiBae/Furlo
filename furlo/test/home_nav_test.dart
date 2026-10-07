@@ -89,58 +89,63 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('alerts badge is hidden without reminders and counts them when present', (
-    tester,
-  ) async {
-    final handle = tester.ensureSemantics();
+  testWidgets(
+    'alerts badge is hidden without reminders and counts them when present',
+    (tester) async {
+      final handle = tester.ensureSemantics();
 
-    final state = await pumpHome(tester);
-    expect(find.bySemanticsLabel('Alerts'), findsOneWidget);
-    expect(
-      find.bySemanticsLabel(RegExp('Alerts, \\d+ reminders')),
-      findsNothing,
-    );
-    // The selected Home label renders at 12px (label token), not 10px.
-    expect(tester.getSize(find.text('Home')).height, greaterThanOrEqualTo(15));
-    await tester.pumpWidget(const SizedBox.shrink());
-    state.dispose();
+      final state = await pumpHome(tester);
+      expect(find.bySemanticsLabel('Alerts'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('Alerts, \\d+ reminders')),
+        findsNothing,
+      );
+      // The selected Home label renders at 12px (label token), not 10px.
+      expect(
+        tester.getSize(find.text('Home')).height,
+        greaterThanOrEqualTo(15),
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
 
-    final stateWithReminder = await pumpHome(tester, withReminder: true);
-    expect(find.bySemanticsLabel('Alerts, 1 reminders'), findsOneWidget);
-    expect(find.bySemanticsLabel('Alerts'), findsNothing);
-    handle.dispose();
+      final stateWithReminder = await pumpHome(tester, withReminder: true);
+      expect(find.bySemanticsLabel('Alerts, 1 reminders'), findsOneWidget);
+      expect(find.bySemanticsLabel('Alerts'), findsNothing);
+      handle.dispose();
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    stateWithReminder.dispose();
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      stateWithReminder.dispose();
+    },
+  );
 
-  testWidgets('tapped nav destination highlights while open and Home reactivates on return', (
-    tester,
-  ) async {
-    final state = await pumpHome(tester);
+  testWidgets(
+    'tapped nav destination highlights while open and Home reactivates on return',
+    (tester) async {
+      final state = await pumpHome(tester);
 
-    // Labels render only for the selected destination, so 'Settings' is
-    // absent while Home is active.
-    expect(find.text('Settings'), findsNothing);
+      // Labels render only for the selected destination, so 'Settings' is
+      // absent while Home is active.
+      expect(find.text('Settings'), findsNothing);
 
-    // The header settings icon shares the 'Settings' tooltip; the nav item
-    // is the last one in the tree.
-    await tester.tap(find.byTooltip('Settings').last);
-    await tester.pump();
-    expect(find.text('Settings'), findsOneWidget);
+      // The header settings icon shares the 'Settings' tooltip; the nav item
+      // is the last one in the tree.
+      await tester.tap(find.byTooltip('Settings').last);
+      await tester.pump();
+      expect(find.text('Settings'), findsOneWidget);
 
-    await tester.pumpAndSettle();
-    expect(find.text('Profile & Settings'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('Profile & Settings'), findsOneWidget);
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.text('Profile & Settings'), findsNothing);
-    expect(find.text('Settings'), findsNothing); // Home is active again
-    expect(find.byType(HomeScreen), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Profile & Settings'), findsNothing);
+      expect(find.text('Settings'), findsNothing); // Home is active again
+      expect(find.byType(HomeScreen), findsOneWidget);
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    state.dispose();
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+    },
+  );
 
   testWidgets('quick action screens mount only when their tile is tapped', (
     tester,
