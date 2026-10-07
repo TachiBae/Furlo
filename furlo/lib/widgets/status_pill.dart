@@ -16,7 +16,7 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status?.toLowerCase()) {
-      'overdue' => context.appColors.primaryMuted,
+      'overdue' => context.appColors.danger,
       'due soon' => context.appColors.textSecondary,
       'completed' => context.appColors.primary,
       'upcoming' => context.appColors.textSecondary,
@@ -29,7 +29,7 @@ class StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.18),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
+        border: Border.all(color: color.withValues(alpha: 0.75)),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
