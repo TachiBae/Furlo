@@ -539,7 +539,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       backgroundColor: context.appColors.bg,
       appBar: AppBar(
         leading: const BackButton(),
-        title: Text('Feeding Schedule', style: AppTypography.h2),
+        title: const Text('Feeding Schedule'),
         backgroundColor: context.appColors.bg,
       ),
       body: SafeArea(

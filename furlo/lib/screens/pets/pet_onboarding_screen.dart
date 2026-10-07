@@ -295,7 +295,6 @@ class _AddPetScreenState extends State<AddPetScreen> {
       appBar: AppBar(
         title: Text(
           widget.existingPet == null ? 'Add New Pet' : 'Edit Pet',
-          style: AppTypography.h2,
         ),
         backgroundColor: context.appColors.bg,
         centerTitle: true,

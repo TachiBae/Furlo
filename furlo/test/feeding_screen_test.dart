@@ -4,6 +4,7 @@ import 'package:furlo/models/pet.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/feeding/feeding_screen.dart';
+import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -202,4 +203,42 @@ void main() {
       expect(saved.daysOfWeek, [1]);
     },
   );
+
+  testWidgets('the feeding AppBar title inherits the 24px theme style', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+
+    final repository = WebPetRepository();
+    await repository.addPet(Pet(name: 'Mochi', species: 'Dog'));
+    final state = FurloState(repository);
+    await state.load();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: MaterialApp(
+          theme: AppTheme.defaultTheme,
+          home: FeedingScreen(repository: repository),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final titleContext = tester.element(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Feeding Schedule'),
+      ),
+    );
+    expect(
+      DefaultTextStyle.of(titleContext).style.fontSize,
+      24,
+      reason: 'AppBar titles share one size across screens',
+    );
+  });
 }
