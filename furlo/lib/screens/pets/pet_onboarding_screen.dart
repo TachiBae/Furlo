@@ -363,6 +363,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   TextFormField(
                     controller: _nameController,
                     textCapitalization: TextCapitalization.words,
+                    maxLength: 40,
                     decoration: const InputDecoration(hintText: 'e.g. Mochi'),
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Enter your pet’s name'

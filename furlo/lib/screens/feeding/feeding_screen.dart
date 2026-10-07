@@ -173,6 +173,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                     TextFormField(
                       initialValue: name,
                       autofocus: true,
+                      maxLength: 40,
                       textCapitalization: TextCapitalization.words,
                       onSaved: (value) => name = value?.trim() ?? '',
                       decoration: _fieldDecoration(
