@@ -7,6 +7,7 @@ import '../../models/vet.dart';
 import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
+import '../../utils/app_diagnostics.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/vet_validation.dart';
 import '../../widgets/record_components.dart';
@@ -28,6 +29,7 @@ class VetContactsScreen extends StatefulWidget {
 
 class _VetContactsScreenState extends State<VetContactsScreen> {
   bool _loading = true;
+  bool _loadError = false;
   String _filter = 'all';
   List<Vet> _vets = [];
   final Map<String, List<Pet>> _linkedPets = {};
@@ -58,23 +60,35 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
 
   Future<void> _load() async {
     if (!mounted) return;
-    setState(() => _loading = true);
-    final vets = await widget.repository.getAllVets();
-    if (!mounted) return;
-    final linkedPets = <String, List<Pet>>{};
-    for (final vet in vets) {
-      if (vet.id != null) {
-        final pets = await widget.repository.getPetsForVet(vet.id!);
-        if (!mounted) return;
-        linkedPets[vet.id!] = pets;
+    setState(() {
+      _loading = true;
+      _loadError = false;
+    });
+    try {
+      final vets = await widget.repository.getAllVets();
+      if (!mounted) return;
+      final linkedPets = <String, List<Pet>>{};
+      for (final vet in vets) {
+        if (vet.id != null) {
+          final pets = await widget.repository.getPetsForVet(vet.id!);
+          if (!mounted) return;
+          linkedPets[vet.id!] = pets;
+        }
       }
+      if (!mounted) return;
+      _vets = vets;
+      _linkedPets
+        ..clear()
+        ..addAll(linkedPets);
+      setState(() => _loading = false);
+    } catch (_) {
+      if (!mounted) return;
+      logAppDiagnostic('Vet contacts load failed.');
+      setState(() {
+        _loading = false;
+        _loadError = true;
+      });
     }
-    if (!mounted) return;
-    _vets = vets;
-    _linkedPets
-      ..clear()
-      ..addAll(linkedPets);
-    setState(() => _loading = false);
   }
 
   Future<void> _openForm([Vet? vet]) async {
@@ -159,6 +173,17 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
             const SliverFillRemaining(
               hasScrollBody: false,
               child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_loadError)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: RecordEmptyState(
+                icon: Icons.error_outline,
+                title: 'Vet contacts could not be loaded.',
+                message: 'Check your connection, then try again.',
+                actionLabel: 'Try again',
+                onAction: () => _load(),
+              ),
             )
           else if (visible.isEmpty)
             SliverFillRemaining(
