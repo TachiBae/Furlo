@@ -8,6 +8,7 @@ import '../../providers/vaccinations_provider.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../widgets/record_components.dart';
 import '../../widgets/status_pill.dart';
 
@@ -266,7 +267,7 @@ class _VaccinationCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               StatusPill(
-                label: _titleCase(vaccination.status),
+                label: capitalizeWords(vaccination.status),
                 status: vaccination.status,
               ),
             ],
@@ -274,13 +275,13 @@ class _VaccinationCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           RecordDetailRow(
             label: 'Date given',
-            value: _formatDate(vaccination.dateGiven),
+            value: formatShortDate(vaccination.dateGiven),
             valueIsEmpty: vaccination.dateGiven == null,
           ),
           const SizedBox(height: AppSpacing.xs),
           RecordDetailRow(
             label: 'Next due',
-            value: _formatDate(vaccination.nextDueDate),
+            value: formatShortDate(vaccination.nextDueDate),
             valueIsEmpty: vaccination.nextDueDate == null,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -521,13 +522,8 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
     ),
   );
 
-  InputDecoration _decoration(String label, String hint) => InputDecoration(
-    labelText: label,
-    hintText: hint,
-    filled: true,
-    fillColor: context.appColors.surfaceAlt,
-    border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
-  );
+  InputDecoration _decoration(String label, String hint) =>
+      recordFormDecoration(context, label: label, hint: hint);
 }
 
 class _DateField extends StatelessWidget {
@@ -563,30 +559,10 @@ class _DateField extends StatelessWidget {
       ),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(value == null ? 'Select date' : _formatDate(value)),
+        child: Text(value == null ? 'Select date' : formatShortDate(value)),
       ),
     ),
   );
-}
-
-String _formatDate(DateTime? value) {
-  if (value == null) return 'Not set';
-  final date = value;
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
 }
 
 bool _isBeforeDay(DateTime? first, DateTime second) {
@@ -595,11 +571,3 @@ bool _isBeforeDay(DateTime? first, DateTime second) {
   final secondDay = DateTime.utc(second.year, second.month, second.day);
   return firstDay.isBefore(secondDay);
 }
-
-String _titleCase(String value) => value
-    .split(' ')
-    .map(
-      (word) =>
-          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
-    .join(' ');

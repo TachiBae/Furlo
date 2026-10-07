@@ -9,6 +9,7 @@ import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../utils/vet_validation.dart';
 import '../../widgets/record_components.dart';
 
@@ -521,23 +522,6 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
     }
   }
 
-  String _date(DateTime? value) => value == null
-      ? 'Not set'
-      : '${_month(value.month)} ${value.day}, ${value.year}';
-  String _month(int month) => const [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ][month - 1];
   Future<void> _appointment(Pet pet) async {
     final current = _appointments[pet.id];
     final selected = await showDatePicker(
@@ -636,7 +620,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                                     style: AppTypography.bodyStrong,
                                   ),
                                   Text(
-                                    _date(_appointments[pet.id]),
+                                    formatShortDate(_appointments[pet.id]),
                                     style: AppTypography.caption.copyWith(
                                       color: _appointments[pet.id] == null
                                           ? context.appColors.textDisabled

@@ -9,6 +9,7 @@ import '../models/feeding_entry.dart';
 import '../models/pet.dart';
 import '../repositories/notification_settings_repository.dart';
 import '../repositories/pet_repository.dart';
+import '../utils/formatting.dart';
 import '../utils/user_storage_scope.dart';
 
 enum NotificationRepeat { none, daily, weekly }
@@ -583,7 +584,7 @@ class LocalNotificationService implements NotificationService {
           NotificationTypes.upcomingVaccine,
           id,
           'Vaccine due soon',
-          '${pet.name} is due for ${vaccination.vaccineName} on ${_date(due)}.',
+          '${pet.name} is due for ${vaccination.vaccineName} on ${formatMonthDay(due)}.',
           upcoming,
         );
       }
@@ -626,7 +627,7 @@ class LocalNotificationService implements NotificationService {
           NotificationTypes.vetAppointment,
           _appointmentId(vetId, petId),
           'Vet appointment tomorrow',
-          '${pet.name} has an appointment with ${vet.name} on ${_date(date)}.',
+          '${pet.name} has an appointment with ${vet.name} on ${formatMonthDay(date)}.',
           fire,
         );
       }
@@ -712,19 +713,4 @@ class LocalNotificationService implements NotificationService {
 
   String _appointmentId(String vetId, String petId) => '$vetId:$petId';
 
-  String _date(DateTime date) => '${_month(date.month)} ${date.day}';
-  String _month(int month) => const [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ][month - 1];
 }
