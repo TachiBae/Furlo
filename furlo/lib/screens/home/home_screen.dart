@@ -116,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadDisplayName();
   }
 
-  void _openProfile() => _open(
+  Future<void> _openProfile() => _open(
     ProfileScreen(
       repository: widget.repository,
       appSettings: _appSettings,
@@ -221,32 +221,31 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _selectTab(int index) {
-    // This navigation bar launches secondary screens from the dashboard;
-    // Home remains the active dashboard destination when those routes close.
-    setState(() => _activeTab = 0);
+  Future<void> _selectTab(int index) async {
+    // The tapped destination highlights while its route is open; Home
+    // becomes the active dashboard destination again when that route closes.
+    if (index == 0) {
+      setState(() => _activeTab = 0);
+      return;
+    }
+    setState(() => _activeTab = index);
     switch (index) {
-      case 0:
-        break;
       case 1:
-        _open(
+        await _open(
           NotificationsScreen(
             settings: widget.notificationSettings,
             service: widget.notificationService,
             storageScope: widget.storageScope,
           ),
         );
-        break;
       case 2:
-        _addPet();
-        break;
+        await _addPet();
       case 3:
-        _openAllPets();
-        break;
+        await _openAllPets();
       case 4:
-        _openProfile();
-        break;
+        await _openProfile();
     }
+    if (mounted) setState(() => _activeTab = 0);
   }
 
   @override
@@ -335,10 +334,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _HomeBottomBar(
-        activeTab: _activeTab,
-        onTap: _selectTab,
-        onAddPet: _addPet,
+      bottomNavigationBar: ListenableBuilder(
+        listenable: _remindersProvider,
+        builder: (context, _) => _HomeBottomBar(
+          activeTab: _activeTab,
+          reminderCount: _remindersProvider.reminders.length,
+          onTap: _selectTab,
+          onAddPet: _addPet,
+        ),
       ),
     );
   }
@@ -347,11 +350,13 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeBottomBar extends StatelessWidget {
   const _HomeBottomBar({
     required this.activeTab,
+    required this.reminderCount,
     required this.onTap,
     required this.onAddPet,
   });
 
   final int activeTab;
+  final int reminderCount;
   final ValueChanged<int> onTap;
   final VoidCallback onAddPet;
 
@@ -386,7 +391,7 @@ class _HomeBottomBar extends StatelessWidget {
                 icon: Icons.notifications_none,
                 selectedIcon: Icons.notifications,
                 selected: activeTab == 1,
-                showBadge: true,
+                badgeCount: reminderCount,
                 onTap: () => onTap(1),
               ),
             ),
@@ -457,14 +462,14 @@ class _NavItem extends StatelessWidget {
     required this.selectedIcon,
     required this.selected,
     required this.onTap,
-    this.showBadge = false,
+    this.badgeCount = 0,
   });
 
   final String label;
   final IconData icon;
   final IconData selectedIcon;
   final bool selected;
-  final bool showBadge;
+  final int badgeCount;
   final VoidCallback onTap;
 
   @override
@@ -475,7 +480,7 @@ class _NavItem extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: showBadge ? '$label, unread reminders' : label,
+      label: badgeCount > 0 ? '$label, $badgeCount reminders' : label,
       child: Tooltip(
         message: label,
         child: InkResponse(
@@ -511,7 +516,7 @@ class _NavItem extends StatelessWidget {
                           color: iconColor,
                         ),
                       ),
-                      if (showBadge)
+                      if (badgeCount > 0)
                         Positioned(
                           top: 1,
                           right: 5,
