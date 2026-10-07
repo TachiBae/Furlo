@@ -10,11 +10,15 @@ class FurloState with ChangeNotifier {
   int _loadGeneration = 0;
   bool _disposed = false;
   List<Pet> _pets = const [];
+  List<Pet>? _petsView;
   String? _selectedPetId;
   bool _isLoading = true;
   Object? _loadError;
 
-  List<Pet> get pets => List.unmodifiable(_pets);
+  /// Unmodifiable view of [_pets], cached so listeners can compare it by
+  /// identity (e.g. `context.select`) and skip rebuilds when the pet list
+  /// itself has not changed.
+  List<Pet> get pets => _petsView ??= List.unmodifiable(_pets);
   Pet? get selectedPet =>
       _pets.where((pet) => pet.id == _selectedPetId).firstOrNull;
   bool get isLoading => _isLoading;
@@ -73,6 +77,7 @@ class FurloState with ChangeNotifier {
     if (_disposed) return;
     _loadGeneration++;
     _pets = const [];
+    _petsView = null;
     _selectedPetId = null;
     _loadError = null;
     _isLoading = true;
@@ -98,6 +103,7 @@ class FurloState with ChangeNotifier {
 
   void _setPets(List<Pet> pets, {String? preferredPetId}) {
     _pets = List.of(pets);
+    _petsView = null;
     if (_pets.any((pet) => pet.id == _selectedPetId)) return;
     _selectedPetId = preferredPetId ?? _pets.firstOrNull?.id;
   }

@@ -6,6 +6,7 @@ import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/home/home_screen.dart';
+import 'package:furlo/screens/weight/weight_tracking_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -136,6 +137,22 @@ void main() {
     expect(find.text('Profile & Settings'), findsNothing);
     expect(find.text('Settings'), findsNothing); // Home is active again
     expect(find.byType(HomeScreen), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
+  testWidgets('quick action screens mount only when their tile is tapped', (
+    tester,
+  ) async {
+    final state = await pumpHome(tester);
+    expect(find.byType(WeightTrackingScreen), findsNothing);
+
+    await tester.ensureVisible(find.text('Weight Tracking'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Weight Tracking'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WeightTrackingScreen), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();

@@ -133,7 +133,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pets = context.watch<FurloState>().pets;
+    final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
     final visible = _filter == 'all'
         ? _vets
         : _vets
@@ -365,7 +365,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pets = context.watch<FurloState>().pets;
+    final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
     return Scaffold(
       appBar: AppBar(title: Text(widget.vet == null ? 'Add Vet' : 'Edit Vet')),
       body: Form(

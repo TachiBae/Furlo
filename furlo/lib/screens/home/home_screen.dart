@@ -251,9 +251,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
-    final furloState = context.watch<FurloState>();
-    final pets = furloState.pets;
-    final selectedPet = furloState.selectedPet;
+    // Rebuild only when the pet list or selection changes; other FurloState
+    // notifications (e.g. load progress) pass through without a rebuild.
+    final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
+    final selectedPet = context.select<FurloState, Pet?>((s) => s.selectedPet);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -985,9 +986,10 @@ class _AllPetsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<FurloState>();
-    final pets = state.pets;
-    final selectedPetId = state.selectedPet?.id;
+    final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
+    final selectedPetId = context.select<FurloState, String?>(
+      (s) => s.selectedPet?.id,
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('My Pets')),
       body: pets.isEmpty
@@ -1037,11 +1039,13 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Destination screens are built lazily on tap; constructing all five
+    // on every home rebuild was wasted work.
     final actions = [
       _ActionData(
         'Feeding',
         Icons.restaurant_outlined,
-        FeedingScreen(
+        () => FeedingScreen(
           repository: repository,
           notificationService: notificationService,
           storageScope: storageScope,
@@ -1050,7 +1054,7 @@ class _QuickActions extends StatelessWidget {
       _ActionData(
         'Vaccines',
         Icons.vaccines_outlined,
-        VaccinationScreen(
+        () => VaccinationScreen(
           repository: repository,
           notificationService: notificationService,
           pets: pets,
@@ -1060,7 +1064,7 @@ class _QuickActions extends StatelessWidget {
       _ActionData(
         'Health Records',
         Icons.medical_information_outlined,
-        HealthRecordsScreen(
+        () => HealthRecordsScreen(
           repository: repository,
           notificationService: notificationService,
           pets: pets,
@@ -1070,7 +1074,7 @@ class _QuickActions extends StatelessWidget {
       _ActionData(
         'Vet Contacts',
         Icons.local_hospital_outlined,
-        VetContactsScreen(
+        () => VetContactsScreen(
           repository: repository,
           notificationService: notificationService,
           storageScope: storageScope,
@@ -1079,7 +1083,7 @@ class _QuickActions extends StatelessWidget {
       _ActionData(
         'Weight Tracking',
         Icons.monitor_weight_outlined,
-        WeightTrackingScreen(
+        () => WeightTrackingScreen(
           repository: repository,
           pets: pets,
           selectedPet: selectedPet,
@@ -1103,7 +1107,7 @@ class _QuickActions extends StatelessWidget {
           borderRadius: AppRadius.mdRadius,
           child: InkWell(
             borderRadius: AppRadius.mdRadius,
-            onTap: () => onOpen(action.screen),
+            onTap: () => onOpen(action.buildScreen()),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Row(
@@ -1125,8 +1129,8 @@ class _QuickActions extends StatelessWidget {
 }
 
 class _ActionData {
-  const _ActionData(this.label, this.icon, this.screen);
+  const _ActionData(this.label, this.icon, this.buildScreen);
   final String label;
   final IconData icon;
-  final Widget screen;
+  final Widget Function() buildScreen;
 }
