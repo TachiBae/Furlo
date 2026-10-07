@@ -381,6 +381,10 @@ void main() {
     expect(find.text('person@example.com'), findsOneWidget);
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
+    // Signing out asks for confirmation first.
+    expect(find.text('Sign out?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Sign out'));
+    await tester.pumpAndSettle();
     expect(find.text('Sign in'), findsOneWidget);
     expect(find.text('Profile & Settings'), findsNothing);
   });

@@ -127,9 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   Future<void> _openAllPets() async {
-    final selected = await Navigator.of(
-      context,
-    ).push<Pet>(MaterialPageRoute(builder: (_) => const _AllPetsScreen()));
+    final selected = await Navigator.of(context).push<Pet>(
+      MaterialPageRoute(builder: (_) => _AllPetsScreen(onAddPet: _addPet)),
+    );
     if (selected != null && mounted) {
       _furloState.selectPet(selected);
       await _openPetProfile(selected);
@@ -984,7 +984,8 @@ class _ReminderTile extends StatelessWidget {
 }
 
 class _AllPetsScreen extends StatelessWidget {
-  const _AllPetsScreen();
+  const _AllPetsScreen({required this.onAddPet});
+  final VoidCallback onAddPet;
 
   @override
   Widget build(BuildContext context) {
@@ -996,11 +997,23 @@ class _AllPetsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('My Pets')),
       body: pets.isEmpty
           ? Center(
-              child: Text(
-                'No pets yet.',
-                style: AppTypography.body.copyWith(
-                  color: context.appColors.textSecondary,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'No pets yet.',
+                    style: AppTypography.body.copyWith(
+                      color: context.appColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ElevatedButton.icon(
+                    onPressed: onAddPet,
+                    style: AppComponents.primaryButton,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add pet'),
+                  ),
+                ],
               ),
             )
           : GridView.builder(
