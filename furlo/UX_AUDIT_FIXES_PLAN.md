@@ -88,6 +88,18 @@ Branch: `fix/ui-audit` (off `main` @ a6275aa). Source: the 33-finding UX/UI audi
 20. Shared `confirmRecordDelete` in Feeding (feeding:446); CTA on "No pets yet."
     empty (home:992); confirm dialog before Sign out (profile:93).
 
+## Constraints discovered during Phase 1 (from the existing test suite)
+
+- `profile_settings_test.dart` asserts the Light/Dark palettes **remain
+  grayscale**. Item 15 as written ("real hues for Light") would break a
+  deliberate design constraint — adapt to grayscale-distinguishable urgency
+  (weight/shape/contrast steps) or raise with the user before changing it.
+- `account_setup_error_test.dart` asserts account-setup failures **show the
+  platform error code** ("not a bare message"). Item 6's "drop the Cause:
+  detail" conflicts with a deliberate test — adapt: keep the short code for
+  diagnostics, reword the surrounding copy, or raise with the user. Never
+  weaken an intentional test just to make a change pass.
+
 ## Verification protocol (after every phase)
 
 - `flutter analyze --no-pub` and `flutter test --no-pub`, exit codes captured.
