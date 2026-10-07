@@ -58,7 +58,7 @@ class AppPalette {
     textDisabled: Color(0xFF6B697A),
     textOnPrimary: Color(0xFF181820),
     textOnAccent: Color(0xFF14210A),
-    textOnDanger: Color(0xFFF5F4F8),
+    textOnDanger: Color(0xFF181820),
   );
 
   static const light = AppPalette(

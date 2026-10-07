@@ -74,6 +74,32 @@ void main() {
     }
   });
 
+  test('overdue status text and danger button labels meet AA contrast', () {
+    for (final palette in [
+      AppPalette.defaultTheme,
+      AppPalette.light,
+      AppPalette.dark,
+    ]) {
+      // Overdue / Missed status captions render in `danger` on cards.
+      expect(
+        contrast(palette.danger, palette.surface),
+        greaterThanOrEqualTo(4.5),
+        reason: 'danger on surface',
+      );
+      expect(
+        contrast(palette.danger, palette.bg),
+        greaterThanOrEqualTo(4.5),
+        reason: 'danger on bg',
+      );
+      // "Delete pet" style labels: textOnDanger on danger fill.
+      expect(
+        contrast(palette.textOnDanger, palette.danger),
+        greaterThanOrEqualTo(4.5),
+        reason: 'textOnDanger on danger',
+      );
+    }
+  });
+
   test('theme choice defaults to Default and restores saved choices', () async {
     final settings = ThemeSettings();
     expect(settings.choice, AppThemeChoice.defaultTheme);
