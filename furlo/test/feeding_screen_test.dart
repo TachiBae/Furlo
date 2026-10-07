@@ -144,4 +144,62 @@ void main() {
     );
     expect(find.textContaining('Does not repeat'), findsOneWidget);
   });
+
+  testWidgets(
+    'weekly schedules require at least one selected day before saving',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+
+      final repository = WebPetRepository();
+      await repository.addPet(Pet(name: 'Mochi', species: 'Dog'));
+      final pets = await repository.getPets();
+      final mochi = pets.single;
+      final state = FurloState(repository);
+      await state.load();
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: state,
+          child: MaterialApp(home: FeedingScreen(repository: repository)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Add Feeding Schedule'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'Dinner');
+      await tester.tap(find.byType(DropdownButtonFormField<String>).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weekly').last);
+      await tester.pumpAndSettle();
+
+      // Save with no days selected: blocked with an inline error.
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Choose at least one day of the week'),
+        findsOneWidget,
+      );
+      expect(find.text('Dinner'), findsOneWidget); // dialog still open
+      expect(await repository.getFeedingSchedules(mochi.id!), isEmpty);
+
+      // Picking a day clears the error and allows the save.
+      await tester.tap(find.byTooltip('Monday'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Choose at least one day of the week'),
+        findsNothing,
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final saved = (await repository.getFeedingSchedules(mochi.id!)).single;
+      expect(saved.frequency, 'Weekly');
+      expect(saved.daysOfWeek, [1]);
+    },
+  );
 }

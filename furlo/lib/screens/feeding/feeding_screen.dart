@@ -112,6 +112,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
     var scheduledDate = existing?.scheduledDate ?? DateTime.now();
     var selectedPetId = existing?.petId ?? petId;
     var daysOfWeek = [...?existing?.daysOfWeek];
+    var daysError = false;
     var portionSize = existing?.portionSize ?? '';
     var remindMe = existing?.remindMe ?? false;
     final petsWithIds = _furloState.pets
@@ -302,6 +303,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                 ][day.key],
                                 selected: daysOfWeek.contains(dayNumber),
                                 onSelected: (selected) => setDialogState(() {
+                                  daysError = false;
                                   if (selected) {
                                     daysOfWeek.add(dayNumber);
                                   } else {
@@ -312,6 +314,15 @@ class _FeedingScreenState extends State<FeedingScreen> {
                             })
                             .toList(),
                       ),
+                      if (daysError) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Choose at least one day of the week',
+                          style: AppTypography.caption.copyWith(
+                            color: context.appColors.danger,
+                          ),
+                        ),
+                      ],
                     ],
                     const SizedBox(height: 16),
                     TextFormField(
@@ -356,6 +367,12 @@ class _FeedingScreenState extends State<FeedingScreen> {
                     style: AppComponents.primaryButton,
                     onPressed: () {
                       if (!formKey.currentState!.validate()) {
+                        return;
+                      }
+                      final needsDays =
+                          frequency == 'Weekly' || frequency == 'Custom';
+                      if (needsDays && daysOfWeek.isEmpty) {
+                        setDialogState(() => daysError = true);
                         return;
                       }
                       formKey.currentState!.save();
