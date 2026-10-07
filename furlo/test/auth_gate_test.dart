@@ -39,7 +39,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sign in'), findsOneWidget);
     expect(
-      find.text('Cloud setup is missing or failed to start.'),
+      find.text("Furlo can't start right now. Please try again later."),
       findsNothing,
     );
   });
@@ -248,7 +248,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.text('Cloud setup is missing or failed to start.'),
+      find.text("Furlo can't start right now. Please try again later."),
       findsOneWidget,
     );
     expect(find.text(rawError), findsNothing);
