@@ -75,7 +75,7 @@ class _SignInScreenState extends State<SignInScreen>
             obscureText: true,
             autofillHints: const [AutofillHints.password],
             decoration: const InputDecoration(labelText: 'Password'),
-            validator: validatePassword,
+            validator: validateSignInPassword,
           ),
           Align(
             alignment: Alignment.centerRight,

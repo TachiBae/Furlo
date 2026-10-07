@@ -44,6 +44,12 @@ void main() {
       expect(validatePassword('long-enough'), isNull);
     });
 
+    test('sign-in password validator only requires presence', () {
+      expect(validateSignInPassword(null), 'Enter a password');
+      expect(validateSignInPassword(''), 'Enter a password');
+      expect(validateSignInPassword('short'), isNull);
+    });
+
     test('confirmation validator requires matching passwords', () {
       expect(
         validateConfirmPassword(null, 'long-enough'),
@@ -94,6 +100,22 @@ void main() {
       expect(find.text(authErrorMessage(code)), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
     }
+  });
+
+  testWidgets('sign-in accepts existing passwords shorter than eight characters', (
+    tester,
+  ) async {
+    final service = FakeAuthService();
+    await tester.pumpWidget(
+      MaterialApp(home: SignInScreen(authService: service)),
+    );
+    await tester.enterText(find.byKey(const Key('auth-email')), 'a@b.test');
+    await tester.enterText(find.byKey(const Key('auth-password')), 'abc');
+    await tester.tap(find.byKey(const Key('sign-in-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Use at least 8 characters'), findsNothing);
+    expect(service.calls, contains('signInWithEmail'));
   });
 
   testWidgets('unknown exceptions show only the generic auth message', (
