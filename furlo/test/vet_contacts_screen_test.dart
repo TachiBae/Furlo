@@ -114,4 +114,55 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'vet contacts shows an error state and recovers when retry succeeds',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 640);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({});
+      final repository = _FlakyVetRepository();
+      final state = FurloState(repository);
+      await state.load();
+
+      repository.failLoads = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: ChangeNotifierProvider.value(
+            value: state,
+            child: VetContactsScreen(repository: repository),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vet contacts could not be loaded.'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      repository.failLoads = false;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vet contacts could not be loaded.'), findsNothing);
+      expect(find.text('No vets yet'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+    },
+  );
+}
+
+class _FlakyVetRepository extends WebPetRepository {
+  bool failLoads = false;
+
+  @override
+  Future<List<Vet>> getAllVets() async {
+    if (failLoads) throw StateError('offline');
+    return super.getAllVets();
+  }
 }
