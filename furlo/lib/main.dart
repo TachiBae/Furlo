@@ -29,7 +29,7 @@ Future<void> main() async {
     );
   } catch (_) {
     logAppDiagnostic('Firebase initialization failed.');
-    firebaseInitError = 'Cloud setup is missing or failed to start.';
+    firebaseInitError = "Furlo can't start right now. Please try again later.";
   }
 
   runApp(

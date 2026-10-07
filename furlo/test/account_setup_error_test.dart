@@ -62,7 +62,7 @@ void main() {
         find.text('Your account setup could not be loaded.'),
         findsOneWidget,
       );
-      expect(find.text('Cause: permission-denied'), findsOneWidget);
+      expect(find.text('Support code: permission-denied'), findsOneWidget);
     },
   );
 
@@ -72,8 +72,8 @@ void main() {
       FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'),
     );
 
-    expect(find.text('Cause: unavailable'), findsOneWidget);
-    expect(find.text('Cause: permission-denied'), findsNothing);
+    expect(find.text('Support code: unavailable'), findsOneWidget);
+    expect(find.text('Support code: permission-denied'), findsNothing);
   });
 
   testWidgets('an uncoded error falls back to the error type', (tester) async {

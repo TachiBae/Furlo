@@ -397,7 +397,7 @@ class _AuthGateState extends State<_AuthGate> {
               const Text('Your account setup could not be loaded.'),
               if (_accountStatusReason != null) ...[
                 const SizedBox(height: 8),
-                Text('Cause: $_accountStatusReason'),
+                Text('Support code: $_accountStatusReason'),
               ],
               const SizedBox(height: 16),
               FilledButton(
@@ -432,7 +432,7 @@ class _CloudSetupError extends StatelessWidget {
     body: Center(
       child: Padding(
         padding: EdgeInsets.all(24),
-        child: Text('Cloud setup is missing or failed to start.'),
+        child: Text("Furlo can't start right now. Please try again later."),
       ),
     ),
   );
