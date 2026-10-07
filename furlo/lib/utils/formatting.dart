@@ -34,5 +34,8 @@ String formatMonthDay(DateTime? value) =>
 /// Capitalizes the first letter of every word: `due soon` -> `Due Soon`.
 String capitalizeWords(String value) => value
     .split(' ')
-    .map((word) => word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+    .map(
+      (word) =>
+          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}',
+    )
     .join(' ');

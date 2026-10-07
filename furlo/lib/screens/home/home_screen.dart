@@ -365,11 +365,12 @@ class _HomeBottomBar extends StatelessWidget {
   Widget build(BuildContext context) => BottomAppBar(
     color: context.appColors.surface,
     elevation: 8,
-    padding: EdgeInsets.zero,      child: SafeArea(
-        top: false,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 68),
-          decoration: BoxDecoration(
+    padding: EdgeInsets.zero,
+    child: SafeArea(
+      top: false,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 68),
+        decoration: BoxDecoration(
           border: Border(
             top: BorderSide(color: context.appColors.textDisabled, width: 0.35),
           ),
@@ -426,7 +427,7 @@ class _AddPetNavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) =>    Semantics(
+  Widget build(BuildContext context) => Semantics(
     button: true,
     label: 'Add pet',
     child: Tooltip(
@@ -889,12 +890,13 @@ class _ReminderTile extends StatelessWidget {
     final trailing = reminder.time ?? _dateLabel(reminder.date);
     return Material(
       color: context.appColors.surface,
-      borderRadius: AppRadius.mdRadius,        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.mdRadius,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 68),
-            child: Padding(
+      borderRadius: AppRadius.mdRadius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.mdRadius,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 68),
+          child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Row(
               children: [

@@ -549,4 +549,3 @@ String _formatChange(double change) {
       : twoPlaces;
   return '${change > 0 ? '+' : ''}$amount $weightUnit';
 }
-
