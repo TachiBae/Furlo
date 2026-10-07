@@ -100,6 +100,18 @@ void main() {
     }
   });
 
+  test('Light keeps a colored danger token for urgency semantics', () {
+    // Neutrals must stay grayscale (see the palette test above), but the
+    // danger token carries overdue/missed meaning and must stay a hue so
+    // urgency is distinguishable even in the Light theme.
+    final argb = AppPalette.light.danger.toARGB32();
+    final red = (argb >> 16) & 0xFF;
+    final green = (argb >> 8) & 0xFF;
+    final blue = argb & 0xFF;
+    expect(red, isNot(green));
+    expect(green, isNot(blue));
+  });
+
   test('theme choice defaults to Default and restores saved choices', () async {
     final settings = ThemeSettings();
     expect(settings.choice, AppThemeChoice.defaultTheme);

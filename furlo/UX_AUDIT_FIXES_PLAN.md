@@ -62,9 +62,12 @@ Branch: `fix/ui-audit` (off `main` @ a6275aa). Source: the 33-finding UX/UI audi
     helper (feeding:480, vaccination:518, health:540, weight:528, vet:424),
     shared `_titleCase` (health:575, vaccination:593). Pure moves; no behavior
     change; existing tests must pass.
-15. Light theme semantics: give `accent/warning/info` real hues (app_theme:60-62)
-    so overdue/status keep meaning; >=4.5:1 on light surfaces; smoke-test all 3
-    themes (theme_smoke_test exists).
+15. Light theme semantics: **resolved differently** — urgency (overdue/missed)
+    already routes through `danger` after item 3, and Light's danger is red
+    (6.54:1). The grayscale test forbids recoloring `accent`, and `warning` /
+    `info` are dead tokens (zero references in lib), so recoloring them would
+    be invisible. Item 15 ships as a pinning test that Light's danger stays a
+    hue while neutrals stay grey.
 16. Responsive/scale fixes: feeding dialog width (feeding:141) -> window-relative
     with maxWidth; audit fixed heights (home:366, 890, 280; record_components:32,
     75) for 2.0-scale clipping -> min-height/constraints. Tests: existing
