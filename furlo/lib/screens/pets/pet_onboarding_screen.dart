@@ -293,9 +293,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return Scaffold(
       backgroundColor: context.appColors.bg,
       appBar: AppBar(
-        title: Text(
-          widget.existingPet == null ? 'Add pet' : 'Edit Pet',
-        ),
+        title: Text(widget.existingPet == null ? 'Add pet' : 'Edit Pet'),
         backgroundColor: context.appColors.bg,
         centerTitle: true,
       ),

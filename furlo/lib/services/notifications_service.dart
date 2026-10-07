@@ -712,5 +712,4 @@ class LocalNotificationService implements NotificationService {
   }
 
   String _appointmentId(String vetId, String petId) => '$vetId:$petId';
-
 }
