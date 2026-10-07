@@ -7,6 +7,7 @@ import '../../models/weight_log.dart';
 import '../../providers/weight_tracking_provider.dart';
 import '../../repositories/pet_repository.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../utils/weight_tracking.dart';
 import '../../widgets/record_components.dart';
 
@@ -193,7 +194,7 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
-                                          _formatDate(log.date),
+                                          formatShortDate(log.date),
                                           style: AppTypography.caption.copyWith(
                                             color: log.date == null
                                                 ? context.appColors.textDisabled
@@ -388,7 +389,7 @@ class _WeightTrendChart extends StatelessWidget {
                   meta: meta,
                   space: 6,
                   child: Text(
-                    _shortDate(chronological[index].date),
+                    formatMonthDay(chronological[index].date),
                     style: AppTypography.label.copyWith(
                       color: context.appColors.textSecondary,
                     ),
@@ -500,7 +501,7 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Date: ${_formatDate(_date)}'),
+                Text('Date: ${formatShortDate(_date)}'),
                 const Icon(Icons.calendar_today_outlined),
               ],
             ),
@@ -549,22 +550,3 @@ String _formatChange(double change) {
   return '${change > 0 ? '+' : ''}$amount $weightUnit';
 }
 
-String _formatDate(DateTime? date) => date == null
-    ? 'Not set'
-    : '${_month(date.month)} ${date.day}, ${date.year}';
-String _shortDate(DateTime? date) =>
-    date == null ? '' : '${_month(date.month)} ${date.day}';
-String _month(int month) => const [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-][month - 1];

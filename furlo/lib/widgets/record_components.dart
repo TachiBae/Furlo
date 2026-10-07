@@ -10,6 +10,19 @@ class RecordFilterOption {
   final String label;
 }
 
+/// Shared form-field decoration for record forms (vaccinations, health).
+InputDecoration recordFormDecoration(
+  BuildContext context, {
+  required String label,
+  String? hint,
+}) => InputDecoration(
+  labelText: label,
+  hintText: hint,
+  filled: true,
+  fillColor: context.appColors.surfaceAlt,
+  border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
+);
+
 class RecordFilterTabs extends StatelessWidget {
   const RecordFilterTabs({
     super.key,

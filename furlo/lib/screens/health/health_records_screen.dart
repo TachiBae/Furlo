@@ -8,6 +8,7 @@ import '../../providers/health_records_provider.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../utils/health_record_validation.dart';
 import '../../widgets/record_components.dart';
 import '../../widgets/status_pill.dart';
@@ -246,7 +247,7 @@ class _HealthRecordCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           RecordDetailRow(
             label: 'Date',
-            value: _formatDate(record.date),
+            value: formatShortDate(record.date),
             valueIsEmpty: record.date == null,
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -467,7 +468,7 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
                           child: Text(
                             _date == null
                                 ? 'Select a date'
-                                : _formatDate(_date),
+                                : formatShortDate(_date),
                             style: _date == null
                                 ? AppTypography.body.copyWith(
                                     color: context.appColors.textSecondary,
@@ -509,7 +510,7 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
                           .map(
                             (frequency) => DropdownMenuItem(
                               value: frequency,
-                              child: Text(_titleCase(frequency)),
+                              child: Text(capitalizeWords(frequency)),
                             ),
                           )
                           .toList(),
@@ -543,13 +544,8 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
     ),
   );
 
-  InputDecoration _decoration(String label, String hint) => InputDecoration(
-    labelText: label,
-    hintText: hint,
-    filled: true,
-    fillColor: context.appColors.surfaceAlt,
-    border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
-  );
+  InputDecoration _decoration(String label, String hint) =>
+      recordFormDecoration(context, label: label, hint: hint);
 }
 
 bool _isFutureDay(DateTime value) {
@@ -558,25 +554,3 @@ bool _isFutureDay(DateTime value) {
   final todayDate = DateTime.utc(today.year, today.month, today.day);
   return date.isAfter(todayDate);
 }
-
-String _formatDate(DateTime? value) {
-  if (value == null) return 'Not set';
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[value.month - 1]} ${value.day}, ${value.year}';
-}
-
-String _titleCase(String value) =>
-    '${value[0].toUpperCase()}${value.substring(1)}';
