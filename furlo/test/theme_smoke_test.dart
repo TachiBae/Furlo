@@ -31,18 +31,21 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('AppTypography uses the platform default font, not an unbundled family', () {
-    for (final style in [
-      AppTypography.h1,
-      AppTypography.h2,
-      AppTypography.body,
-      AppTypography.bodyStrong,
-      AppTypography.label,
-      AppTypography.caption,
-    ]) {
-      expect(style.fontFamily, isNull);
-    }
-  });
+  test(
+    'AppTypography uses the platform default font, not an unbundled family',
+    () {
+      for (final style in [
+        AppTypography.h1,
+        AppTypography.h2,
+        AppTypography.body,
+        AppTypography.bodyStrong,
+        AppTypography.label,
+        AppTypography.caption,
+      ]) {
+        expect(style.fontFamily, isNull);
+      }
+    },
+  );
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('saved light and dark choices are applied on first app frame', (

@@ -11,32 +11,35 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('pets view keeps a stable identity until the pet list changes', () async {
-    final repository = WebPetRepository();
-    await repository.addPet(Pet(name: 'Mochi', species: 'Dog'));
-    final state = FurloState(repository);
-    await state.load();
+  test(
+    'pets view keeps a stable identity until the pet list changes',
+    () async {
+      final repository = WebPetRepository();
+      await repository.addPet(Pet(name: 'Mochi', species: 'Dog'));
+      final state = FurloState(repository);
+      await state.load();
 
-    final view = state.pets;
-    expect(identical(view, state.pets), isTrue);
-    expect(
-      () => state.pets.add(Pet(name: 'Sneaky', species: 'Cat')),
-      throwsUnsupportedError,
-    );
+      final view = state.pets;
+      expect(identical(view, state.pets), isTrue);
+      expect(
+        () => state.pets.add(Pet(name: 'Sneaky', species: 'Cat')),
+        throwsUnsupportedError,
+      );
 
-    // Notifying without touching the list keeps the same view instance.
-    state.selectPet(state.pets.first);
-    expect(identical(view, state.pets), isTrue);
+      // Notifying without touching the list keeps the same view instance.
+      state.selectPet(state.pets.first);
+      expect(identical(view, state.pets), isTrue);
 
-    await state.addPet(Pet(name: 'Miso', species: 'Cat'));
-    expect(identical(view, state.pets), isFalse);
-    expect(state.pets.length, 2);
+      await state.addPet(Pet(name: 'Miso', species: 'Cat'));
+      expect(identical(view, state.pets), isFalse);
+      expect(state.pets.length, 2);
 
-    state.resetForSession();
-    expect(identical(view, state.pets), isFalse);
-    expect(state.pets, isEmpty);
-    state.dispose();
-  });
+      state.resetForSession();
+      expect(identical(view, state.pets), isFalse);
+      expect(state.pets, isEmpty);
+      state.dispose();
+    },
+  );
 
   testWidgets(
     'select-based dependents skip rebuilds when nothing they use changed',
@@ -53,9 +56,7 @@ void main() {
           value: state,
           child: Builder(
             builder: (context) {
-              final pets = context.select<FurloState, List<Pet>>(
-                (s) => s.pets,
-              );
+              final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
               final selectedId = context.select<FurloState, String?>(
                 (s) => s.selectedPet?.id,
               );
