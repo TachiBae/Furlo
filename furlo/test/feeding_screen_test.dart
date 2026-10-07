@@ -38,7 +38,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No feeding schedules yet'), findsOneWidget);
-    await tester.tap(find.text('Add Feeding Schedule'));
+    await tester.tap(find.text('Add feeding schedule'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, 'Breakfast');
     // Pet selector and frequency are both String dropdowns; frequency is last.
@@ -125,7 +125,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add Feeding Schedule'));
+    await tester.tap(find.text('Add feeding schedule'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, 'Medication meal');
     await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -170,7 +170,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Add Feeding Schedule'));
+      await tester.tap(find.text('Add feeding schedule'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField).first, 'Dinner');
       await tester.tap(find.byType(DropdownButtonFormField<String>).last);

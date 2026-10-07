@@ -72,6 +72,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quick Actions'), findsOneWidget);
-    expect(find.text('Track Your Pet\'s Care'), findsNothing);
+    expect(find.text("Track your pet's care"), findsNothing);
   });
 }

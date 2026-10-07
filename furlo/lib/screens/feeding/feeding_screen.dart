@@ -135,12 +135,13 @@ class _FeedingScreenState extends State<FeedingScreen> {
                 style: AppTypography.h2,
               ),
               const SizedBox(height: 8),
-              Text(
-                'Set up your pet’s meal routine',
-                style: AppTypography.body.copyWith(
-                  color: context.appColors.textSecondary,
+              if (existing == null)
+                Text(
+                  'Set up your pet’s meal routine',
+                  style: AppTypography.body.copyWith(
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
-              ),
             ],
           ),
           content: SizedBox(
@@ -647,7 +648,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                             onPressed: _saving ? null : () => _editSchedule(),
                             style: AppComponents.primaryButton,
                             icon: const Icon(Icons.add),
-                            label: const Text('Add Feeding Schedule'),
+                            label: const Text('Add feeding schedule'),
                           ),
                         ],
                       ],
@@ -689,9 +690,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
         time.minute,
       );
       if (DateUtils.dateOnly(now).isAfter(DateUtils.dateOnly(scheduled))) {
-        return 'Missed / Overdue';
+        return 'Overdue';
       }
-      return now.isAfter(scheduled) ? 'Missed / Overdue' : 'Upcoming';
+      return now.isAfter(scheduled) ? 'Overdue' : 'Upcoming';
     }
     final parts = entry.time.split(':');
     final scheduled = DateTime(
@@ -725,7 +726,7 @@ class _NoPetState extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onAddPet,
           icon: const Icon(Icons.add),
-          label: const Text('Add Pet'),
+          label: const Text('Add pet'),
         ),
       ],
     ),
@@ -762,7 +763,7 @@ class _EmptyFeedingState extends StatelessWidget {
             onPressed: onAdd,
             style: AppComponents.primaryButton,
             icon: const Icon(Icons.add),
-            label: const Text('Add Feeding Schedule'),
+            label: const Text('Add feeding schedule'),
           ),
         ],
       ),
@@ -790,7 +791,7 @@ class _FeedingScheduleCard extends StatelessWidget {
     final scheduledTime = _parseTime(entry.time).format(context);
     final statusColor = switch (status) {
       'Completed' => context.appColors.primary,
-      'Missed / Overdue' => context.appColors.danger,
+      'Overdue' => context.appColors.danger,
       _ => context.appColors.textSecondary,
     };
     return Container(

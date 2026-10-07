@@ -66,7 +66,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Quick Actions'), findsOneWidget);
-    expect(find.text("Track Your Pet's Care"), findsNothing);
+    expect(find.text("Track your pet's care"), findsNothing);
   });
 
   testWidgets('existing account with no pets goes to dashboard add-pet state', (
@@ -89,7 +89,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Quick Actions'), findsOneWidget);
-    expect(find.text("Track Your Pet's Care"), findsNothing);
+    expect(find.text("Track your pet's care"), findsNothing);
     expect(
       find.text('Add a pet to start keeping their care in one place.'),
       findsOneWidget,
@@ -114,8 +114,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Add New Pet'), findsOneWidget);
-    expect(find.text("Track Your Pet's Care"), findsNothing);
+    expect(find.text('Add pet'), findsOneWidget);
+    expect(find.text("Track your pet's care"), findsNothing);
   });
 
   testWidgets(
@@ -144,19 +144,26 @@ void main() {
       await tester.pumpAndSettle();
       for (
         var attempt = 0;
-        attempt < 6 && find.text('Save Pet').evaluate().isEmpty;
+        attempt < 6 && find.text('Save pet').evaluate().isEmpty;
         attempt++
       ) {
         await tester.drag(find.byType(ListView).last, const Offset(0, -500));
         await tester.pumpAndSettle();
       }
-      expect(find.text('Save Pet'), findsOneWidget);
-      await tester.tap(find.text('Save Pet'));
+      expect(find.text('Save pet'), findsOneWidget);
+      await tester.tap(find.text('Save pet'));
       await tester.pumpAndSettle();
 
       expect(await onboarding.requiresFirstPet('new-account'), isFalse);
       expect(find.text('Quick Actions'), findsOneWidget);
-      expect(find.text('Add New Pet'), findsNothing);
+      // The Add pet screen is dismissed (the dashboard has no such title).
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Add pet'),
+        ),
+        findsNothing,
+      );
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpWidget(
@@ -164,7 +171,14 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Quick Actions'), findsOneWidget);
-      expect(find.text('Add New Pet'), findsNothing);
+      // The Add pet screen is dismissed (the dashboard has no such title).
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Add pet'),
+        ),
+        findsNothing,
+      );
     },
   );
 
@@ -223,13 +237,20 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Add New Pet'), findsOneWidget);
+      expect(find.text('Add pet'), findsOneWidget);
 
       auth.setUser(const AuthUser(uid: 'bob', email: null, displayName: null));
       await tester.pumpAndSettle();
       expect(find.text('Quick Actions'), findsOneWidget);
       expect(await repositories['bob']!.getPets(), isEmpty);
-      expect(find.text('Add New Pet'), findsNothing);
+      // The Add pet screen is dismissed (the dashboard has no such title).
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Add pet'),
+        ),
+        findsNothing,
+      );
     },
   );
 

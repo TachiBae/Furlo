@@ -48,7 +48,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Add Feeding Schedule'));
+    await tester.tap(find.text('Add feeding schedule'));
     await tester.pumpAndSettle();
 
     final mealNameField = tester.widget<TextField>(
