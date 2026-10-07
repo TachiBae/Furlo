@@ -204,40 +204,32 @@ class AppElevation {
 class AppTypography {
   AppTypography._();
 
-  static const String _fontFamily = 'Inter';
-
   static const TextStyle h1 = TextStyle(
-    fontFamily: _fontFamily,
     fontSize: 24,
     fontWeight: FontWeight.w600,
     height: 30 / 24,
   );
   static const TextStyle h2 = TextStyle(
-    fontFamily: _fontFamily,
     fontSize: 18,
     fontWeight: FontWeight.w600,
     height: 24 / 18,
   );
   static const TextStyle body = TextStyle(
-    fontFamily: _fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 20 / 14,
   );
   static const TextStyle bodyStrong = TextStyle(
-    fontFamily: _fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 20 / 14,
   );
   static const TextStyle label = TextStyle(
-    fontFamily: _fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w500,
     height: 16 / 12,
   );
   static const TextStyle caption = TextStyle(
-    fontFamily: _fontFamily,
     fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 14 / 11,
