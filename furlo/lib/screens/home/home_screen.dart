@@ -542,9 +542,8 @@ class _NavItem extends StatelessWidget {
                   child: selected
                       ? Text(
                           label,
-                          style: AppTypography.caption.copyWith(
+                          style: AppTypography.label.copyWith(
                             color: context.appColors.textPrimary,
-                            fontSize: 10,
                           ),
                           maxLines: 1,
                         )

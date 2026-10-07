@@ -359,8 +359,7 @@ class _WeightTrendChart extends StatelessWidget {
                 meta: meta,
                 child: Text(
                   value.toStringAsFixed(1),
-                  style: AppTypography.caption.copyWith(
-                    fontSize: 9,
+                  style: AppTypography.label.copyWith(
                     color: context.appColors.textSecondary,
                   ),
                 ),
@@ -384,8 +383,7 @@ class _WeightTrendChart extends StatelessWidget {
                   space: 6,
                   child: Text(
                     _shortDate(chronological[index].date),
-                    style: AppTypography.caption.copyWith(
-                      fontSize: 9,
+                    style: AppTypography.label.copyWith(
                       color: context.appColors.textSecondary,
                     ),
                   ),

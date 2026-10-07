@@ -64,5 +64,14 @@ void main() {
     expect(find.byType(LineChart), findsOneWidget);
     expect(find.byType(ListView).last, findsOneWidget);
     expect(tester.takeException(), isNull);
+    final tinyTexts = tester.widgetList<Text>(find.byType(Text)).where((text) {
+      final size = text.style?.fontSize;
+      return size != null && size < 11;
+    });
+    expect(
+      tinyTexts,
+      isEmpty,
+      reason: 'chart and screen text stays at 11px or larger',
+    );
   });
 }
