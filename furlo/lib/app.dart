@@ -459,11 +459,14 @@ class _StartupGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<FurloState>();
-    if (state.isLoading) {
+    // Rebuild only while loading or after a load failure — not on every
+    // pet or selection change that flows through FurloState.
+    final isLoading = context.select<FurloState, bool>((s) => s.isLoading);
+    final loadError = context.select<FurloState, Object?>((s) => s.loadError);
+    if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (state.loadError != null) {
+    if (loadError != null) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -472,7 +475,7 @@ class _StartupGate extends StatelessWidget {
               const Text('Your pets could not be loaded.'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: state.load,
+                onPressed: context.read<FurloState>().load,
                 child: const Text('Try again'),
               ),
             ],

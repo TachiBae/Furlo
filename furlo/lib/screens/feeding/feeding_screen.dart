@@ -541,8 +541,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final furloState = context.watch<FurloState>();
-    final petsWithIds = furloState.pets.where((pet) => pet.id != null).toList();
+    final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
+    final petsWithIds = pets.where((pet) => pet.id != null).toList();
     return Scaffold(
       backgroundColor: context.appColors.bg,
       appBar: AppBar(
