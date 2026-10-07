@@ -89,6 +89,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _signOut(AuthService authService) async {
     if (_signingOut) return;
+    // The dialog barrier blocks re-entry while the choice is open, so the
+    // busy flag only needs to cover the sign-out itself, keeping the tile
+    // spinner limited to work that actually runs.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.appColors.surface,
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You will need to sign in again to use Furlo on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     setState(() => _signingOut = true);
     try {
       await authService.signOut();

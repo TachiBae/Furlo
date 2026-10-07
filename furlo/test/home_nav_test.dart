@@ -162,4 +162,49 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
   });
+
+  testWidgets('all-pets empty state offers an Add pet action', (tester) async {
+    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final repository = WebPetRepository();
+    final state = FurloState(repository);
+    await state.load();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: ChangeNotifierProvider<ThemeSettings>(
+          create: (_) => ThemeSettings(),
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: HomeScreen(
+              repository: repository,
+              notificationSettings:
+                  SharedPreferencesNotificationSettingsRepository(),
+              notificationService: const NoOpNotificationService(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('See all'));
+    await tester.pumpAndSettle();
+    expect(find.text('No pets yet.'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add pet'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Add pet')),
+      findsOneWidget,
+      reason: 'the empty-state CTA must open the Add pet screen',
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
 }

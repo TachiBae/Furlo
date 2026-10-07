@@ -11,6 +11,7 @@ import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_diagnostics.dart';
+import '../../widgets/record_components.dart';
 import '../pets/pet_onboarding_screen.dart';
 
 class FeedingScreen extends StatefulWidget {
@@ -468,25 +469,12 @@ class _FeedingScreenState extends State<FeedingScreen> {
     final id = entry.id;
     final petId = _selectedPet?.id;
     if (id == null || petId == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.appColors.surface,
-        title: Text('Delete schedule?', style: AppTypography.h2),
-        content: Text('Delete the ${entry.name} feeding schedule?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmRecordDelete(
+      context,
+      title: 'Delete schedule?',
+      message: 'Delete the ${entry.name} feeding schedule?',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await widget.repository.deleteFeedingSchedule(id, petId);
       await widget.notificationService.rescheduleAll();
