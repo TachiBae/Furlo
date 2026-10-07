@@ -563,83 +563,87 @@ class _FeedingScreenState extends State<FeedingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Expanded(
-                          child: CustomScrollView(
-                            slivers: [
-                              SliverToBoxAdapter(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.md,
-                                  ),
-                                  child: petsWithIds.length > 1
-                                      ? DropdownButtonFormField<String>(
-                                          key: ValueKey(_selectedPet?.id),
-                                          initialValue: _selectedPet?.id,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Pet',
+                          child: RefreshIndicator(
+                            onRefresh: _loadSchedules,
+                            child: CustomScrollView(
+                              slivers: [
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.md,
+                                    ),
+                                    child: petsWithIds.length > 1
+                                        ? DropdownButtonFormField<String>(
+                                            key: ValueKey(_selectedPet?.id),
+                                            initialValue: _selectedPet?.id,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Pet',
+                                            ),
+                                            items: petsWithIds
+                                                .map(
+                                                  (pet) => DropdownMenuItem(
+                                                    value: pet.id!,
+                                                    child: Text(pet.name),
+                                                  ),
+                                                )
+                                                .toList(),
+                                            onChanged: _choosePet,
+                                          )
+                                        : Text(
+                                            _selectedPet!.name,
+                                            style: AppTypography.h2,
                                           ),
-                                          items: petsWithIds
-                                              .map(
-                                                (pet) => DropdownMenuItem(
-                                                  value: pet.id!,
-                                                  child: Text(pet.name),
-                                                ),
-                                              )
-                                              .toList(),
-                                          onChanged: _choosePet,
-                                        )
-                                      : Text(
-                                          _selectedPet!.name,
-                                          style: AppTypography.h2,
+                                  ),
+                                ),
+                                if (_loading)
+                                  const SliverFillRemaining(
+                                    hasScrollBody: false,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                else if (_schedules.isEmpty)
+                                  SliverFillRemaining(
+                                    hasScrollBody: false,
+                                    child: _EmptyFeedingState(
+                                      onAdd: _saving
+                                          ? null
+                                          : () => _editSchedule(),
+                                    ),
+                                  )
+                                else
+                                  SliverList(
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final entry = _schedules[index];
+                                      final status = _statusFor(entry);
+                                      return Padding(
+                                        padding: EdgeInsets.only(
+                                          bottom: index == _schedules.length - 1
+                                              ? 0
+                                              : AppSpacing.sm,
                                         ),
-                                ),
-                              ),
-                              if (_loading)
-                                const SliverFillRemaining(
-                                  hasScrollBody: false,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
+                                        child: _FeedingScheduleCard(
+                                          entry: entry,
+                                          status: status,
+                                          onComplete:
+                                              _saving || entry.isComplete
+                                              ? null
+                                              : () => _markComplete(entry),
+                                          onEdit: _saving
+                                              ? null
+                                              : () => _editSchedule(entry),
+                                          onDelete: _saving
+                                              ? null
+                                              : () => _deleteSchedule(entry),
+                                        ),
+                                      );
+                                    }, childCount: _schedules.length),
                                   ),
-                                )
-                              else if (_schedules.isEmpty)
-                                SliverFillRemaining(
-                                  hasScrollBody: false,
-                                  child: _EmptyFeedingState(
-                                    onAdd: _saving
-                                        ? null
-                                        : () => _editSchedule(),
-                                  ),
-                                )
-                              else
-                                SliverList(
-                                  delegate: SliverChildBuilderDelegate((
-                                    context,
-                                    index,
-                                  ) {
-                                    final entry = _schedules[index];
-                                    final status = _statusFor(entry);
-                                    return Padding(
-                                      padding: EdgeInsets.only(
-                                        bottom: index == _schedules.length - 1
-                                            ? 0
-                                            : AppSpacing.sm,
-                                      ),
-                                      child: _FeedingScheduleCard(
-                                        entry: entry,
-                                        status: status,
-                                        onComplete: _saving || entry.isComplete
-                                            ? null
-                                            : () => _markComplete(entry),
-                                        onEdit: _saving
-                                            ? null
-                                            : () => _editSchedule(entry),
-                                        onDelete: _saving
-                                            ? null
-                                            : () => _deleteSchedule(entry),
-                                      ),
-                                    );
-                                  }, childCount: _schedules.length),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                         if (!_loading && _schedules.isNotEmpty) ...[

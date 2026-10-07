@@ -97,150 +97,163 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
-              child: CustomScrollView(
-                slivers: [
-                  if (state.selectedPet != null)
-                    SliverToBoxAdapter(
-                      child: PetSelectorTabs(
-                        pets: state.pets,
-                        selectedPet: state.selectedPet!,
-                        onSelected: state.selectPet,
-                      ),
-                    ),
-                  if (state.loading)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (state.error != null)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: RecordEmptyState(
-                        icon: Icons.error_outline,
-                        title: state.error!,
-                        message: 'Check your connection, then try again.',
-                        actionLabel: 'Try again',
-                        onAction: state.refresh,
-                      ),
-                    )
-                  else if (state.selectedPet == null)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: RecordEmptyState(
-                        title: 'No pets yet',
-                        message: 'Add a pet before tracking its weight.',
-                        icon: Icons.monitor_weight_outlined,
-                      ),
-                    )
-                  else if (logs.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: RecordEmptyState(
-                        title: 'No weight entries yet',
-                        message:
-                            'Add your pet’s first weight to start tracking its trend.',
-                        icon: Icons.monitor_weight_outlined,
-                        actionLabel: 'Add weight',
-                        onAction: () => _edit(state),
-                      ),
-                    )
-                  else ...[
-                    SliverToBoxAdapter(child: _SummaryRow(logs: logs)),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: Text(
-                          'Weight trend ($weightUnit)',
-                          style: AppTypography.h2,
+              child: RefreshIndicator(
+                onRefresh: state.refresh,
+                child: CustomScrollView(
+                  slivers: [
+                    if (state.selectedPet != null)
+                      SliverToBoxAdapter(
+                        child: PetSelectorTabs(
+                          pets: state.pets,
+                          selectedPet: state.selectedPet!,
+                          onSelected: state.selectPet,
                         ),
                       ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 210,
+                    if (state.loading)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (state.error != null)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: RecordEmptyState(
+                          icon: Icons.error_outline,
+                          title: state.error!,
+                          message: 'Check your connection, then try again.',
+                          actionLabel: 'Try again',
+                          onAction: state.refresh,
+                        ),
+                      )
+                    else if (state.selectedPet == null)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: RecordEmptyState(
+                          title: 'No pets yet',
+                          message: 'Add a pet before tracking its weight.',
+                          icon: Icons.monitor_weight_outlined,
+                        ),
+                      )
+                    else if (logs.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: RecordEmptyState(
+                          title: 'No weight entries yet',
+                          message:
+                              'Add your pet’s first weight to start tracking its trend.',
+                          icon: Icons.monitor_weight_outlined,
+                          actionLabel: 'Add weight',
+                          onAction: () => _edit(state),
+                        ),
+                      )
+                    else ...[
+                      SliverToBoxAdapter(child: _SummaryRow(logs: logs)),
+                      SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
-                          child: _WeightTrendChart(logs: logs),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: Text(
+                            'Weight trend ($weightUnit)',
+                            style: AppTypography.h2,
+                          ),
                         ),
                       ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                        child: Text('History', style: AppTypography.h2),
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 210,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
+                            child: _WeightTrendChart(logs: logs),
+                          ),
+                        ),
                       ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 104),
-                      sliver: SliverList.builder(
-                        itemCount: logs.length,
-                        itemBuilder: (context, index) {
-                          final log = logs[index];
-                          return RecordCard(
-                            onTap: () => _edit(state, log),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _weight(log.weight),
-                                          style: AppTypography.h2,
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          formatShortDate(log.date),
-                                          style: AppTypography.caption.copyWith(
-                                            color: log.date == null
-                                                ? context.appColors.textDisabled
-                                                : context
-                                                      .appColors
-                                                      .textSecondary,
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          child: Text('History', style: AppTypography.h2),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 104),
+                        sliver: SliverList.builder(
+                          itemCount: logs.length,
+                          itemBuilder: (context, index) {
+                            final log = logs[index];
+                            return RecordCard(
+                              onTap: () => _edit(state, log),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  8,
+                                  12,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _weight(log.weight),
+                                            style: AppTypography.h2,
                                           ),
-                                        ),
-                                        if ((log.notes ?? '').trim().isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 6,
-                                            ),
-                                            child: Text(
-                                              log.notes!,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppTypography.body
-                                                  .copyWith(
-                                                    color: context
-                                                        .appColors
-                                                        .textSecondary,
-                                                  ),
-                                            ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            formatShortDate(log.date),
+                                            style: AppTypography.caption
+                                                .copyWith(
+                                                  color: log.date == null
+                                                      ? context
+                                                            .appColors
+                                                            .textDisabled
+                                                      : context
+                                                            .appColors
+                                                            .textSecondary,
+                                                ),
                                           ),
-                                      ],
+                                          if ((log.notes ?? '')
+                                              .trim()
+                                              .isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 6,
+                                              ),
+                                              child: Text(
+                                                log.notes!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTypography.body
+                                                    .copyWith(
+                                                      color: context
+                                                          .appColors
+                                                          .textSecondary,
+                                                    ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete weight entry',
-                                    constraints: const BoxConstraints(
-                                      minWidth: 48,
-                                      minHeight: 48,
+                                    IconButton(
+                                      tooltip: 'Delete weight entry',
+                                      constraints: const BoxConstraints(
+                                        minWidth: 48,
+                                        minHeight: 48,
+                                      ),
+                                      onPressed: () => _delete(state, log),
+                                      icon: const Icon(Icons.delete_outline),
                                     ),
-                                    onPressed: () => _delete(state, log),
-                                    icon: const Icon(Icons.delete_outline),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
