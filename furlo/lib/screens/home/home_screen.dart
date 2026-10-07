@@ -364,12 +364,11 @@ class _HomeBottomBar extends StatelessWidget {
   Widget build(BuildContext context) => BottomAppBar(
     color: context.appColors.surface,
     elevation: 8,
-    padding: EdgeInsets.zero,
-    child: SafeArea(
-      top: false,
-      child: Container(
-        height: 68,
-        decoration: BoxDecoration(
+    padding: EdgeInsets.zero,      child: SafeArea(
+        top: false,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 68),
+          decoration: BoxDecoration(
           border: Border(
             top: BorderSide(color: context.appColors.textDisabled, width: 0.35),
           ),
@@ -487,8 +486,8 @@ class _NavItem extends StatelessWidget {
           onTap: onTap,
           radius: 32,
           containedInkWell: true,
-          child: SizedBox(
-            height: 64,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 64),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -889,13 +888,12 @@ class _ReminderTile extends StatelessWidget {
     final trailing = reminder.time ?? _dateLabel(reminder.date);
     return Material(
       color: context.appColors.surface,
-      borderRadius: AppRadius.mdRadius,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.mdRadius,
-        child: SizedBox(
-          height: 68,
-          child: Padding(
+      borderRadius: AppRadius.mdRadius,        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.mdRadius,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 68),
+            child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Row(
               children: [

@@ -138,6 +138,45 @@ void main() {
       return VetDetailsScreen(repository: repository, vet: vet);
     });
   });
+
+  testWidgets('feeding dialog avoids overflow at 400x300 and text scale 2.0', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final repository = WebPetRepository();
+    await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
+    final pets = await repository.getPets();
+    final state = FurloState(repository);
+    await state.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(2.0)),
+          child: child!,
+        ),
+        home: ChangeNotifierProvider.value(
+          value: state,
+          child: FeedingScreen(repository: repository),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(pets, isNotEmpty);
+    await tester.ensureVisible(find.text('Add Feeding Schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Feeding Schedule'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: 'open dialog at 2.0 scale');
+    expect(find.text('Save'), findsOneWidget);
+  });
 }
 
 Future<void> _checkShortViewport(
@@ -154,7 +193,7 @@ Future<void> _checkShortViewport(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
-  for (final textScale in [1.0, 1.5]) {
+  for (final textScale in [1.0, 1.5, 2.0]) {
     for (final filled in [false, true]) {
       SharedPreferences.setMockInitialValues({});
       final repository = WebPetRepository();
