@@ -76,6 +76,8 @@ void main() {
       find.bySemanticsLabel(RegExp('Alerts, \\d+ reminders')),
       findsNothing,
     );
+    // The selected Home label renders at 12px (label token), not 10px.
+    expect(tester.getSize(find.text('Home')).height, greaterThanOrEqualTo(15));
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
 
