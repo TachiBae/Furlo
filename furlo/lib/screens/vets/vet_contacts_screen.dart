@@ -372,7 +372,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _field(_name, 'Name', required: true),
+            _field(_name, 'Name', required: true, maxLength: 40),
             _field(_clinic, 'Clinic'),
             _field(
               _phone,
@@ -437,12 +437,14 @@ class _VetFormScreenState extends State<VetFormScreen> {
     String? Function(String?)? validator,
     TextInputType? keyboard,
     int lines = 1,
+    int? maxLength,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextFormField(
       controller: controller,
       keyboardType: keyboard,
       maxLines: lines,
+      maxLength: maxLength,
       validator:
           validator ??
           (required
