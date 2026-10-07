@@ -287,24 +287,28 @@ class _VaccinationCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              TextButton.icon(
-                onPressed: onComplete,
-                style: TextButton.styleFrom(
-                  foregroundColor: vaccination.isCompleted
-                      ? context.appColors.textSecondary
-                      : context.appColors.accent,
-                  minimumSize: const Size(48, 48),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: onComplete,
+                  style: TextButton.styleFrom(
+                    foregroundColor: vaccination.isCompleted
+                        ? context.appColors.textSecondary
+                        : context.appColors.accent,
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                    ),
                   ),
-                ),
-                icon: Icon(
-                  vaccination.isCompleted
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
-                ),
-                label: Text(
-                  vaccination.isCompleted ? 'Undo complete' : 'Mark complete',
+                  icon: Icon(
+                    vaccination.isCompleted
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                  ),
+                  label: Text(
+                    vaccination.isCompleted ? 'Undo complete' : 'Mark complete',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
               const Spacer(),

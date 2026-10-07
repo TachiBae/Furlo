@@ -19,8 +19,10 @@ void main() {
   Future<FurloState> pumpHome(
     WidgetTester tester, {
     bool withReminder = false,
+    Size size = const Size(900, 1400),
+    double textScale = 1.0,
   }) async {
-    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -51,6 +53,12 @@ void main() {
           create: (_) => ThemeSettings(),
           child: MaterialApp(
             theme: AppTheme.dark,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(textScale)),
+              child: child!,
+            ),
             home: HomeScreen(
               repository: repository,
               notificationSettings:
@@ -64,6 +72,21 @@ void main() {
     await tester.pumpAndSettle();
     return state;
   }
+
+  testWidgets('home avoids overflow at 400x300 with text scale 2.0', (
+    tester,
+  ) async {
+    final state = await pumpHome(
+      tester,
+      withReminder: true,
+      size: const Size(400, 300),
+      textScale: 2.0,
+    );
+    expect(tester.takeException(), isNull, reason: 'home at 400x300 @ 2.0');
+    expect(find.text('Home'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
 
   testWidgets('alerts badge is hidden without reminders and counts them when present', (
     tester,

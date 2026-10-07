@@ -124,6 +124,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: context.appColors.surface,
+          // Title + content scroll together so the fixed action buttons still
+          // fit a 300px-tall window at 2.0 text scale.
+          scrollable: true,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -141,7 +144,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
             ],
           ),
           content: SizedBox(
-            width: 420,
+            // Clamp to the window so 400px-wide screens don't overflow
+            // (a fixed 420px exceeded narrow viewports).
+            width: (MediaQuery.sizeOf(context).width - 80).clamp(0.0, 420.0),
             child: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -154,6 +159,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                         key: ValueKey('schedule-pet-$selectedPetId'),
                         initialValue: selectedPetId,
                         decoration: _fieldDecoration('Pet'),
+                        isExpanded: true,
                         items: petsWithIds
                             .map(
                               (pet) => DropdownMenuItem(
@@ -214,6 +220,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: frequency,
                       decoration: _fieldDecoration('Frequency'),
+                      isExpanded: true,
                       items:
                           const [
                                 'Does not repeat',
@@ -731,32 +738,34 @@ class _EmptyFeedingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.restaurant_outlined,
-          size: 48,
-          color: context.appColors.primary,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text('No feeding schedules yet', style: AppTypography.h2),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'Add a schedule to keep track of your pet’s meals.',
-          textAlign: TextAlign.center,
-          style: AppTypography.body.copyWith(
-            color: context.appColors.textSecondary,
+    child: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.restaurant_outlined,
+            size: 48,
+            color: context.appColors.primary,
           ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ElevatedButton.icon(
-          onPressed: onAdd,
-          style: AppComponents.primaryButton,
-          icon: const Icon(Icons.add),
-          label: const Text('Add Feeding Schedule'),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.md),
+          Text('No feeding schedules yet', style: AppTypography.h2),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Add a schedule to keep track of your pet’s meals.',
+            textAlign: TextAlign.center,
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ElevatedButton.icon(
+            onPressed: onAdd,
+            style: AppComponents.primaryButton,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Feeding Schedule'),
+          ),
+        ],
+      ),
     ),
   );
 }
