@@ -30,18 +30,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       () async {
         await widget.authService.sendPasswordReset(_email.text.trim());
         if (mounted) {
-          setState(
-            () => message =
-                'If an account exists for that email, a reset link has been sent.',
-          );
+          setState(() {
+            message =
+                'If an account exists for that email, a reset link has been sent.';
+            messageIsSuccess = true;
+          });
         }
       },
       onUserNotFound: () async {
         if (mounted) {
-          setState(
-            () => message =
-                'If an account exists for that email, a reset link has been sent.',
-          );
+          setState(() {
+            message =
+                'If an account exists for that email, a reset link has been sent.';
+            messageIsSuccess = true;
+          });
         }
       },
     );
@@ -52,6 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     context: context,
     title: 'Forgot password',
     message: message,
+    messageIsSuccess: messageIsSuccess,
     busy: isBusy,
     leading: BackButton(
       onPressed: isBusy ? null : () => Navigator.of(context).pop(),

@@ -147,6 +147,11 @@ void main() {
       await tester.tap(find.byKey(const Key('send-reset-link')));
       await tester.pumpAndSettle();
       expect(find.text(response), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text(response)).style?.color,
+        AppPalette.light.accent,
+        reason: 'success messages render in the accent color, not danger',
+      );
 
       final missingService = FakeAuthService()
         ..failNextPasswordReset(
@@ -176,6 +181,16 @@ void main() {
     expect(
       find.text(authErrorMessage(AuthErrorCode.networkError)),
       findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.text(authErrorMessage(AuthErrorCode.networkError)),
+          )
+          .style
+          ?.color,
+      AppPalette.light.danger,
+      reason: 'error messages stay in the danger color',
     );
   });
 

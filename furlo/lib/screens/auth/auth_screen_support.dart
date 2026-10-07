@@ -8,6 +8,7 @@ import '../../utils/app_diagnostics.dart';
 mixin AuthRequestState<T extends StatefulWidget> on State<T> {
   bool isBusy = false;
   String? message;
+  bool messageIsSuccess = false;
 
   Future<void> runAuthRequest(
     Future<void> Function() request, {
@@ -18,6 +19,7 @@ mixin AuthRequestState<T extends StatefulWidget> on State<T> {
     setState(() {
       isBusy = true;
       message = null;
+      messageIsSuccess = false;
     });
     try {
       await request();
@@ -28,11 +30,17 @@ mixin AuthRequestState<T extends StatefulWidget> on State<T> {
         await onUserNotFound();
         return;
       }
-      setState(() => message = authErrorMessage(error.code));
+      setState(() {
+        message = authErrorMessage(error.code);
+        messageIsSuccess = false;
+      });
     } catch (_) {
       logAppDiagnostic('Authentication request failed.');
       if (mounted) {
-        setState(() => message = authErrorMessage(AuthErrorCode.unknown));
+        setState(() {
+          message = authErrorMessage(AuthErrorCode.unknown);
+          messageIsSuccess = false;
+        });
       }
     } finally {
       if (mounted) setState(() => isBusy = false);
@@ -45,6 +53,7 @@ Widget authScreenScaffold({
   required String title,
   required Widget form,
   String? message,
+  bool messageIsSuccess = false,
   bool busy = false,
   Widget? leading,
 }) => Scaffold(
@@ -67,7 +76,11 @@ Widget authScreenScaffold({
               if (message != null) ...[
                 Text(
                   message,
-                  style: TextStyle(color: context.appColors.danger),
+                  style: TextStyle(
+                    color: messageIsSuccess
+                        ? context.appColors.accent
+                        : context.appColors.danger,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
               ],
