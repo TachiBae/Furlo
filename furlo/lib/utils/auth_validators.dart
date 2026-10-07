@@ -13,6 +13,13 @@ String? validatePassword(String? value) {
   return null;
 }
 
+/// Sign-in only requires a password to be present: existing accounts may
+/// predate the current 8-character creation policy.
+String? validateSignInPassword(String? value) {
+  if (value == null || value.isEmpty) return 'Enter a password';
+  return null;
+}
+
 String? validateConfirmPassword(String? value, String password) {
   if (value == null || value.isEmpty) return 'Confirm your password';
   if (value != password) return 'Passwords do not match';
