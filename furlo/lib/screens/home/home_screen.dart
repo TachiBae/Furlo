@@ -878,7 +878,7 @@ class _ReminderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final urgencyColor = switch (reminder.urgency) {
-      ReminderUrgency.overdue => context.appColors.primaryMuted,
+      ReminderUrgency.overdue => context.appColors.danger,
       ReminderUrgency.today => context.appColors.primary,
       ReminderUrgency.upcoming => context.appColors.textSecondary,
     };

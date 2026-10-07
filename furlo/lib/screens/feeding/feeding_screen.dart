@@ -780,7 +780,7 @@ class _FeedingScheduleCard extends StatelessWidget {
     final scheduledTime = _parseTime(entry.time).format(context);
     final statusColor = switch (status) {
       'Completed' => context.appColors.primary,
-      'Missed / Overdue' => context.appColors.primaryMuted,
+      'Missed / Overdue' => context.appColors.danger,
       _ => context.appColors.textSecondary,
     };
     return Container(
