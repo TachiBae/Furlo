@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/repositories/pet_repository.dart';
+import 'package:furlo/utils/user_storage_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -39,5 +40,55 @@ void main() {
 
       expect(await store.read('pet-1'), isNull);
     });
+  });
+
+  group('LocalPetPhotoStore legacy fallback', () {
+    test('adopts a legacy unscoped photo into the account scope', () async {
+      const photo = 'data:image/png;base64,QUJD';
+      SharedPreferences.setMockInitialValues({'photo.pet.p1': photo});
+
+      expect(
+        await LocalPetPhotoStore(storageScope: 'alice-uid').read('p1'),
+        photo,
+      );
+
+      // Repinned into the scope: still readable once the legacy key is gone.
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.remove('photo.pet.p1');
+      expect(
+        await LocalPetPhotoStore(storageScope: 'alice-uid').read('p1'),
+        photo,
+      );
+    });
+
+    test('prefers the scoped photo over the legacy key', () async {
+      SharedPreferences.setMockInitialValues({
+        'photo.pet.p1': 'legacy',
+        'photo.user.${userStorageScopeToken('alice-uid')}.pet.p1': 'scoped',
+      });
+
+      expect(
+        await LocalPetPhotoStore(storageScope: 'alice-uid').read('p1'),
+        'scoped',
+      );
+    });
+
+    test(
+      'signed-out store reads the same key directly with no fallback',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'photo.pet.p1': 'data:image/png;base64,QUJD',
+        });
+
+        expect(
+          await LocalPetPhotoStore().read('p1'),
+          'data:image/png;base64,QUJD',
+        );
+        expect(
+          await LocalPetPhotoStore(storageScope: 'bob-uid').read('other'),
+          isNull,
+        );
+      },
+    );
   });
 }

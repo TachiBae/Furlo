@@ -9,6 +9,7 @@ import '../models/pet.dart';
 import '../models/vaccination.dart';
 import '../models/vet.dart';
 import '../models/weight_log.dart';
+import '../utils/app_diagnostics.dart';
 import '../utils/user_storage_scope.dart';
 
 abstract class PetRepository {
@@ -1252,13 +1253,42 @@ Map<String, Object?> _decodeMap(String value) => Map<String, Object?>.from(
   Uri.splitQueryString(value).map((key, value) => MapEntry(key, value)),
 );
 
+/// Largest photo payload written to a pet document.
+///
+/// Firestore caps documents at 1 MB; 600 KB leaves headroom for the other
+/// pet fields. Base64 data URIs are ASCII, so length approximates bytes.
+const int kMaxCloudPhotoBytes = 600 * 1024;
+
+/// Returns [photoPath] when it is a base64 data URI small enough to live in
+/// the pet's Firestore document, otherwise null (device file paths, empty,
+/// or oversized payloads that would risk the 1 MB document cap).
+String? cloudPhotoField(String? photoPath) {
+  if (photoPath == null || photoPath.isEmpty) return null;
+  if (!photoPath.startsWith('data:')) return null;
+  if (photoPath.length > kMaxCloudPhotoBytes) return null;
+  return photoPath;
+}
+
+/// Cloud document photo when present, otherwise the device-local mirror.
+Future<String?> resolvePetPhoto(
+  Map<String, Object?> data,
+  String petId,
+  LocalPetPhotoStore store,
+) async {
+  final cloud = data['photo'] as String?;
+  if (cloud != null && cloud.isNotEmpty) return cloud;
+  return store.read(petId);
+}
+
 /// Pet data for one signed-in account, stored in Firestore under `users/{uid}/…`.
 ///
 /// Every collection except `pets` carries a `pet_id` field so children can be
 /// queried and cascade-deleted per pet. Document ids are the model ids.
 ///
-/// Photos stay on the device (Firestore caps documents at 1 MB and a photo is a
-/// base64 data URI), so they live in [LocalPetPhotoStore] keyed by pet id.
+/// Photos ride along in the pet document when [cloudPhotoField] accepts them
+/// (base64 data URI under the size cap). [LocalPetPhotoStore] remains the
+/// device-side mirror and the fallback for legacy file paths and oversized
+/// photos that cannot live in Firestore.
 class FirestorePetRepository implements PetRepository {
   FirestorePetRepository({required this.uid, FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance,
@@ -1334,10 +1364,16 @@ class FirestorePetRepository implements PetRepository {
     final snapshot = await _col(_pets).get();
     return Future.wait(
       snapshot.docs.map((doc) async {
-        final photo = await _photos.read(doc.id);
+        final photo = await resolvePetPhoto(doc.data(), doc.id, _photos);
         return _petFromMap({...doc.data(), 'id': doc.id, 'photoPath': photo});
       }),
     );
+  }
+
+  void _logLocalOnlyPhoto(Pet pet) {
+    if (pet.photoPath != null && cloudPhotoField(pet.photoPath) == null) {
+      logAppDiagnostic('Pet photo kept device-local: not cloud-eligible.');
+    }
   }
 
   @override
@@ -1345,6 +1381,7 @@ class FirestorePetRepository implements PetRepository {
     final id = pet.id ?? _newId(_pets);
     await _col(_pets).doc(id).set(_petData(pet));
     await _photos.write(id, pet.photoPath);
+    _logLocalOnlyPhoto(pet);
   }
 
   @override
@@ -1353,6 +1390,7 @@ class FirestorePetRepository implements PetRepository {
     if (id == null) throw ArgumentError('Pet id is required to update.');
     await _col(_pets).doc(id).set(_petData(pet));
     await _photos.write(id, pet.photoPath);
+    _logLocalOnlyPhoto(pet);
   }
 
   @override
@@ -1629,12 +1667,16 @@ class FirestorePetRepository implements PetRepository {
     await _deleteBatch(refs.where((ref) => ref.id == id).toList());
   }
 
-  /// Pet data without the id (held by the document) or the photo (device-local).
+  /// Pet data without the id (held by the document).
+  ///
+  /// The photo is included whenever it is cloud-eligible; a null value clears
+  /// a previously synced photo because `set` replaces the whole document.
   Map<String, Object?> _petData(Pet pet) => {
     'name': pet.name,
     'species': pet.species,
     'breed': pet.breed,
     'birthDate': pet.birthDate?.toIso8601String(),
+    'photo': cloudPhotoField(pet.photoPath),
   };
 
   Map<String, Object?> _feedingEntryData(FeedingEntry entry) => {
@@ -1643,9 +1685,13 @@ class FirestorePetRepository implements PetRepository {
   };
 }
 
-/// Device-local store for pet photos, keyed by pet id within one account.
+/// Device-side mirror for pet photos, keyed by pet id within one account.
 ///
-/// Photos are base64 data URIs and are deliberately never written to Firestore.
+/// The pet document in Firestore is the source of truth when the photo is
+/// cloud-eligible; this store mirrors it for instant local display and keeps
+/// legacy file paths and oversized photos that cannot live in Firestore.
+/// Reads fall back to the pre-account key `photo.pet.{id}` so photos taken
+/// before per-account scoping still resolve, and repin hits into the scope.
 class LocalPetPhotoStore {
   LocalPetPhotoStore({this.storageScope});
 
@@ -1665,7 +1711,16 @@ class LocalPetPhotoStore {
 
   Future<String?> read(String petId) async {
     final preferences = await _preferences();
-    return preferences?.getString(_key(petId));
+    if (preferences == null) return null;
+    final scoped = preferences.getString(_key(petId));
+    if (scoped != null) return scoped;
+    if (storageScope == null) return null;
+    // Legacy pre-account key: adopt it into the active scope. Non-destructive
+    // (the legacy key stays), matching the legacy migration's first-user rule.
+    final legacy = preferences.getString('photo.pet.$petId');
+    if (legacy == null || legacy.isEmpty) return null;
+    await preferences.setString(_key(petId), legacy);
+    return legacy;
   }
 
   Future<void> write(String petId, String? photoPath) async {
