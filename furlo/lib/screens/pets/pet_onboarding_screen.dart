@@ -210,6 +210,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
     try {
       final image = await _picker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: 640,
+        maxHeight: 640,
         imageQuality: 85,
       );
       if (image == null) return;
