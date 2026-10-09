@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:furlo/models/feeding_entry.dart';
 import 'package:furlo/models/pet.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
@@ -233,6 +234,50 @@ void main() {
       DefaultTextStyle.of(titleContext).style.fontSize,
       24,
       reason: 'AppBar titles share one size across screens',
+    );
+  });
+
+  testWidgets('a repeating overdue schedule caption renders in danger', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+
+    final repository = WebPetRepository();
+    await repository.addPet(Pet(name: 'Mochi', species: 'Dog'));
+    final pets = await repository.getPets();
+    final mochi = pets.single;
+    // Daily at 00:00 is already past on any run except exactly midnight, so
+    // the repeating branch of _statusFor marks the meal overdue.
+    await repository.addFeedingSchedule(
+      FeedingEntry(
+        petId: mochi.id!,
+        name: 'Breakfast',
+        time: '00:00',
+        frequency: 'Daily',
+      ),
+    );
+    final state = FurloState(repository);
+    await state.load();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: MaterialApp(home: FeedingScreen(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final caption = tester.widget<Text>(find.text('Overdue'));
+    expect(
+      caption.style?.color,
+      AppPalette.light.danger,
+      reason:
+          'Repeating overdue captions must use the danger token '
+          '(urgency + WCAG AA), not the grey textSecondary fallback',
     );
   });
 }

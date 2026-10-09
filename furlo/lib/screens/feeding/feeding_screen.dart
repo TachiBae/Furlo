@@ -694,7 +694,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       int.tryParse(parts.first) ?? 8,
       parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
     );
-    return now.isAfter(scheduled) ? 'Missed / Overdue' : 'Upcoming';
+    return now.isAfter(scheduled) ? 'Overdue' : 'Upcoming';
   }
 }
 
