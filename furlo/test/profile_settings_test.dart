@@ -233,4 +233,39 @@ void main() {
       completion('dark'),
     );
   });
+
+  test('status pill borders meet 3:1 non-text contrast in every theme', () {
+    for (final palette in [
+      AppPalette.defaultTheme,
+      AppPalette.light,
+      AppPalette.dark,
+    ]) {
+      // StatusPill draws its border as the status color at 0.75 alpha over
+      // whatever the pill sits on (surface card or screen bg) — pins F-024.
+      for (final statusColor in [
+        palette.danger,
+        palette.primary,
+        palette.textSecondary,
+      ]) {
+        final borderOnSurface = Color.alphaBlend(
+          statusColor.withValues(alpha: 0.75),
+          palette.surface,
+        );
+        expect(
+          contrast(borderOnSurface, palette.surface),
+          greaterThanOrEqualTo(3.0),
+          reason: 'pill border over surface for color $statusColor',
+        );
+        final borderOnBg = Color.alphaBlend(
+          statusColor.withValues(alpha: 0.75),
+          palette.bg,
+        );
+        expect(
+          contrast(borderOnBg, palette.bg),
+          greaterThanOrEqualTo(3.0),
+          reason: 'pill border over bg for color $statusColor',
+        );
+      }
+    }
+  });
 }

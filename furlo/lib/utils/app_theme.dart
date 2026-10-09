@@ -12,8 +12,6 @@ class AppPalette {
     required this.primaryMuted,
     required this.accent,
     required this.accentMuted,
-    required this.warning,
-    required this.info,
     required this.danger,
     required this.textPrimary,
     required this.textSecondary,
@@ -30,8 +28,6 @@ class AppPalette {
   final Color primaryMuted;
   final Color accent;
   final Color accentMuted;
-  final Color warning;
-  final Color info;
   final Color danger;
   final Color textPrimary;
   final Color textSecondary;
@@ -50,8 +46,6 @@ class AppPalette {
     primaryMuted: Color(0xFF6E5A90),
     accent: Color(0xFFA8D64B),
     accentMuted: Color(0xFF7A9C36),
-    warning: Color(0xFFE8B94A),
-    info: Color(0xFF6FA8DC),
     danger: Color(0xFFE5646B),
     textPrimary: Color(0xFFF5F4F8),
     textSecondary: Color(0xFFA8A6B3),
@@ -69,8 +63,6 @@ class AppPalette {
     primaryMuted: Color(0xFF595959),
     accent: Color(0xFF404040),
     accentMuted: Color(0xFF595959),
-    warning: Color(0xFF595959),
-    info: Color(0xFF595959),
     danger: Color(0xFFB3261E),
     textPrimary: Color(0xFF1A1A1A),
     textSecondary: Color(0xFF595959),
@@ -87,8 +79,6 @@ class AppPalette {
     primaryMuted: Color(0xFFA0A0A0),
     accent: Color(0xFFCFCFCF),
     accentMuted: Color(0xFFBDBDBD),
-    warning: Color(0xFFBDBDBD),
-    info: Color(0xFFBDBDBD),
     danger: Color(0xFFFF6B6B),
     textPrimary: Color(0xFFF5F5F5),
     textSecondary: Color(0xFFBDBDBD),
