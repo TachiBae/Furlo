@@ -2,7 +2,7 @@
 
 Findings: **F-003, F-004, F-024, F-022, F-023** (from `docs/ui-audit-report.md`)
 Branch: `fix/ui-audit` (tracks `origin/fix/ui-audit`, currently **25 unpushed commits**)
-Status: **awaiting approval**
+Status: **executed** — approved this session; complete 2026-10-10 (see `PHASE1_TASKS.md` verification record)
 
 ## Key discovery
 
