@@ -25,6 +25,7 @@ Plan: `DEPLOY_PLAN.md` · **Approved this session — trigger branch: `fix/ui-au
 | Check | Result |
 |---|---|
 | T1 local build exit code + artifacts | **PASS** — exit 0, 44.6s, `main.dart.js` + `/Furlo/` base-href verified in `build/web` (45 MB) |
-| T2 workflow file committed (hash) | see T3 commit |
-| T3 push result | recorded below after push |
-| T4 live URL + sign-in | pending (needs user toggles) |
+| T2 workflow file committed (hash) | `77cd5e9` |
+| T3 push result | **PASS** — `e85aea1..77cd5e9` pushed to `origin/fix/ui-audit`, exit 0 |
+| CI run (first push) | **build: SUCCESS** · **deploy: FAILED** at `actions/deploy-pages@v4` — expected: Pages source not yet set to "GitHub Actions". Run: https://github.com/TachiBae/Furlo/actions/runs/37969172928 |
+| T4 live URL + sign-in | **blocked on user toggles** — enable Pages (Settings → Pages → Source: GitHub Actions), then re-run failed jobs (artifact from the successful build is reused); add `tachibae.github.io` to Firebase authorized domains for sign-in |
