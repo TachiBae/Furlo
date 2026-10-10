@@ -11,12 +11,15 @@ void main() {
       'wrong-password': AuthErrorCode.invalidCredentials,
       'invalid-email': AuthErrorCode.invalidCredentials,
       'user-not-found': AuthErrorCode.userNotFound,
+      'user-disabled': AuthErrorCode.userNotFound,
       'email-already-in-use': AuthErrorCode.emailInUse,
+      'account-exists-with-different-credential': AuthErrorCode.emailInUse,
       'weak-password': AuthErrorCode.weakPassword,
       'network-request-failed': AuthErrorCode.networkError,
       'too-many-requests': AuthErrorCode.tooManyRequests,
       'popup-closed-by-user': AuthErrorCode.cancelled,
       'cancelled-popup-request': AuthErrorCode.cancelled,
+      'popup-blocked': AuthErrorCode.popupBlocked,
       'not-a-firebase-code': AuthErrorCode.unknown,
     };
 

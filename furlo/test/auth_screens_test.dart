@@ -76,6 +76,7 @@ void main() {
       'Check your internet connection and try again.',
       'Too many attempts. Please wait and try again.',
       'Sign-in was cancelled.',
+      'Pop-ups are blocked for this site. Allow them, then try again.',
       'Something went wrong. Please try again.',
     ]);
   });
