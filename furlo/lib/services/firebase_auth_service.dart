@@ -12,13 +12,16 @@ AuthErrorCode mapFirebaseAuthErrorCode(String code) => switch (code) {
   'invalid-credential' ||
   'wrong-password' ||
   'invalid-email' => AuthErrorCode.invalidCredentials,
-  'user-not-found' => AuthErrorCode.userNotFound,
-  'email-already-in-use' => AuthErrorCode.emailInUse,
+  'user-not-found' ||
+  'user-disabled' => AuthErrorCode.userNotFound,
+  'email-already-in-use' ||
+  'account-exists-with-different-credential' => AuthErrorCode.emailInUse,
   'weak-password' => AuthErrorCode.weakPassword,
   'network-request-failed' => AuthErrorCode.networkError,
   'too-many-requests' => AuthErrorCode.tooManyRequests,
   'popup-closed-by-user' ||
   'cancelled-popup-request' => AuthErrorCode.cancelled,
+  'popup-blocked' => AuthErrorCode.popupBlocked,
   _ => AuthErrorCode.unknown,
 };
 

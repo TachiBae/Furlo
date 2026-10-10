@@ -10,5 +10,7 @@ String authErrorMessage(AuthErrorCode code) => switch (code) {
   AuthErrorCode.tooManyRequests =>
     'Too many attempts. Please wait and try again.',
   AuthErrorCode.cancelled => 'Sign-in was cancelled.',
+  AuthErrorCode.popupBlocked =>
+    'Pop-ups are blocked for this site. Allow them, then try again.',
   AuthErrorCode.unknown => 'Something went wrong. Please try again.',
 };
