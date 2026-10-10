@@ -7,6 +7,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'account_onboarding_repository.dart';
 import 'auth_service.dart';
 import 'google_identity_provider.dart';
+import 'google_web_identity_stub.dart'
+    if (dart.library.js_interop) 'google_web_identity_web.dart';
 
 AuthErrorCode mapFirebaseAuthErrorCode(String code) => switch (code) {
   'invalid-credential' ||
@@ -108,20 +110,16 @@ class FirebaseAuthService implements AuthService {
   Future<AuthResult> signInWithGoogle() async {
     if (kIsWeb) {
       try {
-        final credential = await _auth.signInWithPopup(
-          buildGoogleWebAuthProvider(),
-        );
-        final user = _requireUser(credential.user);
-        final isNewAccount = credential.additionalUserInfo?.isNewUser ?? false;
-        if (isNewAccount) {
-          try {
-            await markNewAccountForFirstPet(user.uid);
-          } catch (_) {
-            await _auth.signOut();
-            throw const AuthException(code: AuthErrorCode.networkError);
-          }
+        final idToken = await _acquireGoogleWebToken();
+        if (idToken == null) {
+          final credential = await _auth.signInWithPopup(
+            buildGoogleWebAuthProvider(),
+          );
+          return _completeGoogleSignIn(credential);
         }
-        return AuthResult(user: user, isNewAccount: isNewAccount);
+        final credential = GoogleAuthProvider.credential(idToken: idToken);
+        final userCredential = await _auth.signInWithCredential(credential);
+        return _completeGoogleSignIn(userCredential);
       } on FirebaseAuthException catch (error) {
         throw _mapFirebaseException(error);
       }
@@ -134,18 +132,7 @@ class FirebaseAuthService implements AuthService {
       }
       final credential = GoogleAuthProvider.credential(idToken: idToken);
       final userCredential = await _auth.signInWithCredential(credential);
-      final user = _requireUser(userCredential.user);
-      final isNewAccount =
-          userCredential.additionalUserInfo?.isNewUser ?? false;
-      if (isNewAccount) {
-        try {
-          await markNewAccountForFirstPet(user.uid);
-        } catch (_) {
-          await _auth.signOut();
-          throw const AuthException(code: AuthErrorCode.networkError);
-        }
-      }
-      return AuthResult(user: user, isNewAccount: isNewAccount);
+      return _completeGoogleSignIn(userCredential);
     } on GoogleSignInException catch (error) {
       if (error.code == GoogleSignInExceptionCode.canceled) {
         throw const AuthException(code: AuthErrorCode.cancelled);
@@ -186,6 +173,34 @@ class FirebaseAuthService implements AuthService {
   AuthException _mapFirebaseException(FirebaseAuthException error) {
     final code = mapFirebaseAuthErrorCode(error.code);
     return AuthException(code: code);
+  }
+
+  /// In-page Google chooser when available; `null` falls back to the popup.
+  ///
+  /// A dismissal inside the in-page chooser propagates as a cancelled
+  /// [AuthException]; anything else falls back to the popup-window flow.
+  Future<String?> _acquireGoogleWebToken() async {
+    try {
+      return await acquireGoogleWebIdToken();
+    } on AuthException {
+      rethrow;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<AuthResult> _completeGoogleSignIn(UserCredential credential) async {
+    final user = _requireUser(credential.user);
+    final isNewAccount = credential.additionalUserInfo?.isNewUser ?? false;
+    if (isNewAccount) {
+      try {
+        await markNewAccountForFirstPet(user.uid);
+      } catch (_) {
+        await _auth.signOut();
+        throw const AuthException(code: AuthErrorCode.networkError);
+      }
+    }
+    return AuthResult(user: user, isNewAccount: isNewAccount);
   }
 
   AuthUser _requireUser(User? user) {
