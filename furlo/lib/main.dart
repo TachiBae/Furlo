@@ -34,7 +34,9 @@ Future<void> main() async {
 
   runApp(
     DevicePreview(
-      enabled: !kReleaseMode,
+      // Web is the delivered surface (GitHub Pages): always show the device
+      // frame there. Other platforms keep the debug/profile-only default.
+      enabled: kIsWeb || !kReleaseMode,
       builder: (context) => FurloApp(
         authService: authService,
         accountOnboardingRepository: accountOnboardingRepository,
