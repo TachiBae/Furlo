@@ -20,6 +20,7 @@ import '../../screens/vaccinations/vaccination_screen.dart';
 import '../../screens/vets/vet_contacts_screen.dart';
 import '../../screens/weight/weight_tracking_screen.dart';
 import '../../services/notifications_service.dart';
+import '../../utils/app_diagnostics.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/record_components.dart';
 
@@ -64,7 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final name = await _appSettings.getDisplayName();
       if (mounted) setState(() => _displayName = name);
-    } catch (_) {}
+    } catch (_) {
+      // The greeting falls back to a generic name, so this is not worth
+      // interrupting the user for, but it should not vanish silently either.
+      logAppDiagnostic('Display name could not be loaded.');
+    }
   }
 
   void _refreshReminders() =>

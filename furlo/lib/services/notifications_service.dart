@@ -485,7 +485,10 @@ class LocalNotificationService implements NotificationService {
           await _plugin.cancel(id: request.id);
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // Cancelling is best-effort cleanup of stale reminders; a plugin error
+      // here must not stop sign-out or a reschedule from completing.
+    }
   }
 
   @override

@@ -518,7 +518,10 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
     try {
       final uri = Uri(scheme: 'tel', path: phone);
       if (await canLaunchUrl(uri) && await launchUrl(uri)) return;
-    } catch (_) {}
+    } catch (_) {
+      // A dialer that refuses to open is not a dead end: the SnackBar below
+      // still hands the number to the user, so there is nothing to report.
+    }
     if (mounted) {
       ScaffoldMessenger.of(
         context,
