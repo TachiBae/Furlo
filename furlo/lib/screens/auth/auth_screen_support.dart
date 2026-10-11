@@ -3,7 +3,30 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/auth_error_messages.dart';
-import '../../utils/app_diagnostics.dart';
+
+/// One-shot hand-off from account creation back to the sign-in screen.
+///
+/// The auth gate can rebuild its root between the sign-out and the pop, which
+/// destroys the sign-in screen's [State]; a route result alone would be lost.
+/// Reading this is destructive so the notice is shown exactly once.
+class PendingAuthNotice {
+  PendingAuthNotice._();
+
+  static String? _email;
+  static String? _message;
+
+  static void show({String? email, required String message}) {
+    _email = email;
+    _message = message;
+  }
+
+  static ({String? email, String? message}) take() {
+    final pending = (email: _email, message: _message);
+    _email = null;
+    _message = null;
+    return pending;
+  }
+}
 
 mixin AuthRequestState<T extends StatefulWidget> on State<T> {
   bool isBusy = false;
@@ -34,8 +57,8 @@ mixin AuthRequestState<T extends StatefulWidget> on State<T> {
         message = authErrorMessage(error.code);
         messageIsSuccess = false;
       });
-    } catch (_) {
-      logAppDiagnostic('Authentication request failed.');
+    } catch (error, stackTrace) {
+      debugPrint('Authentication request failed: $error\n$stackTrace');
       if (mounted) {
         setState(() {
           message = authErrorMessage(AuthErrorCode.unknown);
@@ -74,12 +97,15 @@ Widget authScreenScaffold({
               ),
               const SizedBox(height: AppSpacing.md),
               if (message != null) ...[
-                Text(
-                  message,
-                  style: TextStyle(
-                    color: messageIsSuccess
-                        ? context.appColors.accent
-                        : context.appColors.danger,
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      color: messageIsSuccess
+                          ? context.appColors.accent
+                          : context.appColors.danger,
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),

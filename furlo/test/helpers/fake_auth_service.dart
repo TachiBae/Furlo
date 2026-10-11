@@ -1,14 +1,19 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:furlo/services/account_onboarding_repository.dart';
 import 'package:furlo/services/auth_service.dart';
 
 class FakeAuthService implements AuthService {
-  FakeAuthService({AuthUser? initialUser, this._accountOnboardingRepository})
-    : _user = initialUser;
+  FakeAuthService({
+    AuthUser? initialUser,
+    this._accountOnboardingRepository,
+    this._accountProfileRepository,
+  }) : _user = initialUser;
 
   AuthUser? _user;
   final AccountOnboardingRepository? _accountOnboardingRepository;
+  final AccountProfileRepository? _accountProfileRepository;
   final StreamController<AuthUser?> _changes =
       StreamController<AuthUser?>.broadcast(sync: true);
   AuthException? _nextSignInException;
@@ -17,12 +22,17 @@ class FakeAuthService implements AuthService {
   AuthException? _nextGoogleException;
   AuthException? _nextResetException;
   AuthException? _nextSignOutException;
+  AuthException? _nextLinkPasswordException;
+  AuthException? _nextUpdateFullNameException;
   Future<void> Function()? _beforeSignIn;
   Future<void> Function()? _beforeRegister;
   Future<void> Function()? _beforeGoogle;
   Future<void> Function()? _beforeReset;
   Future<void> Function()? _beforeSignOut;
   bool googleCreatesNewAccount = true;
+
+  /// True once [linkPassword] has succeeded, mirroring a linked account.
+  bool passwordLinked = false;
 
   final List<String> calls = [];
 
@@ -71,6 +81,14 @@ class FakeAuthService implements AuthService {
     _nextSignOutException = exception;
   }
 
+  void failNextLinkPassword(AuthException exception) {
+    _nextLinkPasswordException = exception;
+  }
+
+  void failNextUpdateFullName(AuthException exception) {
+    _nextUpdateFullNameException = exception;
+  }
+
   void beforeNextSignIn(Future<void> Function() callback) {
     _beforeSignIn = callback;
   }
@@ -93,6 +111,18 @@ class FakeAuthService implements AuthService {
 
   Future<void> _runBefore(Future<void> Function()? callback) async {
     await callback?.call();
+  }
+
+  /// Mirrors `FirebaseAuthService`: a failed first-pet write is logged and
+  /// reported as [AuthResult.setupIncomplete] instead of an error.
+  Future<bool> _recordFirstPet(String uid) async {
+    try {
+      await markNewAccountForFirstPet(uid);
+      return false;
+    } catch (error, stackTrace) {
+      debugPrint('Account setup could not be recorded: $error\n$stackTrace');
+      return true;
+    }
   }
 
   @override
@@ -123,8 +153,12 @@ class FakeAuthService implements AuthService {
     if (failure != null) throw failure;
     final user = AuthUser(uid: 'fake-user', email: email, displayName: null);
     setUser(user);
-    await markNewAccountForFirstPet(user.uid);
-    return AuthResult(user: user, isNewAccount: true);
+    final setupIncomplete = await _recordFirstPet(user.uid);
+    return AuthResult(
+      user: user,
+      isNewAccount: true,
+      setupIncomplete: setupIncomplete,
+    );
   }
 
   @override
@@ -142,10 +176,39 @@ class FakeAuthService implements AuthService {
       displayName: null,
     );
     setUser(user);
+    var setupIncomplete = false;
     if (googleCreatesNewAccount) {
-      await markNewAccountForFirstPet(user.uid);
+      setupIncomplete = await _recordFirstPet(user.uid);
+      await _accountProfileRepository?.markProfileRequired(user.uid);
     }
-    return AuthResult(user: user, isNewAccount: googleCreatesNewAccount);
+    return AuthResult(
+      user: user,
+      isNewAccount: googleCreatesNewAccount,
+      setupIncomplete: setupIncomplete,
+    );
+  }
+
+  @override
+  Future<void> linkPassword(String password) async {
+    calls.add('linkPassword');
+    final failure = _nextLinkPasswordException;
+    _nextLinkPasswordException = null;
+    if (failure != null) throw failure;
+    // Mirrors the real service: linking a password that is already linked is a
+    // success, so a retried submit never fails on "already linked".
+    passwordLinked = true;
+  }
+
+  @override
+  Future<void> updateFullName(String fullName) async {
+    calls.add('updateFullName');
+    final failure = _nextUpdateFullNameException;
+    _nextUpdateFullNameException = null;
+    if (failure != null) throw failure;
+    final user = _user;
+    if (user != null) {
+      _user = AuthUser(uid: user.uid, email: user.email, displayName: fullName);
+    }
   }
 
   @override

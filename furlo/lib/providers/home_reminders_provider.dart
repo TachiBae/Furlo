@@ -206,21 +206,39 @@ class HomeRemindersProvider extends ChangeNotifier {
   TodayReminderResult _result = const TodayReminderResult(allItems: []);
   bool _loading = false;
   bool _hasError = false;
+  bool _disposed = false;
 
   List<HomeReminder> get reminders => _result.allItems;
   TodayReminderResult get result => _result;
   bool get loading => _loading;
   bool get hasError => _hasError;
 
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  /// Notifies listeners unless the provider is already disposed: a load can
+  /// finish after the screen that started it is gone.
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> refresh({List<Pet>? pets, DateTime? today}) async {
+    if (_disposed) return;
     _loading = true;
     _hasError = false;
-    notifyListeners();
+    _notify();
     try {
       final currentPets = pets ?? await _repository.getPets();
+      // The owning screen may be gone by now; futures cannot be cancelled, so
+      // the work is abandoned at the next checkpoint instead.
+      if (_disposed) return;
       final data = await Future.wait<_PetReminders>(
         currentPets.where((pet) => pet.id != null).map(_loadPet),
       );
+      if (_disposed) return;
       _result = buildTodayReminders(
         pets: currentPets,
         feedings: data.expand((item) => item.feedings).toList(),
@@ -229,17 +247,31 @@ class HomeRemindersProvider extends ChangeNotifier {
         appointments: data.expand((item) => item.appointments).toList(),
         today: today ?? DateTime.now(),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      if (_disposed) return;
+      debugPrint('Today reminders could not be loaded: $error\n$stackTrace');
       _hasError = true;
       _result = const TodayReminderResult(allItems: []);
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (!_disposed) {
+        _loading = false;
+        _notify();
+      }
     }
   }
 
   Future<_PetReminders> _loadPet(Pet pet) async {
-    final id = pet.id!;
+    final id = pet.id;
+    if (id == null) {
+      // One id-less pet must not take the whole dashboard down.
+      debugPrint('Reminder load skipped a pet with no id: ${pet.name}');
+      return const _PetReminders(
+        feedings: [],
+        vaccinations: [],
+        healthRecords: [],
+        appointments: [],
+      );
+    }
     final results = await Future.wait<Object>([
       _repository.getFeedingSchedules(id),
       _repository.getVaccinationsForPet(id),

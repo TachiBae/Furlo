@@ -14,10 +14,21 @@ class AuthUser {
 }
 
 class AuthResult {
-  const AuthResult({required this.user, this.isNewAccount = false});
+  const AuthResult({
+    required this.user,
+    this.isNewAccount = false,
+    this.setupIncomplete = false,
+  });
 
   final AuthUser user;
   final bool isNewAccount;
+
+  /// True when the account itself was created but the first-pet setup write
+  /// failed.
+  ///
+  /// The account exists and the user is signed in, so callers must finish with
+  /// a friendly hand-off rather than treating this as a sign-in failure.
+  final bool setupIncomplete;
 }
 
 enum AuthErrorCode {
@@ -67,4 +78,12 @@ abstract interface class AuthService {
   Future<AuthResult> signInWithGoogle();
   Future<void> sendPasswordReset(String email);
   Future<void> signOut();
+
+  /// Links an email+password credential to the signed-in account so it can
+  /// also be opened by email. Idempotent: a password that is already linked
+  /// is reported as success.
+  Future<void> linkPassword(String password);
+
+  /// Sets the account's full name as held by the auth provider.
+  Future<void> updateFullName(String fullName);
 }

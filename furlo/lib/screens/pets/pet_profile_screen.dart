@@ -333,10 +333,40 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           }
           if (snapshot.hasError || pet == null) {
             return Center(
-              child: Text(
-                'Could not load this pet.',
-                style: AppTypography.body.copyWith(
-                  color: context.appColors.textSecondary,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: context.appColors.primary,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'Could not load this pet.',
+                      style: AppTypography.h2,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Check your connection, then try again.',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.body.copyWith(
+                        color: context.appColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    ElevatedButton.icon(
+                      onPressed: () => setState(() {
+                        _load = _refresh();
+                      }),
+                      style: AppComponents.primaryButton,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Try again'),
+                    ),
+                  ],
                 ),
               ),
             );

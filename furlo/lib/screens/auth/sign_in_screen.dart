@@ -23,10 +23,38 @@ class _SignInScreenState extends State<SignInScreen>
   final _password = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _applyPendingNotice();
+  }
+
+  @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  /// Shows a one-shot hand-off left by account creation, if any.
+  void _applyPendingNotice() {
+    final pending = PendingAuthNotice.take();
+    final email = pending.email;
+    if (email != null && email.isNotEmpty) _email.text = email;
+    final notice = pending.message;
+    if (notice != null) {
+      message = notice;
+      messageIsSuccess = true;
+    }
+  }
+
+  Future<void> _openCreateAccount() async {
+    await _navigator.push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => CreateAccountScreen(authService: widget.authService),
+      ),
+    );
+    if (!mounted) return;
+    setState(_applyPendingNotice);
   }
 
   Future<void> _submit() async {
@@ -41,11 +69,9 @@ class _SignInScreenState extends State<SignInScreen>
   }
 
   Future<void> _google() => runAuthRequest(() async {
-    final result = await widget.authService.signInWithGoogle();
-    if (result.isNewAccount) {
-      await widget.authService.signOut();
-      return;
-    }
+    // A brand-new Google account keeps its session: the auth gate routes it
+    // into the startup flow instead of signing it out silently.
+    await widget.authService.signInWithGoogle();
     if (mounted) _navigator.popUntil((route) => route.isFirst);
   }, suppressCancelled: true);
 
@@ -100,14 +126,7 @@ class _SignInScreenState extends State<SignInScreen>
           const SizedBox(height: 12),
           googleSignInButton(busy: isBusy, onPressed: _google),
           TextButton(
-            onPressed: isBusy
-                ? null
-                : () => _navigator.push<void>(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          CreateAccountScreen(authService: widget.authService),
-                    ),
-                  ),
+            onPressed: isBusy ? null : _openCreateAccount,
             child: const Text('Create account'),
           ),
         ],

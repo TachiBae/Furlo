@@ -2,21 +2,242 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Furlo is single-user and stores per-account data only under the signed-in
+    // user's own path. H-005: the previous rules allowed `users/{uid}/**`
+    // wholesale. These rules allow exactly the collections, fields, and shapes
+    // the app writes today — owner only — and deny everything else.
+    //
+    // Field lists mirror the map builders in lib/ (see the mapping in
+    // docs/app-health-report follow-ups and docs/firestore-rules-tests.md):
+    //   users/{uid}/pets          <- _petData (name, species, breed, birthDate, photo)
+    //   users/{uid}/feedings      <- _feedingEntryData (model toMap + pet_id)
+    //   users/{uid}/vaccinations  <- Vaccination.toMap + pet_id (status derived)
+    //   users/{uid}/healthRecords <- HealthRecord.toMap + pet_id
+    //   users/{uid}/weightLogs    <- WeightLog.toMap + pet_id
+    //   users/{uid}/vets          <- Vet.toMap (no id)
+    //   users/{uid}/vetLinks      <- VetPetAssociation.toMap
+    //   users/{uid}/settings/meta     <- FirestoreMigrationMarker.markComplete
+    //   users/{uid}/settings/profile  <- FirestoreAccountProfileRepository
+    //   accountMetadata/{uid}         <- FirestoreAccountOnboardingRepository
+    //
+    // Every write in code is a full-document `set()` (some with merge), never
+    // `update()` with partial field paths, so per-field conditions always see
+    // the complete document.
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // ------------------------------------------------------------------
+    // accountMetadata/{uid}: account creation marker + first-pet flag.
+    // The app only ever reads it and merges `requiresFirstPet` (bool).
+    // ------------------------------------------------------------------
     match /accountMetadata/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null
-        && request.auth.uid == uid
+      allow get: if isOwner(uid);
+      allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(['requiresFirstPet'])
         && request.resource.data.requiresFirstPet is bool;
-      allow delete: if false;
+      // list / delete are intentionally not allowed: the app never does them.
     }
 
-    // Pet data for one account: pets, feedings, vaccinations, healthRecords,
-    // weightLogs, vets and vetLinks. A user may only touch their own subtree.
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // ------------------------------------------------------------------
+    // users/{uid}/pets: name and species are required strings; breed and
+    // birthDate (ISO-8601 string) are nullable; photo is a base64 data URI
+    // gated in code by cloudPhotoField — must start with "data:" and is at
+    // most kMaxCloudPhotoBytes (600 * 1024 = 614400 chars). The rule allows
+    // ~10% headroom above that code cap (675840).
+    // ------------------------------------------------------------------
+    match /users/{uid}/pets/{petId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(
+          ['name', 'species', 'breed', 'birthDate', 'photo'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.species is string
+        && (request.resource.data.breed == null
+          || request.resource.data.breed is string)
+        && (request.resource.data.birthDate == null
+          || request.resource.data.birthDate is string)
+        && (request.resource.data.photo == null
+          || (request.resource.data.photo is string
+            && request.resource.data.photo.size() <= 675840
+            && request.resource.data.photo.matches('^data:')));
     }
 
+    // ------------------------------------------------------------------
+    // users/{uid}/feedings: meal name <= 40 chars (form maxLength), reminder
+    // flags stored as 1/0 ints, nullable scheduled_date / portion_size /
+    // last_fed_at.
+    // ------------------------------------------------------------------
+    match /users/{uid}/feedings/{entryId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'pet_id', 'name', 'scheduled_time', 'frequency', 'scheduled_date',
+          'days_of_week', 'portion_size', 'remind_me', 'last_fed_at',
+          'done_today'])
+        && request.resource.data.pet_id is string
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.scheduled_time is string
+        && request.resource.data.frequency is string
+        && (request.resource.data.scheduled_date == null
+          || request.resource.data.scheduled_date is string)
+        && request.resource.data.days_of_week is string
+        && (request.resource.data.portion_size == null
+          || request.resource.data.portion_size is string)
+        && request.resource.data.remind_me is int
+        && (request.resource.data.last_fed_at == null
+          || request.resource.data.last_fed_at is string)
+        && request.resource.data.done_today is int;
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/vaccinations: `status` is derived client-side in
+    // deriveVaccinationStatus and can only be completed / overdue / due soon.
+    // ------------------------------------------------------------------
+    match /users/{uid}/vaccinations/{vaccinationId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'pet_id', 'vaccine_name', 'date_given', 'next_due_date',
+          'is_completed', 'status'])
+        && request.resource.data.pet_id is string
+        && request.resource.data.vaccine_name is string
+        && (request.resource.data.date_given == null
+          || request.resource.data.date_given is string)
+        && (request.resource.data.next_due_date == null
+          || request.resource.data.next_due_date is string)
+        && request.resource.data.is_completed is int
+        && request.resource.data.status
+          in ['completed', 'overdue', 'due soon'];
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/healthRecords: record `type` is free text (the picker
+    // offers a set but custom strings are valid), reminder_active is 1/0/null.
+    // ------------------------------------------------------------------
+    match /users/{uid}/healthRecords/{recordId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'pet_id', 'title', 'date', 'type', 'notes', 'reminder_frequency',
+          'reminder_active'])
+        && request.resource.data.pet_id is string
+        && request.resource.data.title is string
+        && (request.resource.data.date == null
+          || request.resource.data.date is string)
+        && request.resource.data.type is string
+        && (request.resource.data.notes == null
+          || request.resource.data.notes is string)
+        && (request.resource.data.reminder_frequency == null
+          || request.resource.data.reminder_frequency is string)
+        && (request.resource.data.reminder_active == null
+          || request.resource.data.reminder_active is int);
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/weightLogs: weight is numeric (double in code); date and
+    // notes nullable.
+    // ------------------------------------------------------------------
+    match /users/{uid}/weightLogs/{logId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(
+          ['pet_id', 'date', 'weight', 'notes'])
+        && request.resource.data.pet_id is string
+        && (request.resource.data.date == null
+          || request.resource.data.date is string)
+        && request.resource.data.weight is number
+        && (request.resource.data.notes == null
+          || request.resource.data.notes is string);
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/vets: name is required (<= 40 chars in the form), all
+    // other fields nullable strings.
+    // ------------------------------------------------------------------
+    match /users/{uid}/vets/{vetId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(
+          ['name', 'clinic', 'phone', 'email', 'address', 'notes'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 40
+        && (request.resource.data.clinic == null
+          || request.resource.data.clinic is string)
+        && (request.resource.data.phone == null
+          || request.resource.data.phone is string)
+        && (request.resource.data.email == null
+          || request.resource.data.email is string)
+        && (request.resource.data.address == null
+          || request.resource.data.address is string)
+        && (request.resource.data.notes == null
+          || request.resource.data.notes is string);
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/vetLinks: vet<->pet associations, always written in
+    // batches with vet_id and pet_id set; next_appointment_date nullable.
+    // ------------------------------------------------------------------
+    match /users/{uid}/vetLinks/{linkId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(
+          ['vet_id', 'pet_id', 'next_appointment_date'])
+        && request.resource.data.vet_id is string
+        && request.resource.data.pet_id is string
+        && (request.resource.data.next_appointment_date == null
+          || request.resource.data.next_appointment_date is string);
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/settings/meta: one-time local->cloud migration marker.
+    // markComplete merges both fields together on every write.
+    // ------------------------------------------------------------------
+    match /users/{uid}/settings/meta {
+      allow get: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(
+          ['localMigratedAt', 'schemaVersion'])
+        && request.resource.data.localMigratedAt is string
+        && request.resource.data.schemaVersion is int;
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}/settings/profile: onboarding/profile flags. Writes are
+    // merges of different subsets (profileCompleted only; fullName +
+    // displayName + profileCompleted + updatedAt; setupCompleted +
+    // updatedAt), so each field is checked only when present. Names are
+    // validated <= 40 chars in the profile forms.
+    // ------------------------------------------------------------------
+    match /users/{uid}/settings/profile {
+      allow get: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'fullName', 'displayName', 'profileCompleted', 'setupCompleted',
+          'updatedAt'])
+        && (!('fullName' in request.resource.data)
+          || (request.resource.data.fullName is string
+            && request.resource.data.fullName.size() <= 40))
+        && (!('displayName' in request.resource.data)
+          || (request.resource.data.displayName is string
+            && request.resource.data.displayName.size() <= 40))
+        && (!('profileCompleted' in request.resource.data)
+          || request.resource.data.profileCompleted is bool)
+        && (!('setupCompleted' in request.resource.data)
+          || request.resource.data.setupCompleted is bool)
+        && (!('updatedAt' in request.resource.data)
+          || request.resource.data.updatedAt is string);
+    }
+
+    // ------------------------------------------------------------------
+    // Anything else is denied: other collections, the users/{uid} root
+    // document itself, stray paths, lists of settings docs, deletes the
+    // app never performs (accountMetadata), etc.
+    // ------------------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }

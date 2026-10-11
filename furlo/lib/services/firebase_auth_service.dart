@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'account_onboarding_repository.dart';
@@ -27,6 +27,23 @@ AuthErrorCode mapFirebaseAuthErrorCode(String code) => switch (code) {
   _ => AuthErrorCode.unknown,
 };
 
+/// Maps a credential-link failure to a friendly code, or `null` when the
+/// password is already linked and the step should count as done.
+///
+/// A retry after a half-finished submit must not surface a raw
+/// "already linked" failure, so that code is treated as success.
+AuthErrorCode? mapLinkPasswordErrorCode(String code) => switch (code) {
+  'provider-already-linked' => null,
+  'credential-already-in-use' => AuthErrorCode.emailInUse,
+  'weak-password' => AuthErrorCode.weakPassword,
+  'invalid-credential' ||
+  'invalid-verification-code' => AuthErrorCode.invalidCredentials,
+  'requires-recent-login' => AuthErrorCode.unknown,
+  'too-many-requests' => AuthErrorCode.tooManyRequests,
+  'network-request-failed' => AuthErrorCode.networkError,
+  _ => AuthErrorCode.unknown,
+};
+
 /// Google provider for web sign-in.
 ///
 /// `prompt: select_account` forces Google's account chooser on every tap
@@ -39,15 +56,19 @@ class FirebaseAuthService implements AuthService {
   FirebaseAuthService({
     FirebaseAuth? auth,
     AccountOnboardingRepository? accountOnboardingRepository,
+    AccountProfileRepository? accountProfileRepository,
     GoogleIdentityProvider? googleIdentity,
   }) : _auth = auth ?? FirebaseAuth.instance,
        _accountOnboardingRepository =
            accountOnboardingRepository ??
            FirestoreAccountOnboardingRepository(),
+       _accountProfileRepository =
+           accountProfileRepository ?? FirestoreAccountProfileRepository(),
        _googleIdentity = googleIdentity ?? GoogleSignInIdentityProvider();
 
   final FirebaseAuth _auth;
   final AccountOnboardingRepository _accountOnboardingRepository;
+  final AccountProfileRepository _accountProfileRepository;
   final GoogleIdentityProvider _googleIdentity;
 
   @override
@@ -96,9 +117,16 @@ class FirebaseAuthService implements AuthService {
       final user = _requireUser(credential.user);
       try {
         await markNewAccountForFirstPet(user.uid);
-      } catch (_) {
+      } catch (error, stackTrace) {
+        // The account exists; sign out and report it as a hand-off so the
+        // retry is a sign-in instead of a duplicate registration.
+        debugPrint('Account setup could not be recorded: $error\n$stackTrace');
         await _auth.signOut();
-        throw const AuthException(code: AuthErrorCode.networkError);
+        return AuthResult(
+          user: user,
+          isNewAccount: true,
+          setupIncomplete: true,
+        );
       }
       return AuthResult(user: user, isNewAccount: true);
     } on FirebaseAuthException catch (error) {
@@ -170,6 +198,40 @@ class FirebaseAuthService implements AuthService {
     }
   }
 
+  @override
+  Future<void> linkPassword(String password) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null || email.isEmpty) {
+      throw const AuthException(code: AuthErrorCode.unknown);
+    }
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: password,
+    );
+    try {
+      await user.linkWithCredential(credential);
+    } on FirebaseAuthException catch (error) {
+      final code = mapLinkPasswordErrorCode(error.code);
+      // Already linked: the retry of a half-finished submit succeeds.
+      if (code == null) return;
+      debugPrint('Password link failed: ${error.code}');
+      throw AuthException(code: code);
+    }
+  }
+
+  @override
+  Future<void> updateFullName(String fullName) async {
+    final user = _auth.currentUser;
+    if (user == null) throw const AuthException(code: AuthErrorCode.unknown);
+    try {
+      await user.updateDisplayName(fullName);
+    } on FirebaseAuthException catch (error) {
+      debugPrint('Full-name update failed: ${error.code}');
+      throw _mapFirebaseException(error);
+    }
+  }
+
   AuthException _mapFirebaseException(FirebaseAuthException error) {
     final code = mapFirebaseAuthErrorCode(error.code);
     return AuthException(code: code);
@@ -195,9 +257,24 @@ class FirebaseAuthService implements AuthService {
     if (isNewAccount) {
       try {
         await markNewAccountForFirstPet(user.uid);
-      } catch (_) {
-        await _auth.signOut();
-        throw const AuthException(code: AuthErrorCode.networkError);
+      } catch (error, stackTrace) {
+        // Never sign a fresh Google account out silently: it keeps its session
+        // and the startup flow picks it up.
+        debugPrint('Account setup could not be recorded: $error\n$stackTrace');
+        return AuthResult(
+          user: user,
+          isNewAccount: true,
+          setupIncomplete: true,
+        );
+      }
+      try {
+        await _accountProfileRepository.markProfileRequired(user.uid);
+      } catch (error, stackTrace) {
+        // Best-effort: a missing marker is treated as an already-complete
+        // profile, so it must never block the sign-in.
+        debugPrint(
+          'Profile requirement could not be recorded: $error\n$stackTrace',
+        );
       }
     }
     return AuthResult(user: user, isNewAccount: isNewAccount);

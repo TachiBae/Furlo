@@ -377,7 +377,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
                       width: constraints.maxWidth,
                       child: DropdownButtonFormField<String>(
                         initialValue: _species,
-                        style: AppTypography.body,
+                        style: AppTypography.body.copyWith(
+                          color: context.appColors.textPrimary,
+                        ),
                         decoration: const InputDecoration(
                           hintText: 'Select species',
                         ),
@@ -430,7 +432,10 @@ class _AddPetScreenState extends State<AddPetScreen> {
                                 alignment: AlignmentDirectional.centerStart,
                                 child: Text(
                                   species,
-                                  style: const TextStyle(fontSize: 12),
+                                  style: AppTypography.body.copyWith(
+                                    fontSize: 12,
+                                    color: context.appColors.textPrimary,
+                                  ),
                                 ),
                               ),
                             )

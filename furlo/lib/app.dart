@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/furlo_state.dart';
+import 'repositories/app_settings_repository.dart';
 import 'repositories/notification_settings_repository.dart';
 import 'repositories/pet_repository.dart';
+import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/pets/pet_onboarding_screen.dart';
@@ -25,16 +27,23 @@ class FurloApp extends StatefulWidget {
     this.notificationService,
     this.authService,
     this.accountOnboardingRepository,
+    this.accountProfileRepository,
     this.firebaseInitError,
     this.repositoryFactory,
+    this.legacyConsentEnabled,
   });
 
   final PetRepository? repository;
   final NotificationService? notificationService;
   final AuthService? authService;
   final AccountOnboardingRepository? accountOnboardingRepository;
+  final AccountProfileRepository? accountProfileRepository;
   final String? firebaseInitError;
   final PetRepository Function(String storageScope)? repositoryFactory;
+
+  /// Forces the pre-account import consent flow on or off. Null (the default,
+  /// including production) enables it outside a test harness; tests opt in.
+  final bool? legacyConsentEnabled;
 
   @override
   State<FurloApp> createState() => _FurloAppState();
@@ -103,10 +112,12 @@ class _FurloAppState extends State<FurloApp> {
             home: _AuthGate(
               authService: widget.authService,
               accountOnboardingRepository: widget.accountOnboardingRepository,
+              accountProfileRepository: widget.accountProfileRepository,
               firebaseInitError: widget.firebaseInitError,
               repositoryOverride: widget.repository,
               repositoryFactory: widget.repositoryFactory,
               notificationServiceOverride: widget.notificationService,
+              legacyConsentEnabled: widget.legacyConsentEnabled,
               onFurloState: _handleFurloState,
             ),
           ),
@@ -120,19 +131,23 @@ class _AuthGate extends StatefulWidget {
   const _AuthGate({
     required this.authService,
     required this.accountOnboardingRepository,
+    required this.accountProfileRepository,
     required this.firebaseInitError,
     required this.repositoryOverride,
     required this.repositoryFactory,
     required this.notificationServiceOverride,
+    required this.legacyConsentEnabled,
     required this.onFurloState,
   });
 
   final AuthService? authService;
   final AccountOnboardingRepository? accountOnboardingRepository;
+  final AccountProfileRepository? accountProfileRepository;
   final String? firebaseInitError;
   final PetRepository? repositoryOverride;
   final PetRepository Function(String storageScope)? repositoryFactory;
   final NotificationService? notificationServiceOverride;
+  final bool? legacyConsentEnabled;
   final void Function(FurloState?) onFurloState;
 
   @override
@@ -149,12 +164,18 @@ class _AuthGateState extends State<_AuthGate> {
   bool _accountStatusError = false;
   String? _accountStatusReason;
   bool _requiresFirstPet = false;
+  bool _profileRequired = false;
+  bool _setupComplete = false;
   int _sessionGeneration = 0;
   Future<void> _notificationTask = Future<void>.value();
   PetRepository? _repository;
   NotificationSettingsRepository? _notificationSettings;
   NotificationService? _notificationService;
+  AccountProfileRepository? _profileRepository;
   FurloState? _furloState;
+  bool _legacyConsentPending = false;
+  bool _legacyConsentDialogOpen = false;
+  VoidCallback? _closeLegacyConsentDialog;
 
   @override
   void initState() {
@@ -220,6 +241,14 @@ class _AuthGateState extends State<_AuthGate> {
     _accountStatusError = false;
     _accountStatusReason = null;
     _requiresFirstPet = false;
+    _profileRequired = false;
+    _setupComplete = false;
+    _legacyConsentPending = false;
+    // Close the consent dialog without recording an answer: its question was
+    // bound to the account and session that are now gone.
+    final closeConsentDialog = _closeLegacyConsentDialog;
+    _closeLegacyConsentDialog = null;
+    closeConsentDialog?.call();
     _sessionGeneration++;
     final previousUserScope = _user?.uid;
     final previousState = _furloState;
@@ -241,6 +270,7 @@ class _AuthGateState extends State<_AuthGate> {
     _repository = null;
     _notificationSettings = null;
     _notificationService = null;
+    _profileRepository = null;
     _furloState = null;
   }
 
@@ -263,22 +293,42 @@ class _AuthGateState extends State<_AuthGate> {
         );
     _furloState = FurloState(_repository!);
     widget.onFurloState(_furloState);
+    // With an injected repository the app runs against a test harness rather
+    // than a Firebase project, so the completion step is never required there.
+    final testHarness =
+        widget.repositoryOverride != null || widget.repositoryFactory != null;
+    _profileRepository =
+        widget.accountProfileRepository ??
+        (testHarness
+            ? const NoOpAccountProfileRepository()
+            : FirestoreAccountProfileRepository());
     _accountStatusLoaded = false;
     _accountStatusError = false;
     _accountStatusReason = null;
     final migrateLocalData =
         widget.repositoryOverride == null && widget.repositoryFactory == null;
+    // Consent is always on in the real app; inside an injected-repository
+    // harness it is opt-in so existing harness tests keep their behavior.
+    final legacyConsentActive = widget.legacyConsentEnabled ?? migrateLocalData;
     unawaited(_loadAccountStatus(uid, generation));
     final furloState = _furloState!;
     final notificationService = _notificationService!;
     _notificationTask = _notificationTask
         .then((_) async {
           if (!_isCurrentSession(generation)) return;
-          if (migrateLocalData) {
-            await LegacyLocalMigration(uid: uid, target: _repository!).run();
+          if (legacyConsentActive) {
+            await _resolveLegacyImport(
+              uid,
+              generation,
+              migrateLocalData: migrateLocalData,
+            );
           }
           if (!_isCurrentSession(generation)) return;
           await furloState.load();
+          if (!_isCurrentSession(generation)) return;
+          if (furloState.pets.isNotEmpty) {
+            await _backfillSetupMarker(uid, generation);
+          }
           if (!_isCurrentSession(generation)) return;
           await notificationService.initialize();
           if (!_isCurrentSession(generation)) {
@@ -299,9 +349,15 @@ class _AuthGateState extends State<_AuthGate> {
     try {
       final requiresFirstPet = await widget.accountOnboardingRepository!
           .requiresFirstPet(uid);
+      final profile =
+          _profileRepository ?? const NoOpAccountProfileRepository();
+      final profileRequired = await profile.requiresProfileCompletion(uid);
+      final setupComplete = await profile.isSetupComplete(uid);
       if (!_isCurrentSession(generation)) return;
       setState(() {
         _requiresFirstPet = requiresFirstPet;
+        _profileRequired = profileRequired;
+        _setupComplete = setupComplete;
         _accountStatusLoaded = true;
         _accountStatusError = false;
       });
@@ -326,8 +382,183 @@ class _AuthGateState extends State<_AuthGate> {
     final uid = _user?.uid;
     if (uid == null) throw StateError('No active account.');
     await widget.accountOnboardingRepository!.markFirstPetComplete(uid);
+    await (_profileRepository ?? const NoOpAccountProfileRepository())
+        .markSetupComplete(uid);
     if (!mounted) return;
-    setState(() => _requiresFirstPet = false);
+    setState(() {
+      _requiresFirstPet = false;
+      _setupComplete = true;
+    });
+  }
+
+  /// Gives accounts that already own pets the setup marker, so deleting the
+  /// last pet later cannot send them back to onboarding.
+  ///
+  /// Best-effort: a missing marker is recovered on the next launch.
+  Future<void> _backfillSetupMarker(String uid, int generation) async {
+    final profile = _profileRepository ?? const NoOpAccountProfileRepository();
+    try {
+      if (await profile.isSetupComplete(uid)) {
+        if (_isCurrentSession(generation) && mounted) {
+          setState(() => _setupComplete = true);
+        }
+        return;
+      }
+      if (!_isCurrentSession(generation)) return;
+      await profile.markSetupComplete(uid);
+      if (!_isCurrentSession(generation)) return;
+      if (mounted) setState(() => _setupComplete = true);
+    } catch (error, stackTrace) {
+      debugPrint('Setup marker could not be recorded: $error\n$stackTrace');
+    }
+  }
+
+  Future<void> _markProfileComplete() async {
+    if (!mounted) return;
+    setState(() => _profileRequired = false);
+  }
+
+  /// Migration wired for the current environment: Firestore marker and
+  /// platform stores in the real app; account-scoped local marker and web
+  /// stores under an injected-repository harness, which has no Firebase.
+  LegacyLocalMigration _legacyMigration(String uid) {
+    final testHarness =
+        widget.repositoryOverride != null || widget.repositoryFactory != null;
+    return LegacyLocalMigration(
+      uid: uid,
+      target: _repository!,
+      marker: testHarness ? SharedPreferencesMigrationMarker(uid: uid) : null,
+      // Only the device-wide store: under a harness the account-scoped local
+      // store is the target itself, so including it would copy the target
+      // onto itself.
+      legacySources: testHarness
+          ? [WebPetRepository(storageScope: null)]
+          : null,
+    );
+  }
+
+  /// Consent gate for pre-account device data: nothing is copied until the
+  /// signed-in account answers the dialog. An account that already answered
+  /// imports (or keeps declining) without being asked again, and data that is
+  /// not pre-account keeps the original silent path.
+  Future<void> _resolveLegacyImport(
+    String uid,
+    int generation, {
+    required bool migrateLocalData,
+  }) async {
+    try {
+      final settings = SharedPreferencesAppSettingsRepository(
+        storageScope: uid,
+      );
+      final choice = await settings.getLegacyImportChoice();
+      if (choice ==
+          SharedPreferencesAppSettingsRepository.legacyImportDeclined) {
+        return;
+      }
+      final migration = _legacyMigration(uid);
+      if (choice ==
+          SharedPreferencesAppSettingsRepository.legacyImportApproved) {
+        await migration.run();
+        return;
+      }
+      if (await migration.hasPreAccountData()) {
+        if (!_isCurrentSession(generation) || !mounted) return;
+        setState(() => _legacyConsentPending = true);
+        return;
+      }
+      if (migrateLocalData) await migration.run();
+    } catch (error, stackTrace) {
+      debugPrint('Legacy import check failed: $error\n$stackTrace');
+    }
+  }
+
+  void _scheduleLegacyConsentDialog() {
+    final uid = _user?.uid;
+    if (uid == null ||
+        _legacyConsentDialogOpen ||
+        !mounted ||
+        !_legacyConsentPending) {
+      return;
+    }
+    // The question stays bound to the account and session that were on screen
+    // when it was asked: every save uses this captured uid, and a session
+    // switch pops the dialog before any answer can be recorded.
+    final generation = _sessionGeneration;
+    final navigator = Navigator.of(context);
+    _legacyConsentDialogOpen = true;
+    _closeLegacyConsentDialog = () {
+      if (navigator.mounted && navigator.canPop()) navigator.pop();
+    };
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => _LegacyImportDialog(
+          onNotNow: () async {
+            if (generation != _sessionGeneration) {
+              // The session changed while the dialog was open: close it and
+              // save nothing for either account.
+              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+              return;
+            }
+            final settings = SharedPreferencesAppSettingsRepository(
+              storageScope: uid,
+            );
+            await settings.setLegacyImportChoice(
+              SharedPreferencesAppSettingsRepository.legacyImportDeclined,
+            );
+            if (!mounted || generation != _sessionGeneration) return;
+            setState(() => _legacyConsentPending = false);
+            _closeLegacyConsentDialog = null;
+            if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+          },
+          onImport: () async {
+            if (generation != _sessionGeneration) {
+              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+              return;
+            }
+            final settings = SharedPreferencesAppSettingsRepository(
+              storageScope: uid,
+            );
+            final resume = await settings.isLegacyImportInProgress();
+            if (!mounted || generation != _sessionGeneration) return;
+            await settings.setLegacyImportInProgress(true);
+            try {
+              await _legacyMigration(uid).importNow(resumePartial: resume);
+            } catch (_) {
+              // importNow logged the real error; the choice stays unsaved and
+              // the dialog stays open, so a retry resumes the same copy.
+              if (!mounted || generation != _sessionGeneration) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'The import could not finish. Please try again.',
+                  ),
+                ),
+              );
+              return;
+            }
+            if (!mounted || generation != _sessionGeneration) return;
+            await settings.setLegacyImportChoice(
+              SharedPreferencesAppSettingsRepository.legacyImportApproved,
+            );
+            await settings.setLegacyImportInProgress(false);
+            if (!mounted || generation != _sessionGeneration) return;
+            setState(() => _legacyConsentPending = false);
+            _closeLegacyConsentDialog = null;
+            if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+            await _furloState?.load();
+            if (!_isCurrentSession(generation) || !mounted) return;
+            if (_furloState?.pets.isNotEmpty ?? false) {
+              await _backfillSetupMarker(uid, generation);
+            }
+          },
+        ),
+      ).whenComplete(() {
+        _legacyConsentDialogOpen = false;
+        _closeLegacyConsentDialog = null;
+      }),
+    );
   }
 
   Future<void> _retryAccountStatus() async {
@@ -365,6 +596,13 @@ class _AuthGateState extends State<_AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    if (_legacyConsentPending) {
+      // A route cannot be pushed during build, so the consent dialog is
+      // scheduled for the frame that follows this one.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _legacyConsentPending) _scheduleLegacyConsentDialog();
+      });
+    }
     if (widget.firebaseInitError != null ||
         widget.authService == null ||
         widget.accountOnboardingRepository == null) {
@@ -409,11 +647,24 @@ class _AuthGateState extends State<_AuthGate> {
         ),
       );
     }
+    if (_profileRequired) {
+      return CompleteProfileScreen(
+        authService: widget.authService!,
+        profileRepository:
+            _profileRepository ?? const NoOpAccountProfileRepository(),
+        appSettings: SharedPreferencesAppSettingsRepository(
+          storageScope: _user!.uid,
+        ),
+        uid: _user!.uid,
+        onCompleted: _markProfileComplete,
+      );
+    }
     return ChangeNotifierProvider<FurloState>.value(
       value: furloState,
       child: _StartupGate(
         accountOnboardingRepository: widget.accountOnboardingRepository,
         requiresFirstPet: _requiresFirstPet,
+        setupComplete: _setupComplete,
         onFirstPetSaved: _markFirstPetComplete,
         repository: repository,
         notificationSettings: notificationSettings,
@@ -422,6 +673,39 @@ class _AuthGateState extends State<_AuthGate> {
       ),
     );
   }
+}
+
+/// Small inline error that keeps the loaded page usable underneath it.
+///
+/// Mirrors the reminders error card on the home dashboard: surface-coloured
+/// rounded container, secondary body text, one retry action.
+class _LoadErrorBanner extends StatelessWidget {
+  const _LoadErrorBanner({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(AppSpacing.md),
+    decoration: BoxDecoration(
+      color: context.appColors.surface,
+      borderRadius: AppRadius.lgRadius,
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Your pets could not be refreshed.',
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
+          ),
+        ),
+        TextButton(onPressed: onRetry, child: const Text('Try again')),
+      ],
+    ),
+  );
 }
 
 class _CloudSetupError extends StatelessWidget {
@@ -442,6 +726,7 @@ class _StartupGate extends StatelessWidget {
   const _StartupGate({
     required this.accountOnboardingRepository,
     required this.requiresFirstPet,
+    required this.setupComplete,
     required this.onFirstPetSaved,
     required this.repository,
     required this.notificationSettings,
@@ -451,6 +736,7 @@ class _StartupGate extends StatelessWidget {
 
   final AccountOnboardingRepository? accountOnboardingRepository;
   final bool requiresFirstPet;
+  final bool setupComplete;
   final Future<void> Function() onFirstPetSaved;
   final PetRepository repository;
   final NotificationSettingsRepository notificationSettings;
@@ -463,16 +749,22 @@ class _StartupGate extends StatelessWidget {
     // pet or selection change that flows through FurloState.
     final isLoading = context.select<FurloState, bool>((s) => s.isLoading);
     final loadError = context.select<FurloState, Object?>((s) => s.loadError);
+    final hasPets = context.select<FurloState, bool>((s) => s.pets.isNotEmpty);
     if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (loadError != null) {
+    if (loadError != null && !hasPets) {
       return Scaffold(
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('Your pets could not be loaded.'),
+              const SizedBox(height: 8),
+              const Text(
+                'Check your connection, then try again.',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: context.read<FurloState>().load,
@@ -483,21 +775,62 @@ class _StartupGate extends StatelessWidget {
         ),
       );
     }
-    if (!requiresFirstPet) {
-      return HomeScreen(
+    if (loadError != null) {
+      // Pets were loaded before this failure: keep them on screen rather than
+      // making an offline moment look like deleted data.
+      return Column(
+        children: [
+          _LoadErrorBanner(onRetry: context.read<FurloState>().load),
+          Expanded(
+            child: HomeScreen(
+              repository: repository,
+              notificationSettings: notificationSettings,
+              notificationService: notificationService,
+              storageScope: storageScope,
+            ),
+          ),
+        ],
+      );
+    }
+    if (requiresFirstPet || (!setupComplete && !hasPets)) {
+      return AddPetScreen(
         repository: repository,
         notificationSettings: notificationSettings,
         notificationService: notificationService,
         storageScope: storageScope,
+        accountOnboardingRepository: accountOnboardingRepository,
+        onFirstPetSaved: onFirstPetSaved,
       );
     }
-    return AddPetScreen(
+    return HomeScreen(
       repository: repository,
       notificationSettings: notificationSettings,
       notificationService: notificationService,
       storageScope: storageScope,
-      accountOnboardingRepository: accountOnboardingRepository,
-      onFirstPetSaved: onFirstPetSaved,
     );
   }
+}
+
+/// The one-question consent dialog for importing pre-account device data.
+///
+/// Styled like the app's other dialogs: surface background, title, body, and
+/// secondary/primary actions.
+class _LegacyImportDialog extends StatelessWidget {
+  const _LegacyImportDialog({required this.onNotNow, required this.onImport});
+
+  final Future<void> Function() onNotNow;
+  final Future<void> Function() onImport;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: context.appColors.surface,
+    title: const Text('Import pets from this device?'),
+    content: const Text(
+      'This device has pets saved before accounts. Import them into this account?',
+    ),
+    actions: [
+      TextButton(onPressed: () => onNotNow(), child: const Text('Not now')),
+      FilledButton(onPressed: () => onImport(), child: const Text('Import')),
+    ],
+  );
 }

@@ -327,10 +327,11 @@ void main() {
   );
 
   testWidgets(
-    'new Google account returns to sign-in and first later sign-in prompts Add Pet',
+    'new Google account stays signed in and reaches the startup flow',
     (tester) async {
       final onboarding = FakeAccountOnboardingRepository();
       final service = FakeAuthService(accountOnboardingRepository: onboarding);
+      addTearDown(service.dispose);
       await tester.pumpWidget(
         FurloApp(
           repository: WebPetRepository(storageScope: 'fake-google-user'),
@@ -340,17 +341,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Create account'));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Continue with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Sign in'), findsOneWidget);
+      // The user is never signed out silently: the startup gate asks for the
+      // first pet on the very first attempt.
       expect(await onboarding.requiresFirstPet('fake-google-user'), isTrue);
-
-      service.googleCreatesNewAccount = false;
-      await tester.tap(find.text('Continue with Google'));
-      await tester.pumpAndSettle();
+      expect(service.calls, isNot(contains('signOut')));
       expect(find.text('Add pet'), findsOneWidget);
     },
   );

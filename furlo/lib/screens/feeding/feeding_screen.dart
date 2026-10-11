@@ -36,6 +36,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
   List<FeedingEntry> _schedules = [];
   bool _loading = true;
   bool _saving = false;
+  String? _error;
 
   Pet? get _selectedPet => _furloState.selectedPet;
 
@@ -59,7 +60,10 @@ class _FeedingScreenState extends State<FeedingScreen> {
     if (selectedPetId == _observedSelectedPetId) return;
     _observedSelectedPetId = selectedPetId;
     if (!mounted) return;
-    setState(() => _schedules = []);
+    setState(() {
+      _schedules = [];
+      _error = null;
+    });
     unawaited(_loadSchedules());
   }
 
@@ -69,6 +73,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
       if (mounted) {
         setState(() {
           _schedules = [];
+          _error = null;
           _loading = false;
         });
       }
@@ -80,17 +85,19 @@ class _FeedingScreenState extends State<FeedingScreen> {
       if (mounted && _selectedPet?.id == petId) {
         setState(() {
           _schedules = schedules;
+          _error = null;
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) {
-        logAppDiagnostic('Feeding schedule load failed.');
+    } catch (error, stackTrace) {
+      debugPrint('Feeding schedule load failed: $error\n$stackTrace');
+      if (mounted && _selectedPet?.id == petId) {
+        // Keep whatever is already on screen: an offline refresh must not look
+        // like deleted schedules.
         setState(() {
-          _schedules = [];
+          _error = 'Feeding schedules could not be loaded.';
           _loading = false;
         });
-        _showMessage('Feeding schedules could not be loaded.');
       }
     }
   }
@@ -555,6 +562,17 @@ class _FeedingScreenState extends State<FeedingScreen> {
                             onRefresh: _loadSchedules,
                             child: CustomScrollView(
                               slivers: [
+                                if (_error != null && _schedules.isNotEmpty)
+                                  SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: AppSpacing.md,
+                                      ),
+                                      child: _LoadErrorBanner(
+                                        onRetry: _loadSchedules,
+                                      ),
+                                    ),
+                                  ),
                                 SliverToBoxAdapter(
                                   child: Padding(
                                     padding: const EdgeInsets.only(
@@ -588,6 +606,18 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                     hasScrollBody: false,
                                     child: Center(
                                       child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                else if (_error != null && _schedules.isEmpty)
+                                  SliverFillRemaining(
+                                    hasScrollBody: false,
+                                    child: RecordEmptyState(
+                                      icon: Icons.error_outline,
+                                      title: _error!,
+                                      message:
+                                          'Check your connection, then try again.',
+                                      actionLabel: 'Try again',
+                                      onAction: _loadSchedules,
                                     ),
                                   )
                                 else if (_schedules.isEmpty)
@@ -719,6 +749,41 @@ class _NoPetState extends StatelessWidget {
           onPressed: onAddPet,
           icon: const Icon(Icons.add),
           label: const Text('Add pet'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Small inline error that keeps the schedules on screen underneath it.
+///
+/// Mirrors the reminders error card on the home dashboard: surface-coloured
+/// rounded container, secondary body text, one retry action.
+class _LoadErrorBanner extends StatelessWidget {
+  const _LoadErrorBanner({required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpacing.md),
+    decoration: BoxDecoration(
+      color: context.appColors.surface,
+      borderRadius: AppRadius.lgRadius,
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Feeding schedules could not be loaded.',
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => unawaited(onRetry()),
+          child: const Text('Try again'),
         ),
       ],
     ),

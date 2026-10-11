@@ -29,32 +29,43 @@ class _CreateAccountScreenState extends State<CreateAccountScreen>
     super.dispose();
   }
 
-  Future<void> _completeNewAccount() async {
+  /// Signs the fresh account out and hands the email back to sign-in so the
+  /// retry is a sign-in, never a second registration.
+  Future<void> _completeNewAccount(String email) async {
     await widget.authService.signOut();
-    if (mounted) _navigator.popUntil((route) => route.isFirst);
+    if (!mounted) return;
+    PendingAuthNotice.show(
+      email: email,
+      message: 'Account created. Please sign in.',
+    );
+    _navigator.pop();
   }
 
   Future<void> _google() => runAuthRequest(() async {
-    final result = await widget.authService.signInWithGoogle();
-    if (result.isNewAccount) {
-      await _completeNewAccount();
-    } else if (mounted) {
-      _navigator.popUntil((route) => route.isFirst);
-    }
+    // Never sign a new Google account out silently: the auth gate takes the
+    // fresh session straight into the startup flow.
+    await widget.authService.signInWithGoogle();
+    if (mounted) _navigator.popUntil((route) => route.isFirst);
   }, suppressCancelled: true);
 
   Future<void> _submit() async {
     if (isBusy || !_formKey.currentState!.validate()) return;
+    final email = _email.text.trim();
     await runAuthRequest(() async {
       final result = await widget.authService.registerWithEmail(
-        _email.text.trim(),
+        email,
         _password.text,
       );
-      if (result.isNewAccount) {
-        await _completeNewAccount();
-      } else if (mounted) {
-        _navigator.popUntil((route) => route.isFirst);
+      if (!result.isNewAccount) {
+        if (mounted) _navigator.popUntil((route) => route.isFirst);
+        return;
       }
+      if (result.setupIncomplete) {
+        debugPrint(
+          'Account created, but its first-pet setup was not recorded.',
+        );
+      }
+      await _completeNewAccount(result.user.email ?? email);
     });
   }
 
