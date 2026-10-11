@@ -482,30 +482,30 @@ class WebPetRepository implements PetRepository {
     _vaccinations
       ..clear()
       ..addAll(
-        vaccinationValues.map((v) => Vaccination.fromMap(_decodeMap(v))),
+        _decodeRecords(vaccinationValues, (v) => Vaccination.fromMap(v)),
       );
 
     final healthValues = preferences.getStringList(_healthRecordsKey) ?? [];
     _healthRecords
       ..clear()
-      ..addAll(healthValues.map((v) => HealthRecord.fromMap(_decodeMap(v))));
+      ..addAll(_decodeRecords(healthValues, (v) => HealthRecord.fromMap(v)));
 
     final vetValues = preferences.getStringList(_vetsKey) ?? [];
     _vets
       ..clear()
-      ..addAll(vetValues.map((v) => Vet.fromMap(_decodeMap(v))));
+      ..addAll(_decodeRecords(vetValues, (v) => Vet.fromMap(v)));
 
     final vetLinkValues = preferences.getStringList(_vetLinksKey) ?? [];
     _vetLinks
       ..clear()
       ..addAll(
-        vetLinkValues.map((v) => VetPetAssociation.fromMap(_decodeMap(v))),
+        _decodeRecords(vetLinkValues, (v) => VetPetAssociation.fromMap(v)),
       );
 
     final weightValues = preferences.getStringList(_weightLogsKey) ?? [];
     _weightLogs
       ..clear()
-      ..addAll(weightValues.map((v) => WeightLog.fromMap(_decodeMap(v))));
+      ..addAll(_decodeRecords(weightValues, (v) => WeightLog.fromMap(v)));
   }
 
   Future<void> _saveVaccinations(SharedPreferences preferences) =>
@@ -582,7 +582,7 @@ class WebPetRepository implements PetRepository {
   Future<List<Pet>> getPets() async {
     final preferences = await SharedPreferences.getInstance();
     final values = preferences.getStringList(_storageKey) ?? [];
-    final pets = values.map((value) => _petFromMap(_decodeMap(value))).toList();
+    final pets = _decodeRecords(values, (value) => _petFromMap(value)).toList();
     var nextId = pets.fold<int>(0, (maxId, pet) {
       final id = _numericId(pet.id);
       return id > maxId ? id : maxId;
@@ -651,10 +651,10 @@ class WebPetRepository implements PetRepository {
     final pets = await getPets();
     await _savePets(preferences, pets.where((pet) => pet.id != id).toList());
     final feedingValues = preferences.getStringList(_feedingStorageKey) ?? [];
-    final feedingEntries = feedingValues
-        .map((value) => _feedingEntryFromMap(_decodeMap(value)))
-        .where((entry) => entry.petId != id)
-        .toList();
+    final feedingEntries = _decodeRecords(
+      feedingValues,
+      (value) => _feedingEntryFromMap(value),
+    ).where((entry) => entry.petId != id).toList();
     await _saveFeedingEntries(preferences, feedingEntries);
     _vaccinations.removeWhere((item) => item.petId == id);
     await _saveVaccinations(preferences);
@@ -706,7 +706,7 @@ class WebPetRepository implements PetRepository {
   Future<List<FeedingEntry>> getFeedingSchedules(String petId) async {
     final preferences = await SharedPreferences.getInstance();
     final values = preferences.getStringList(_feedingStorageKey) ?? [];
-    final maps = values.map(_decodeMap).toList();
+    final maps = _decodeMaps(values).toList();
     final entries = maps.map(_feedingEntryFromMap).toList();
     final needsDailyReset = List.generate(
       entries.length,
@@ -726,9 +726,10 @@ class WebPetRepository implements PetRepository {
   Future<FeedingEntry> addFeedingSchedule(FeedingEntry entry) async {
     final preferences = await SharedPreferences.getInstance();
     final values = preferences.getStringList(_feedingStorageKey) ?? [];
-    final entries = values
-        .map((value) => _feedingEntryFromMap(_decodeMap(value)))
-        .toList();
+    final entries = _decodeRecords(
+      values,
+      (value) => _feedingEntryFromMap(value),
+    ).toList();
     final id =
         entry.id ??
         (entries.fold<int>(0, (maxId, existing) {
@@ -749,9 +750,10 @@ class WebPetRepository implements PetRepository {
     if (id == null) throw ArgumentError('Schedule id is required to update.');
     final preferences = await SharedPreferences.getInstance();
     final values = preferences.getStringList(_feedingStorageKey) ?? [];
-    final entries = values
-        .map((value) => _feedingEntryFromMap(_decodeMap(value)))
-        .toList();
+    final entries = _decodeRecords(
+      values,
+      (value) => _feedingEntryFromMap(value),
+    ).toList();
     final index = entries.indexWhere(
       (existing) => existing.id == id && existing.petId == entry.petId,
     );
@@ -764,10 +766,10 @@ class WebPetRepository implements PetRepository {
   Future<void> deleteFeedingSchedule(String id, String petId) async {
     final preferences = await SharedPreferences.getInstance();
     final values = preferences.getStringList(_feedingStorageKey) ?? [];
-    final entries = values
-        .map((value) => _feedingEntryFromMap(_decodeMap(value)))
-        .where((entry) => !(entry.id == id && entry.petId == petId))
-        .toList();
+    final entries = _decodeRecords(
+      values,
+      (value) => _feedingEntryFromMap(value),
+    ).where((entry) => !(entry.id == id && entry.petId == petId)).toList();
     await _saveFeedingEntries(preferences, entries);
   }
 
@@ -1252,6 +1254,41 @@ FeedingEntry _feedingEntryFromMap(Map<String, Object?> row) => FeedingEntry(
 Map<String, Object?> _decodeMap(String value) => Map<String, Object?>.from(
   Uri.splitQueryString(value).map((key, value) => MapEntry(key, value)),
 );
+
+/// Decodes stored maps, skipping any whose stored form is damaged.
+///
+/// This data lives in browser storage, where an interrupted write can leave a
+/// truncated value, and `Uri.splitQueryString` throws on the result. One
+/// unreadable row must not take the healthy rows with it, so the bad row is
+/// dropped and reported rather than allowed to break the whole load.
+Iterable<Map<String, Object?>> _decodeMaps(List<String> values) sync* {
+  for (final value in values) {
+    try {
+      yield _decodeMap(value);
+    } on Object {
+      logAppDiagnostic('Skipped a stored record that could not be read.');
+    }
+  }
+}
+
+/// Decodes and builds stored records, skipping any row that cannot produce a
+/// valid record.
+///
+/// Guards both halves: a value can decode cleanly and still be unusable, for
+/// example a row written before a field existed or truncated mid-write. Either
+/// way the healthy rows must still load.
+Iterable<T> _decodeRecords<T>(
+  List<String> values,
+  T Function(Map<String, Object?> map) fromMap,
+) sync* {
+  for (final value in values) {
+    try {
+      yield fromMap(_decodeMap(value));
+    } on Object {
+      logAppDiagnostic('Skipped a stored record that could not be read.');
+    }
+  }
+}
 
 /// Largest photo payload written to a pet document.
 ///
