@@ -69,7 +69,7 @@ void main() {
     expect(await onboarding.requiresFirstPet('fake-google-user'), isTrue);
     expect(service.calls, isNot(contains('signOut')));
     expect(find.text('Sign in'), findsNothing);
-    expect(find.text('Add pet'), findsOneWidget);
+    expect(find.text('Add Pet'), findsOneWidget);
   });
 
   testWidgets(

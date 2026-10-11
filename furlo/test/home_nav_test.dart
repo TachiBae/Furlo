@@ -206,7 +206,7 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Add pet'));
     await tester.pumpAndSettle();
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text('Add pet')),
+      find.descendant(of: find.byType(AppBar), matching: find.text('Add Pet')),
       findsOneWidget,
       reason: 'the empty-state CTA must open the Add pet screen',
     );

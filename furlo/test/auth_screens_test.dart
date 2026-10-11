@@ -322,7 +322,7 @@ void main() {
       );
       await tester.tap(find.byKey(const Key('sign-in-submit')));
       await tester.pumpAndSettle();
-      expect(find.text('Add pet'), findsOneWidget);
+      expect(find.text('Add Pet'), findsOneWidget);
     },
   );
 
@@ -348,7 +348,7 @@ void main() {
       // first pet on the very first attempt.
       expect(await onboarding.requiresFirstPet('fake-google-user'), isTrue);
       expect(service.calls, isNot(contains('signOut')));
-      expect(find.text('Add pet'), findsOneWidget);
+      expect(find.text('Add Pet'), findsOneWidget);
     },
   );
 

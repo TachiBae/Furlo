@@ -236,6 +236,36 @@ Future<bool> confirmRecordDelete(
     ) ??
     false;
 
+/// Asks before throwing away unsaved form input.
+///
+/// Returns true only when the user chooses to discard. Named separately from
+/// [confirmRecordDelete] because discarding an edit and deleting a record are
+/// different consequences and should not share a verb.
+Future<bool> confirmDiscardChanges(
+  BuildContext context, {
+  String title = 'Discard changes?',
+  String message = 'Your edits will be lost.',
+}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.appColors.surface,
+        title: Text(title, style: AppTypography.h2),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep editing'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    ) ??
+    false;
+
 class RecordDetailRow extends StatelessWidget {
   const RecordDetailRow({
     super.key,

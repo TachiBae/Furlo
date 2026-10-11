@@ -252,7 +252,7 @@ void main() {
       expect(profile.completedDisplayName, 'Ada');
 
       // The startup flow takes over: this account still needs its first pet.
-      expect(find.text('Add pet'), findsOneWidget);
+      expect(find.text('Add Pet'), findsOneWidget);
       expect(find.text('Complete your profile'), findsNothing);
     },
   );

@@ -42,7 +42,7 @@ void main() {
       );
       await tester.tap(find.byIcon(Icons.add_circle).first);
       await tester.pumpAndSettle();
-      expect(find.text('Add pet'), findsOneWidget);
+      expect(find.text('Add Pet'), findsOneWidget);
 
       await tester.enterText(find.byType(TextFormField).first, 'Pip');
       await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -69,7 +69,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Add pet'),
+          matching: find.text('Add Pet'),
         ),
         findsNothing,
       );

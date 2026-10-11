@@ -85,7 +85,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Add pet'), findsOneWidget);
+    expect(find.text('Add Pet'), findsOneWidget);
     expect(find.text('Quick Actions'), findsNothing);
   });
 
@@ -115,7 +115,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Add pet'), findsOneWidget);
+      expect(find.text('Add Pet'), findsOneWidget);
 
       // Second launch with the same account state: onboarding again, not the
       // dashboard's empty state.
@@ -134,7 +134,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Add pet'),
+          matching: find.text('Add Pet'),
         ),
         findsOneWidget,
         reason: 'the onboarding screen owns the Add pet app bar title',
@@ -184,7 +184,7 @@ void main() {
 
     expect(await repository.getPets(), isEmpty);
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text('Add pet')),
+      find.descendant(of: find.byType(AppBar), matching: find.text('Add Pet')),
       findsNothing,
     );
     expect(find.text('Quick Actions'), findsOneWidget);
@@ -223,7 +223,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Add pet'),
+          matching: find.text('Add Pet'),
         ),
         findsNothing,
       );

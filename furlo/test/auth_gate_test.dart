@@ -114,7 +114,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Add pet'), findsOneWidget);
+    expect(find.text('Add Pet'), findsOneWidget);
     expect(find.text("Track your pet's care"), findsNothing);
   });
 
@@ -160,7 +160,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Add pet'),
+          matching: find.text('Add Pet'),
         ),
         findsNothing,
       );
@@ -175,7 +175,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Add pet'),
+          matching: find.text('Add Pet'),
         ),
         findsNothing,
       );
@@ -237,7 +237,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Add pet'), findsOneWidget);
+      expect(find.text('Add Pet'), findsOneWidget);
 
       auth.setUser(const AuthUser(uid: 'bob', email: null, displayName: null));
       await tester.pumpAndSettle();
@@ -247,7 +247,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Add pet'),
+          matching: find.text('Add Pet'),
         ),
         findsNothing,
       );

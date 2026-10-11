@@ -15,6 +15,7 @@ import '../../services/account_onboarding_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/pet_file_image.dart';
+import '../../widgets/record_components.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({
@@ -157,6 +158,24 @@ class _AddPetScreenState extends State<AddPetScreen> {
     }
   }
 
+  /// True when leaving now would throw away input the user has not saved.
+  bool get _hasUnsavedChanges {
+    final pet = widget.existingPet;
+    final name = _nameController.text.trim();
+    if (pet == null) {
+      return name.isNotEmpty ||
+          _species != null ||
+          _breed != null ||
+          _birthDate != null ||
+          _photoPath != null;
+    }
+    return name != pet.name ||
+        _species != pet.species ||
+        _breed != pet.breed ||
+        _birthDate != pet.birthDate ||
+        _photoPath != pet.photoPath;
+  }
+
   Future<void> _selectBreed(double fieldWidth) async {
     final species = _species;
     if (species == null) return;
@@ -292,231 +311,256 @@ class _AddPetScreenState extends State<AddPetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.appColors.bg,
-      appBar: AppBar(
-        title: Text(widget.existingPet == null ? 'Add pet' : 'Edit Pet'),
+    // Leaving must not silently discard a half-filled pet. The explicit save
+    // path pops directly and is unaffected by this guard.
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (_hasUnsavedChanges) {
+          final discard = await confirmDiscardChanges(
+            context,
+            message:
+                'Your pet details have not been saved yet. Leaving now will '
+                'discard them.',
+          );
+          if (!discard || !context.mounted) return;
+        }
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
         backgroundColor: context.appColors.bg,
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                children: [
-                  Center(
-                    child: InkWell(
-                      onTap: _choosePhoto,
-                      borderRadius: AppRadius.pillRadius,
-                      child: Builder(
-                        builder: (context) {
-                          final photo = _photoBytes != null
-                              ? MemoryImage(_photoBytes!)
-                              : (_photoPath == null ||
-                                        _photoPath!.startsWith('data:')
-                                    ? null
-                                    : petFileImage(_photoPath!));
-                          return CircleAvatar(
-                            radius: 54,
-                            backgroundColor: context.appColors.surface,
-                            backgroundImage: photo,
-                            child: photo == null
-                                ? const Icon(
-                                    Icons.add_a_photo_outlined,
-                                    size: 30,
-                                  )
-                                : null,
-                          );
-                        },
+        appBar: AppBar(
+          title: Text(widget.existingPet == null ? 'Add Pet' : 'Edit Pet'),
+          backgroundColor: context.appColors.bg,
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  children: [
+                    Center(
+                      child: InkWell(
+                        onTap: _choosePhoto,
+                        borderRadius: AppRadius.pillRadius,
+                        child: Builder(
+                          builder: (context) {
+                            final photo = _photoBytes != null
+                                ? MemoryImage(_photoBytes!)
+                                : (_photoPath == null ||
+                                          _photoPath!.startsWith('data:')
+                                      ? null
+                                      : petFileImage(_photoPath!));
+                            return CircleAvatar(
+                              radius: 54,
+                              backgroundColor: context.appColors.surface,
+                              backgroundImage: photo,
+                              child: photo == null
+                                  ? const Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 30,
+                                    )
+                                  : null,
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Center(
-                    child: Wrap(
-                      spacing: AppSpacing.sm,
-                      children: [
-                        TextButton(
-                          onPressed: _choosePhoto,
-                          child: Text(
-                            _photoPath == null ? 'Add a photo' : 'Change photo',
-                          ),
-                        ),
-                        if (_photoPath != null)
+                    const SizedBox(height: AppSpacing.sm),
+                    Center(
+                      child: Wrap(
+                        spacing: AppSpacing.sm,
+                        children: [
                           TextButton(
-                            onPressed: () => setState(() {
-                              _photoPath = null;
-                              _photoBytes = null;
-                            }),
-                            child: const Text('Remove photo'),
+                            onPressed: _choosePhoto,
+                            child: Text(
+                              _photoPath == null
+                                  ? 'Add a photo'
+                                  : 'Change photo',
+                            ),
                           ),
-                      ],
+                          if (_photoPath != null)
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _photoPath = null;
+                                _photoBytes = null;
+                              }),
+                              child: const Text('Remove photo'),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text('Pet name', style: AppTypography.label),
-                  const SizedBox(height: AppSpacing.sm),
-                  TextFormField(
-                    controller: _nameController,
-                    textCapitalization: TextCapitalization.words,
-                    maxLength: 40,
-                    decoration: const InputDecoration(hintText: 'e.g. Mochi'),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Enter your pet’s name'
-                        : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('Species', style: AppTypography.label),
-                  const SizedBox(height: AppSpacing.sm),
-                  LayoutBuilder(
-                    builder: (context, constraints) => SizedBox(
-                      width: constraints.maxWidth,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _species,
-                        style: AppTypography.body.copyWith(
-                          color: context.appColors.textPrimary,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Select species',
-                        ),
-                        items: const ['Dog', 'Cat']
-                            .map(
-                              (species) => DropdownMenuItem(
-                                value: species,
-                                child: SizedBox(
-                                  height: 48,
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 24,
-                                        child: FaIcon(
-                                          species == 'Dog'
-                                              ? FontAwesomeIcons.dog
-                                              : FontAwesomeIcons.cat,
-                                          size: 24,
-                                          color: _species == species
-                                              ? context.appColors.accent
-                                              : context.appColors.textSecondary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppSpacing.md),
-                                      Expanded(
-                                        child: Text(
-                                          species,
-                                          style: AppTypography.label.copyWith(
+                    const SizedBox(height: AppSpacing.lg),
+                    Text('Pet name', style: AppTypography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    TextFormField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      maxLength: 40,
+                      decoration: const InputDecoration(hintText: 'e.g. Mochi'),
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Enter your pet’s name'
+                          : null,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text('Species', style: AppTypography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    LayoutBuilder(
+                      builder: (context, constraints) => SizedBox(
+                        width: constraints.maxWidth,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _species,
+                          style: AppTypography.body.copyWith(
+                            color: context.appColors.textPrimary,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Select species',
+                          ),
+                          items: const ['Dog', 'Cat']
+                              .map(
+                                (species) => DropdownMenuItem(
+                                  value: species,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 24,
+                                          child: FaIcon(
+                                            species == 'Dog'
+                                                ? FontAwesomeIcons.dog
+                                                : FontAwesomeIcons.cat,
+                                            size: 24,
                                             color: _species == species
                                                 ? context.appColors.accent
-                                                : context.appColors.textPrimary,
+                                                : context
+                                                      .appColors
+                                                      .textSecondary,
                                           ),
                                         ),
-                                      ),
-                                      if (_species == species)
-                                        Icon(
-                                          Icons.check,
-                                          color: context.appColors.accent,
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Text(
+                                            species,
+                                            style: AppTypography.label.copyWith(
+                                              color: _species == species
+                                                  ? context.appColors.accent
+                                                  : context
+                                                        .appColors
+                                                        .textPrimary,
+                                            ),
+                                          ),
                                         ),
-                                    ],
+                                        if (_species == species)
+                                          Icon(
+                                            Icons.check,
+                                            color: context.appColors.accent,
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )
-                            .toList(),
-                        selectedItemBuilder: (context) => const ['Dog', 'Cat']
-                            .map(
-                              (species) => Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Text(
-                                  species,
-                                  style: AppTypography.label.copyWith(
-                                    color: context.appColors.textPrimary,
+                              )
+                              .toList(),
+                          selectedItemBuilder: (context) => const ['Dog', 'Cat']
+                              .map(
+                                (species) => Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: Text(
+                                    species,
+                                    style: AppTypography.label.copyWith(
+                                      color: context.appColors.textPrimary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )
-                            .toList(),
-                        itemHeight: 48,
-                        isExpanded: true,
-                        menuMaxHeight: 300,
-                        dropdownColor: context.appColors.surface,
-                        borderRadius: AppRadius.mdRadius,
-                        onChanged: (value) => setState(() {
-                          _species = value;
-                          _breed = null;
-                        }),
-                        validator: (value) =>
-                            value == null ? 'Choose a species' : null,
+                              )
+                              .toList(),
+                          itemHeight: 48,
+                          isExpanded: true,
+                          menuMaxHeight: 300,
+                          dropdownColor: context.appColors.surface,
+                          borderRadius: AppRadius.mdRadius,
+                          onChanged: (value) => setState(() {
+                            _species = value;
+                            _breed = null;
+                          }),
+                          validator: (value) =>
+                              value == null ? 'Choose a species' : null,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('Breed (optional)', style: AppTypography.label),
-                  const SizedBox(height: AppSpacing.sm),
-                  LayoutBuilder(
-                    builder: (context, constraints) => SizedBox(
-                      width: constraints.maxWidth,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _species == null
-                              ? null
-                              : () => _selectBreed(constraints.maxWidth),
-                          borderRadius: AppRadius.mdRadius,
-                          child: InputDecorator(
-                            isEmpty: _breed == null,
-                            decoration: InputDecoration(
-                              hintText: 'Select breed',
-                              enabled: _species != null,
-                              suffixIcon: const Icon(Icons.arrow_drop_down),
-                            ),
-                            child: Text(
-                              _breed ?? '',
-                              style: TextStyle(
-                                color: _species == null
-                                    ? context.appColors.textDisabled
-                                    : context.appColors.textPrimary,
+                    const SizedBox(height: AppSpacing.md),
+                    Text('Breed (optional)', style: AppTypography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    LayoutBuilder(
+                      builder: (context, constraints) => SizedBox(
+                        width: constraints.maxWidth,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _species == null
+                                ? null
+                                : () => _selectBreed(constraints.maxWidth),
+                            borderRadius: AppRadius.mdRadius,
+                            child: InputDecorator(
+                              isEmpty: _breed == null,
+                              decoration: InputDecoration(
+                                hintText: 'Select breed',
+                                enabled: _species != null,
+                                suffixIcon: const Icon(Icons.arrow_drop_down),
+                              ),
+                              child: Text(
+                                _breed ?? '',
+                                style: TextStyle(
+                                  color: _species == null
+                                      ? context.appColors.textDisabled
+                                      : context.appColors.textPrimary,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('Birthdate (optional)', style: AppTypography.label),
-                  const SizedBox(height: AppSpacing.sm),
-                  OutlinedButton.icon(
-                    onPressed: _selectBirthDate,
-                    icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                    label: Text(
-                      _birthDate == null
-                          ? 'Select birthdate'
-                          : '${_birthDate!.month}/${_birthDate!.day}/${_birthDate!.year}',
-                    ),
-                  ),
-                  if (_birthDate != null)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => setState(() => _birthDate = null),
-                        child: const Text('Clear birthdate'),
+                    const SizedBox(height: AppSpacing.md),
+                    Text('Birthdate (optional)', style: AppTypography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    OutlinedButton.icon(
+                      onPressed: _selectBirthDate,
+                      icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                      label: Text(
+                        _birthDate == null
+                            ? 'Select birthdate'
+                            : '${_birthDate!.month}/${_birthDate!.day}/${_birthDate!.year}',
                       ),
                     ),
-                  const SizedBox(height: AppSpacing.xl),
-                  ElevatedButton(
-                    onPressed: _saving ? null : _savePet,
-                    style: AppComponents.primaryButton,
-                    child: _saving
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text('Save'),
-                  ),
-                ],
+                    if (_birthDate != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => setState(() => _birthDate = null),
+                          child: const Text('Clear birthdate'),
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.xl),
+                    ElevatedButton(
+                      onPressed: _saving ? null : _savePet,
+                      style: AppComponents.primaryButton,
+                      child: _saving
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text('Save'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
