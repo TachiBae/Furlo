@@ -16,24 +16,24 @@ Baseline for reference: analyze 0 issues / test 247 passed (both exit 0), after 
 
 ## Phase 1 — visible cohesion (highest gain per unit effort)
 
-- [ ] 1. **B1 typography & token residue.** Replace the 6 raw `fontSize:` literals with
-      `AppTypography` tokens (weight ×5, `pet_onboarding:411,436`, `home` 10/9). Remove the dead
-      `Inter` family. Style `destructiveButton` on danger tokens and point confirms at it. Raise
-      `contentPadding` 14→16. Add a test that fails on any raw `fontSize:` outside `app_theme.dart`.
-- [ ] 2. **B3 cross-feature consistency matrix.** Fill the matrix (pet selector, date picker,
-      delete confirm, save feedback, empty state, error+retry, list layout, sort, filter,
-      pull-to-refresh, overdue indicator) for all 7 features, then close the minority cells:
-      C-032 feeding card → `RecordCard`, C-030 shared delete confirm, C-031 shared chips,
-      C-041 one weight formatter, C-018 home empty state, C-034 heading color, C-040 radius.
-- [ ] 3. **B4 terminology & copy unification.** One error-message family (~21 sites, C-042), one
+- [x] 1. **B1 typography & token residue.** — `cb1eeab`. ADAPTED: the survey found only **2** real
+      UI `fontSize` literals (`pet_onboarding:411,436`); the rest were `pw.TextStyle` in the PDF
+      export document, a separate medium. Also removed a dead `Inter` reference that turned out not
+      to exist. Guard test added and proven to fail on a planted violation.
+- [x] 2. **B3 cross-feature consistency matrix.** — `c5beab6`. Closed C-032 (feeding card →
+      `RecordCard`), C-031 (one shared `AppChoiceChip`), C-018 (home empty state), C-040 (pill
+      radius token), plus feeding's duplicate empty state. C-030 and C-041 were already satisfied
+      in the tree. PARTIAL: per-feature cells for date pickers, sort order, filters and save
+      feedback were not systematically filled.
+- [ ] 3. **B4 terminology & copy unification.** **NOT EXECUTED.** One error-message family (~21 sites, C-042), one
       dialog-title casing (C-021), plain `Save` (C-043), drop the support-code line (C-009),
       `Add vaccination` residue, and the full terminology table (pet / feeding / vaccination /
       weight / vet / health record / sign in). Wording only — no logic.
-- [ ] 4. **B5 responsive + text-scale sweep (the big unverified gap).** Add the sweep test:
-      14 screens × {375, 768, 1440} × {1.0, 1.3, 2.0}, zero overflow, forcing each screen's
-      loading/empty/error/data branch. Then fix every overflow it finds, incl. the three known
-      fixed heights (`record_components:47,93`, `pet_profile:510`) and the C-019 clamp.
-      Verify signed-out screens in the browser at 375px and 1440px as well.
+- [x] 4. **B5 responsive + text-scale sweep (the big unverified gap).** — `9e35a0e`. 15 screens ×
+      {375, 768, 1440} × {1.0, 1.3, 2.0} = 135 combinations, all green. Found and fixed a real
+      **Home 2.0-scale overflow** at every width. PARTIAL: forcing each screen's
+      loading/empty/error/data branch was not done, `Complete profile` is absent from the sweep,
+      and browser verification of authed screens stays blocked.
 
 ## Phase 2 — correctness
 
@@ -73,6 +73,15 @@ Baseline for reference: analyze 0 issues / test 247 passed (both exit 0), after 
 - [ ] 13. **B13 report.** Write `docs/full-app-cohesion-audit-report.md`: findings register, the
       filled consistency matrix, the terminology table, the **14×8 sign-off matrix**, and the
       verification log with the verified-by-running vs read-only split and every blocked check.
+
+## Status at end of session (2026-10-12)
+
+**Executed: items 1, 2 and 4.** Everything else in Phase 1 and all of Phases 2–4 is
+**NOT EXECUTED** — no claim of passing is made for them. Full detail, evidence and the
+verified grid are in [docs/full-app-cohesion-audit-report.md](docs/full-app-cohesion-audit-report.md).
+
+Commits: `98aa74c` checkpoint · `c7c27cd` housekeeping format · `f9d3757` prompt/plan/task list ·
+`cb1eeab` item 1 · `c5beab6` item 2 · `9e35a0e` item 4.
 
 ## Verification gates
 
