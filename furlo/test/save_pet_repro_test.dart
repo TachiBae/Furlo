@@ -49,11 +49,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Dog').last);
       await tester.pumpAndSettle();
-      for (var i = 0; i < 6 && find.text('Save pet').evaluate().isEmpty; i++) {
+      for (var i = 0; i < 6 && find.text('Save').evaluate().isEmpty; i++) {
         await tester.drag(find.byType(ListView).last, const Offset(0, -500));
         await tester.pumpAndSettle();
       }
-      await tester.tap(find.text('Save pet'));
+      await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       // The save must succeed and land back on the dashboard.

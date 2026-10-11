@@ -159,16 +159,16 @@ class _NotificationsViewState extends State<_NotificationsView>
                 'A reminder 60 minutes after a meal is missed.',
               ),
             ], state),
-            _group('Vaccines', [
+            _group('Vaccinations', [
               _NotificationOption(
                 NotificationTypes.upcomingVaccine,
-                'Upcoming vaccine',
-                'A reminder three days before a vaccine is due.',
+                'Upcoming vaccination',
+                'A reminder three days before a vaccination is due.',
               ),
               _NotificationOption(
                 NotificationTypes.overdueVaccine,
-                'Overdue vaccine',
-                'A reminder the morning after a vaccine is due.',
+                'Overdue vaccination',
+                'A reminder the morning after a vaccination is due.',
               ),
             ], state),
             _group('Appointments', [

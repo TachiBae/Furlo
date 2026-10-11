@@ -7,6 +7,7 @@ import '../../models/pet.dart';
 import '../../providers/health_records_provider.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
+import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/formatting.dart';
 import '../../utils/health_record_validation.dart';
@@ -146,7 +147,7 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
                         child: RecordEmptyState(
                           icon: Icons.error_outline,
                           title: state.error!,
-                          message: 'Check your connection, then try again.',
+                          message: AppCopy.checkConnection,
                           actionLabel: 'Try again',
                           onAction: state.refresh,
                         ),
@@ -528,7 +529,7 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
                 ElevatedButton(
                   onPressed: _save,
                   style: AppComponents.primaryButton,
-                  child: const Text('Save record'),
+                  child: const Text('Save'),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 OutlinedButton(

@@ -6,6 +6,7 @@ import '../../models/pet.dart';
 import '../../models/weight_log.dart';
 import '../../providers/weight_tracking_provider.dart';
 import '../../repositories/pet_repository.dart';
+import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/formatting.dart';
 import '../../utils/weight_tracking.dart';
@@ -120,7 +121,7 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                         child: RecordEmptyState(
                           icon: Icons.error_outline,
                           title: state.error!,
-                          message: 'Check your connection, then try again.',
+                          message: AppCopy.checkConnection,
                           actionLabel: 'Try again',
                           onAction: state.refresh,
                         ),
@@ -530,7 +531,7 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
           ElevatedButton(
             onPressed: _save,
             style: AppComponents.primaryButton,
-            child: const Text('Save entry'),
+            child: const Text('Save'),
           ),
           const SizedBox(height: 8),
           OutlinedButton(

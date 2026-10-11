@@ -73,7 +73,7 @@ void main() {
       'No account was found for those credentials.',
       'An account already exists for that email.',
       'Choose a stronger password and try again.',
-      'Check your internet connection and try again.',
+      'Check your connection, then try again.',
       'Too many attempts. Please wait and try again.',
       'Sign-in was cancelled.',
       'Pop-ups are blocked for this site. Allow them, then try again.',

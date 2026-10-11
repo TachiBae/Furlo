@@ -144,14 +144,14 @@ void main() {
       await tester.pumpAndSettle();
       for (
         var attempt = 0;
-        attempt < 6 && find.text('Save pet').evaluate().isEmpty;
+        attempt < 6 && find.text('Save').evaluate().isEmpty;
         attempt++
       ) {
         await tester.drag(find.byType(ListView).last, const Offset(0, -500));
         await tester.pumpAndSettle();
       }
-      expect(find.text('Save pet'), findsOneWidget);
-      await tester.tap(find.text('Save pet'));
+      expect(find.text('Save'), findsOneWidget);
+      await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       expect(await onboarding.requiresFirstPet('new-account'), isFalse);

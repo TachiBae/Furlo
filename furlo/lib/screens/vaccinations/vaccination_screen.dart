@@ -7,6 +7,7 @@ import '../../models/vaccination.dart';
 import '../../providers/vaccinations_provider.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
+import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/formatting.dart';
 import '../../widgets/record_components.dart';
@@ -171,7 +172,7 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                         child: RecordEmptyState(
                           icon: Icons.error_outline,
                           title: state.error!,
-                          message: 'Check your connection, then try again.',
+                          message: AppCopy.checkConnection,
                           actionLabel: 'Try again',
                           onAction: state.refresh,
                         ),
@@ -510,7 +511,7 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
                 ElevatedButton(
                   onPressed: _save,
                   style: AppComponents.primaryButton,
-                  child: const Text('Save vaccination'),
+                  child: const Text('Save'),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 OutlinedButton(

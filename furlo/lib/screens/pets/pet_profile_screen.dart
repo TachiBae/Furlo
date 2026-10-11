@@ -11,6 +11,7 @@ import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/export_service.dart';
 import '../../services/notifications_service.dart';
+import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/pet_file_image.dart';
@@ -351,7 +352,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Check your connection, then try again.',
+                      AppCopy.checkConnection,
                       textAlign: TextAlign.center,
                       style: AppTypography.body.copyWith(
                         color: context.appColors.textSecondary,

@@ -1075,7 +1075,7 @@ class _QuickActions extends StatelessWidget {
         ),
       ),
       _ActionData(
-        'Vaccines',
+        'Vaccinations',
         Icons.vaccines_outlined,
         () => VaccinationScreen(
           repository: repository,

@@ -18,6 +18,7 @@ import 'services/auth_service.dart';
 import 'services/legacy_local_migration.dart';
 import 'services/notifications_service.dart';
 import 'utils/app_diagnostics.dart';
+import 'utils/app_copy.dart';
 import 'utils/app_theme.dart';
 
 class FurloApp extends StatefulWidget {
@@ -761,10 +762,7 @@ class _StartupGate extends StatelessWidget {
             children: [
               const Text('Your pets could not be loaded.'),
               const SizedBox(height: 8),
-              const Text(
-                'Check your connection, then try again.',
-                textAlign: TextAlign.center,
-              ),
+              const Text(AppCopy.checkConnection, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: context.read<FurloState>().load,

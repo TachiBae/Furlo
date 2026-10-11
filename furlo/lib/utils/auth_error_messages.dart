@@ -1,16 +1,8 @@
 import '../services/auth_service.dart';
 
-String authErrorMessage(AuthErrorCode code) => switch (code) {
-  AuthErrorCode.invalidCredentials =>
-    'Check your email and password, then try again.',
-  AuthErrorCode.userNotFound => 'No account was found for those credentials.',
-  AuthErrorCode.emailInUse => 'An account already exists for that email.',
-  AuthErrorCode.weakPassword => 'Choose a stronger password and try again.',
-  AuthErrorCode.networkError => 'Check your internet connection and try again.',
-  AuthErrorCode.tooManyRequests =>
-    'Too many attempts. Please wait and try again.',
-  AuthErrorCode.cancelled => 'Sign-in was cancelled.',
-  AuthErrorCode.popupBlocked =>
-    'Pop-ups are blocked for this site. Allow them, then try again.',
-  AuthErrorCode.unknown => 'Something went wrong. Please try again.',
-};
+/// User-facing copy for an auth failure.
+///
+/// Delegates to the single table in `auth_service.dart` so the two cannot
+/// drift apart. This indirection exists only so screens can import a `utils/`
+/// helper rather than reaching into the service layer for copy.
+String authErrorMessage(AuthErrorCode code) => authErrorText(code);

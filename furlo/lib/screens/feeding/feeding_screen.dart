@@ -9,6 +9,7 @@ import '../../providers/furlo_state.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
+import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../widgets/record_components.dart';
@@ -614,8 +615,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                     child: RecordEmptyState(
                                       icon: Icons.error_outline,
                                       title: _error!,
-                                      message:
-                                          'Check your connection, then try again.',
+                                      message: AppCopy.checkConnection,
                                       actionLabel: 'Try again',
                                       onAction: _loadSchedules,
                                     ),

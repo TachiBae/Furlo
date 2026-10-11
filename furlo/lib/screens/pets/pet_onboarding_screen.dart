@@ -514,11 +514,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                             dimension: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(
-                            widget.existingPet == null
-                                ? 'Save pet'
-                                : 'Save changes',
-                          ),
+                        : Text('Save'),
                   ),
                 ],
               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../utils/app_copy.dart';
+
 @immutable
 class AuthUser {
   const AuthUser({
@@ -43,26 +45,33 @@ enum AuthErrorCode {
   unknown,
 }
 
+/// The single source of user-facing copy for an auth failure.
+///
+/// Lives beside [AuthErrorCode] so the code and its copy cannot drift. The UI
+/// helper in `utils/auth_error_messages.dart` delegates here instead of keeping
+/// a second copy of this table.
+String authErrorText(AuthErrorCode code) => switch (code) {
+  AuthErrorCode.invalidCredentials =>
+    'Check your email and password, then try again.',
+  AuthErrorCode.userNotFound => 'No account was found for those credentials.',
+  AuthErrorCode.emailInUse => 'An account already exists for that email.',
+  AuthErrorCode.weakPassword => 'Choose a stronger password and try again.',
+  // One wording for "check the connection" across auth and data loads.
+  AuthErrorCode.networkError => AppCopy.checkConnection,
+  AuthErrorCode.tooManyRequests =>
+    'Too many attempts. Please wait and try again.',
+  AuthErrorCode.cancelled => 'Sign-in was cancelled.',
+  AuthErrorCode.popupBlocked =>
+    'Pop-ups are blocked for this site. Allow them, then try again.',
+  AuthErrorCode.unknown => 'Something went wrong. Please try again.',
+};
+
 class AuthException implements Exception {
   const AuthException({required this.code});
 
   final AuthErrorCode code;
 
-  String get message => switch (code) {
-    AuthErrorCode.invalidCredentials =>
-      'Check your email and password, then try again.',
-    AuthErrorCode.userNotFound => 'No account was found for those credentials.',
-    AuthErrorCode.emailInUse => 'An account already exists for that email.',
-    AuthErrorCode.weakPassword => 'Choose a stronger password and try again.',
-    AuthErrorCode.networkError =>
-      'Check your internet connection and try again.',
-    AuthErrorCode.tooManyRequests =>
-      'Too many attempts. Please wait and try again.',
-    AuthErrorCode.cancelled => 'Sign-in was cancelled.',
-    AuthErrorCode.popupBlocked =>
-      'Pop-ups are blocked for this site. Allow them, then try again.',
-    AuthErrorCode.unknown => 'Something went wrong. Please try again.',
-  };
+  String get message => authErrorText(code);
 
   @override
   String toString() => 'AuthException: $message';

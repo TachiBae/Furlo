@@ -8,6 +8,7 @@ import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_diagnostics.dart';
+import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/formatting.dart';
 import '../../utils/vet_validation.dart';
@@ -183,7 +184,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
                 child: RecordEmptyState(
                   icon: Icons.error_outline,
                   title: 'Vet contacts could not be loaded.',
-                  message: 'Check your connection, then try again.',
+                  message: AppCopy.checkConnection,
                   actionLabel: 'Try again',
                   onAction: () => _load(),
                 ),
@@ -420,7 +421,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
             ElevatedButton(
               onPressed: _saving ? null : _save,
               style: AppComponents.primaryButton,
-              child: Text(_saving ? 'Saving…' : 'Save vet'),
+              child: Text(_saving ? 'Saving…' : 'Save'),
             ),
             const SizedBox(height: 8),
             OutlinedButton(
