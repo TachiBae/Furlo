@@ -30,7 +30,7 @@ class StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.18),
         border: Border.all(color: color.withValues(alpha: 0.75)),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: AppRadius.pillRadius,
       ),
       child: Text(
         label,

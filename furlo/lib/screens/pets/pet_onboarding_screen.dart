@@ -311,7 +311,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   Center(
                     child: InkWell(
                       onTap: _choosePhoto,
-                      borderRadius: BorderRadius.circular(64),
+                      borderRadius: AppRadius.pillRadius,
                       child: Builder(
                         builder: (context) {
                           final photo = _photoBytes != null

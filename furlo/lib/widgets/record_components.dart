@@ -23,6 +23,47 @@ InputDecoration recordFormDecoration(
   border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
 );
 
+/// The single chip recipe for every selectable chip in the app: the pet
+/// selector, the record filter tabs, and the feeding day picker.
+///
+/// Keeping one recipe is what stops a chip from silently falling back to the
+/// framework's default Material colours inside the dark theme.
+class AppChoiceChip extends StatelessWidget {
+  const AppChoiceChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+    this.tooltip,
+  });
+
+  final String label;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) => ChoiceChip(
+    showCheckmark: false,
+    label: Text(label),
+    tooltip: tooltip,
+    selected: selected,
+    selectedColor: context.appColors.primary,
+    backgroundColor: context.appColors.surface,
+    labelStyle: AppTypography.label.copyWith(
+      color: selected
+          ? context.appColors.textOnPrimary
+          : context.appColors.textSecondary,
+    ),
+    side: BorderSide(
+      color: selected
+          ? context.appColors.primary
+          : context.appColors.textDisabled,
+    ),
+    onSelected: onSelected,
+  );
+}
+
 class RecordFilterTabs extends StatelessWidget {
   const RecordFilterTabs({
     super.key,
@@ -51,23 +92,9 @@ class RecordFilterTabs extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
           final option = options[index];
-          final selected = option.value == selectedValue;
-          return ChoiceChip(
-            showCheckmark: false,
-            label: Text(option.label),
-            selected: selected,
-            selectedColor: context.appColors.primary,
-            backgroundColor: context.appColors.surface,
-            labelStyle: AppTypography.label.copyWith(
-              color: selected
-                  ? context.appColors.textOnPrimary
-                  : context.appColors.textSecondary,
-            ),
-            side: BorderSide(
-              color: selected
-                  ? context.appColors.primary
-                  : context.appColors.textDisabled,
-            ),
+          return AppChoiceChip(
+            label: option.label,
+            selected: option.value == selectedValue,
             onSelected: (_) => onSelected(option.value),
           );
         },
@@ -101,23 +128,9 @@ class PetSelectorTabs extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
       itemBuilder: (context, index) {
         final pet = pets[index];
-        final selected = pet.id == selectedPet.id;
-        return ChoiceChip(
-          showCheckmark: false,
-          label: Text(pet.name),
-          selected: selected,
-          selectedColor: context.appColors.primary,
-          backgroundColor: context.appColors.surface,
-          labelStyle: AppTypography.label.copyWith(
-            color: selected
-                ? context.appColors.textOnPrimary
-                : context.appColors.textSecondary,
-          ),
-          side: BorderSide(
-            color: selected
-                ? context.appColors.primary
-                : context.appColors.textDisabled,
-          ),
+        return AppChoiceChip(
+          label: pet.name,
+          selected: pet.id == selectedPet.id,
           onSelected: (_) => onSelected(pet),
         );
       },

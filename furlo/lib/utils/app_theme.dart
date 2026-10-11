@@ -178,17 +178,15 @@ class AppRadius {
   static const double md = 12;
   static const double lg = 16;
 
+  /// Fully rounded: capsules (status pills, the selected nav item) and
+  /// circles (pet avatars). Flutter clamps the radius to half the box, so the
+  /// same token produces a stadium on a bar and a circle on a square.
+  static const double pill = 999;
+
   static BorderRadius get smRadius => BorderRadius.circular(sm);
   static BorderRadius get mdRadius => BorderRadius.circular(md);
   static BorderRadius get lgRadius => BorderRadius.circular(lg);
-}
-
-class AppElevation {
-  AppElevation._();
-
-  static const List<BoxShadow> soft = [
-    BoxShadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 8),
-  ];
+  static BorderRadius get pillRadius => BorderRadius.circular(pill);
 }
 
 class AppTypography {

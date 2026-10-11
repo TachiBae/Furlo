@@ -9,6 +9,7 @@ import 'package:furlo/screens/home/home_screen.dart';
 import 'package:furlo/screens/weight/weight_tracking_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/app_theme.dart';
+import 'package:furlo/widgets/record_components.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -194,7 +195,13 @@ void main() {
 
     await tester.tap(find.text('See all'));
     await tester.pumpAndSettle();
-    expect(find.text('No pets yet.'), findsOneWidget);
+    expect(find.byType(RecordEmptyState), findsOneWidget);
+    expect(find.text('No pets yet'), findsOneWidget);
+    expect(
+      find.text('Add your first pet to start tracking their care.'),
+      findsOneWidget,
+      reason: 'the empty state must explain what adding a pet unlocks',
+    );
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Add pet'));
     await tester.pumpAndSettle();

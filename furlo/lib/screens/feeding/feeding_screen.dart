@@ -307,8 +307,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
                             .entries
                             .map((day) {
                               final dayNumber = day.key + 1;
-                              return ChoiceChip(
-                                label: Text(day.value),
+                              return AppChoiceChip(
+                                label: day.value,
                                 tooltip: const [
                                   'Monday',
                                   'Tuesday',
@@ -623,8 +623,13 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                 else if (_schedules.isEmpty)
                                   SliverFillRemaining(
                                     hasScrollBody: false,
-                                    child: _EmptyFeedingState(
-                                      onAdd: _saving
+                                    child: RecordEmptyState(
+                                      icon: Icons.restaurant_outlined,
+                                      title: 'No feeding schedules yet',
+                                      message:
+                                          'Add a schedule to keep track of your pet’s meals.',
+                                      actionLabel: 'Add feeding schedule',
+                                      onAction: _saving
                                           ? null
                                           : () => _editSchedule(),
                                     ),
@@ -637,26 +642,18 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                     ) {
                                       final entry = _schedules[index];
                                       final status = _statusFor(entry);
-                                      return Padding(
-                                        padding: EdgeInsets.only(
-                                          bottom: index == _schedules.length - 1
-                                              ? 0
-                                              : AppSpacing.sm,
-                                        ),
-                                        child: _FeedingScheduleCard(
-                                          entry: entry,
-                                          status: status,
-                                          onComplete:
-                                              _saving || entry.isComplete
-                                              ? null
-                                              : () => _markComplete(entry),
-                                          onEdit: _saving
-                                              ? null
-                                              : () => _editSchedule(entry),
-                                          onDelete: _saving
-                                              ? null
-                                              : () => _deleteSchedule(entry),
-                                        ),
+                                      return _FeedingScheduleCard(
+                                        entry: entry,
+                                        status: status,
+                                        onComplete: _saving || entry.isComplete
+                                            ? null
+                                            : () => _markComplete(entry),
+                                        onEdit: _saving
+                                            ? null
+                                            : () => _editSchedule(entry),
+                                        onDelete: _saving
+                                            ? null
+                                            : () => _deleteSchedule(entry),
                                       );
                                     }, childCount: _schedules.length),
                                   ),
@@ -790,44 +787,6 @@ class _LoadErrorBanner extends StatelessWidget {
   );
 }
 
-class _EmptyFeedingState extends StatelessWidget {
-  const _EmptyFeedingState({required this.onAdd});
-  final VoidCallback? onAdd;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.restaurant_outlined,
-            size: 48,
-            color: context.appColors.primary,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text('No feeding schedules yet', style: AppTypography.h2),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Add a schedule to keep track of your pet’s meals.',
-            textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(
-              color: context.appColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton.icon(
-            onPressed: onAdd,
-            style: AppComponents.primaryButton,
-            icon: const Icon(Icons.add),
-            label: const Text('Add feeding schedule'),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 class _FeedingScheduleCard extends StatelessWidget {
   const _FeedingScheduleCard({
     required this.entry,
@@ -851,118 +810,119 @@ class _FeedingScheduleCard extends StatelessWidget {
       'Overdue' => context.appColors.danger,
       _ => context.appColors.textSecondary,
     };
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: context.appColors.surface,
-        borderRadius: AppRadius.lgRadius,
-        boxShadow: AppElevation.soft,
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: context.appColors.primary.withValues(alpha: 0.16),
-                  shape: BoxShape.circle,
+    return RecordCard(
+      onTap: onEdit ?? () {},
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: context.appColors.primary.withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.restaurant,
+                    color: context.appColors.primary,
+                  ),
                 ),
-                child: Icon(Icons.restaurant, color: context.appColors.primary),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(entry.name, style: AppTypography.bodyStrong),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      [
-                        scheduledTime,
-                        if (entry.frequency == FeedingEntry.doesNotRepeat &&
-                            entry.scheduledDate != null)
-                          MaterialLocalizations.of(
-                            context,
-                          ).formatMediumDate(entry.scheduledDate!),
-                        entry.frequency,
-                        if (entry.daysOfWeek.isNotEmpty)
-                          entry.daysOfWeek
-                              .map(
-                                (day) => const [
-                                  'M',
-                                  'T',
-                                  'W',
-                                  'T',
-                                  'F',
-                                  'S',
-                                  'S',
-                                ][day - 1],
-                              )
-                              .join(' '),
-                        if (entry.portionSize != null) entry.portionSize!,
-                        if (entry.remindMe) 'Reminder on',
-                      ].join(' · '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.caption,
-                    ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(entry.name, style: AppTypography.bodyStrong),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        [
+                          scheduledTime,
+                          if (entry.frequency == FeedingEntry.doesNotRepeat &&
+                              entry.scheduledDate != null)
+                            MaterialLocalizations.of(
+                              context,
+                            ).formatMediumDate(entry.scheduledDate!),
+                          entry.frequency,
+                          if (entry.daysOfWeek.isNotEmpty)
+                            entry.daysOfWeek
+                                .map(
+                                  (day) => const [
+                                    'M',
+                                    'T',
+                                    'W',
+                                    'T',
+                                    'F',
+                                    'S',
+                                    'S',
+                                  ][day - 1],
+                                )
+                                .join(' '),
+                          if (entry.portionSize != null) entry.portionSize!,
+                          if (entry.remindMe) 'Reminder on',
+                        ].join(' · '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit?.call();
+                    if (value == 'delete') onDelete?.call();
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(value: 'delete', child: Text('Delete')),
                   ],
                 ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') onEdit?.call();
-                  if (value == 'delete') onDelete?.call();
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
-              ),
-            ],
-          ),
-          const Divider(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.circle, color: statusColor, size: 9),
-                    const SizedBox(width: AppSpacing.xs),
-                    Flexible(
-                      child: Text(
-                        status,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.caption.copyWith(
-                          color: statusColor,
+              ],
+            ),
+            const Divider(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.circle, color: statusColor, size: 9),
+                      const SizedBox(width: AppSpacing.xs),
+                      Flexible(
+                        child: Text(
+                          status,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption.copyWith(
+                            color: statusColor,
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: TextButton.icon(
+                    onPressed: onComplete,
+                    icon: Icon(
+                      entry.isComplete
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      size: 18,
                     ),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: TextButton.icon(
-                  onPressed: onComplete,
-                  icon: Icon(
-                    entry.isComplete
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    size: 18,
-                  ),
-                  label: Text(
-                    entry.isComplete ? 'Done' : 'Mark fed',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    label: Text(
+                      entry.isComplete ? 'Done' : 'Mark fed',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

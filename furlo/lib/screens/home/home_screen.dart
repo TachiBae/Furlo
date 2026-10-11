@@ -21,6 +21,7 @@ import '../../screens/vets/vet_contacts_screen.dart';
 import '../../screens/weight/weight_tracking_screen.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../widgets/record_components.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -502,7 +503,7 @@ class _NavItem extends StatelessWidget {
                     color: selected
                         ? context.appColors.primary.withValues(alpha: 0.22)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: AppRadius.pillRadius,
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -996,25 +997,12 @@ class _AllPetsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('My Pets')),
       body: pets.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'No pets yet.',
-                    style: AppTypography.body.copyWith(
-                      color: context.appColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ElevatedButton.icon(
-                    onPressed: onAddPet,
-                    style: AppComponents.primaryButton,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add pet'),
-                  ),
-                ],
-              ),
+          ? RecordEmptyState(
+              icon: Icons.pets_outlined,
+              title: 'No pets yet',
+              message: 'Add your first pet to start tracking their care.',
+              actionLabel: 'Add pet',
+              onAction: onAddPet,
             )
           : GridView.builder(
               padding: const EdgeInsets.all(AppSpacing.md),
