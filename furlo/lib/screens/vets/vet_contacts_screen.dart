@@ -570,6 +570,9 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
+            // A custom leading replaces the AppBar's own back button, which is
+            // the only thing that carried its (localized) label.
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context, _changed),
           ),

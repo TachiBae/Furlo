@@ -787,6 +787,7 @@ class _AddFirstPetCard extends StatelessWidget {
             child: Text('Add a pet to start keeping their care in one place.'),
           ),
           IconButton(
+            tooltip: 'Add a pet',
             onPressed: onTap,
             icon: Icon(Icons.add_circle, color: context.appColors.primary),
           ),
