@@ -407,8 +407,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                                       Expanded(
                                         child: Text(
                                           species,
-                                          style: TextStyle(
-                                            fontSize: 12,
+                                          style: AppTypography.label.copyWith(
                                             color: _species == species
                                                 ? context.appColors.accent
                                                 : context.appColors.textPrimary,
@@ -432,8 +431,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                                 alignment: AlignmentDirectional.centerStart,
                                 child: Text(
                                   species,
-                                  style: AppTypography.body.copyWith(
-                                    fontSize: 12,
+                                  style: AppTypography.label.copyWith(
                                     color: context.appColors.textPrimary,
                                   ),
                                 ),

@@ -242,11 +242,16 @@ class AppComponents {
     shape: RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
   );
 
-  static ButtonStyle destructiveButton = OutlinedButton.styleFrom(
-    minimumSize: const Size.fromHeight(48),
-    textStyle: AppTypography.bodyStrong,
-    shape: RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
-  );
+  /// Destructive confirm actions. Takes the palette because the danger
+  /// tokens differ per theme, unlike the static non-destructive styles.
+  static ButtonStyle destructiveButtonFor(AppPalette palette) =>
+      OutlinedButton.styleFrom(
+        foregroundColor: palette.danger,
+        side: BorderSide(color: palette.danger),
+        minimumSize: const Size.fromHeight(48),
+        textStyle: AppTypography.bodyStrong,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
+      );
 }
 
 class AppTheme {
@@ -385,7 +390,7 @@ class AppTheme {
         fillColor: palette.surfaceAlt,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: 14,
+          vertical: AppSpacing.md,
         ),
         hintStyle: AppTypography.body.copyWith(color: palette.textSecondary),
         labelStyle: AppTypography.label.copyWith(color: palette.textSecondary),
