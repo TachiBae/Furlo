@@ -92,8 +92,6 @@ void _momentListener(JSObject moment) {
       pending.complete(null);
     case GisMomentOutcome.cancel:
       _pending = null;
-      pending.completeError(
-        const AuthException(code: AuthErrorCode.cancelled),
-      );
+      pending.completeError(const AuthException(code: AuthErrorCode.cancelled));
   }
 }

@@ -14,8 +14,7 @@ AuthErrorCode mapFirebaseAuthErrorCode(String code) => switch (code) {
   'invalid-credential' ||
   'wrong-password' ||
   'invalid-email' => AuthErrorCode.invalidCredentials,
-  'user-not-found' ||
-  'user-disabled' => AuthErrorCode.userNotFound,
+  'user-not-found' || 'user-disabled' => AuthErrorCode.userNotFound,
   'email-already-in-use' ||
   'account-exists-with-different-credential' => AuthErrorCode.emailInUse,
   'weak-password' => AuthErrorCode.weakPassword,
