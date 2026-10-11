@@ -9,6 +9,7 @@ import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/app_copy.dart';
+import '../../utils/form_input.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/formatting.dart';
 import '../../utils/vet_validation.dart';
@@ -339,6 +340,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     if (!_form.currentState!.validate()) return;
     if (_selected.isEmpty) {
       ScaffoldMessenger.of(
@@ -356,13 +358,28 @@ class _VetFormScreenState extends State<VetFormScreen> {
       address: _optional(_address.text),
       notes: _optional(_notes.text),
     );
-    if (widget.vet == null) {
-      await widget.repository.addVet(vet, _selected.toList());
-    } else {
-      await widget.repository.updateVet(vet, _selected.toList());
+    try {
+      if (widget.vet == null) {
+        await widget.repository.addVet(vet, _selected.toList());
+      } else {
+        await widget.repository.updateVet(vet, _selected.toList());
+      }
+      await widget.notificationService.rescheduleAll();
+      if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      // Keep the form open with everything the user typed: an error here is
+      // usually transient, and dropping back to the list would lose the vet.
+      if (!mounted) return;
+      logAppDiagnostic('Vet save failed.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('The vet could not be saved. Please try again.'),
+        ),
+      );
+    } finally {
+      // Without this the button stays disabled and there is no way to retry.
+      if (mounted) setState(() => _saving = false);
     }
-    await widget.notificationService.rescheduleAll();
-    if (mounted) Navigator.pop(context, true);
   }
 
   String? _optional(String value) => value.trim().isEmpty ? null : value.trim();
@@ -377,23 +394,48 @@ class _VetFormScreenState extends State<VetFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _field(_name, 'Name', required: true, maxLength: 40),
-            _field(_clinic, 'Clinic'),
+            _field(
+              _name,
+              'Name',
+              required: true,
+              maxLength: AppFieldLimits.shortName,
+              next: true,
+            ),
+            _field(
+              _clinic,
+              'Clinic',
+              maxLength: AppFieldLimits.title,
+              next: true,
+            ),
             _field(
               _phone,
               'Phone',
               required: true,
               validator: validateVetPhone,
               keyboard: TextInputType.phone,
+              maxLength: AppFieldLimits.phone,
+              next: true,
             ),
             _field(
               _email,
               'Email',
               validator: validateVetEmail,
               keyboard: TextInputType.emailAddress,
+              next: true,
             ),
-            _field(_address, 'Address'),
-            _field(_notes, 'Notes', lines: 3),
+            _field(
+              _address,
+              'Address',
+              maxLength: AppFieldLimits.address,
+              next: true,
+            ),
+            _field(
+              _notes,
+              'Notes',
+              lines: 3,
+              maxLength: AppFieldLimits.notes,
+              keyboard: TextInputType.multiline,
+            ),
             const SizedBox(height: 16),
             Text('Associated pets', style: AppTypography.h2),
             const SizedBox(height: 8),
@@ -443,6 +485,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
     TextInputType? keyboard,
     int lines = 1,
     int? maxLength,
+    bool next = false,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextFormField(
@@ -450,6 +493,13 @@ class _VetFormScreenState extends State<VetFormScreen> {
       keyboardType: keyboard,
       maxLines: lines,
       maxLength: maxLength,
+      // Multiline fields keep the newline key; the rest offer "next" so the
+      // keyboard can walk the form instead of dismissing on every field.
+      textInputAction: lines > 1
+          ? TextInputAction.newline
+          : next
+          ? TextInputAction.next
+          : TextInputAction.done,
       validator:
           validator ??
           (required

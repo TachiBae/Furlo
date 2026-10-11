@@ -68,6 +68,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             key: const Key('reset-email'),
             controller: _email,
             keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _submit(),
             decoration: const InputDecoration(labelText: 'Email'),
             validator: validateEmail,
           ),

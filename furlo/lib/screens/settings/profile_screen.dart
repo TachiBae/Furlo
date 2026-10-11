@@ -9,6 +9,7 @@ import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/auth_error_messages.dart';
 import '../../utils/app_diagnostics.dart';
+import '../../utils/form_input.dart';
 import 'notifications_screen.dart';
 
 const _buildName = String.fromEnvironment(
@@ -295,7 +296,8 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
       child: TextFormField(
         controller: _controller,
         autofocus: true,
-        maxLength: 40,
+        maxLength: AppFieldLimits.shortName,
+        textInputAction: TextInputAction.done,
         textCapitalization: TextCapitalization.words,
         decoration: const InputDecoration(labelText: 'Your name'),
         validator: validateDisplayName,

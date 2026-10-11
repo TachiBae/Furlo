@@ -14,6 +14,7 @@ import '../../repositories/notification_settings_repository.dart';
 import '../../services/account_onboarding_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/form_input.dart';
 import '../../utils/pet_file_image.dart';
 import '../../widgets/record_components.dart';
 
@@ -401,7 +402,8 @@ class _AddPetScreenState extends State<AddPetScreen> {
                     TextFormField(
                       controller: _nameController,
                       textCapitalization: TextCapitalization.words,
-                      maxLength: 40,
+                      maxLength: AppFieldLimits.shortName,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(hintText: 'e.g. Mochi'),
                       validator: (value) =>
                           value == null || value.trim().isEmpty
@@ -631,6 +633,7 @@ class _SearchableSelectionSheetState extends State<_SearchableSelectionSheet> {
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   autofocus: true,
+                  textInputAction: TextInputAction.search,
                   onChanged: (value) => setState(() => _query = value),
                   decoration: InputDecoration(
                     hintText: widget.searchHint,

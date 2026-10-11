@@ -9,6 +9,7 @@ import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/form_input.dart';
 import '../../utils/formatting.dart';
 import '../../widgets/record_components.dart';
 import '../../widgets/status_pill.dart';
@@ -459,6 +460,9 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
                     controller: _otherNameController,
                     focusNode: _otherNameFocus,
                     textCapitalization: TextCapitalization.words,
+                    maxLength: AppFieldLimits.title,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _save(),
                     decoration: _decoration(
                       'Custom vaccine name',
                       'Enter vaccine name',

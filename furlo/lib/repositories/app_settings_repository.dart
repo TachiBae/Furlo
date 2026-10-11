@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/form_input.dart';
 import '../utils/user_storage_scope.dart';
 
 abstract interface class AppSettingsRepository {
@@ -96,6 +97,8 @@ class SharedPreferencesAppSettingsRepository implements AppSettingsRepository {
 String? validateDisplayName(String? value) {
   final name = value?.trim() ?? '';
   if (name.isEmpty) return 'Enter a display name';
-  if (name.length > 40) return 'Use 40 characters or fewer';
+  if (name.length > AppFieldLimits.shortName) {
+    return maxLengthMessage(AppFieldLimits.shortName);
+  }
   return null;
 }

@@ -5,6 +5,7 @@ import '../../services/account_onboarding_repository.dart';
 import '../../services/auth_service.dart';
 import '../../utils/auth_error_messages.dart';
 import '../../utils/auth_validators.dart';
+import '../../utils/form_input.dart';
 import 'auth_screen_support.dart';
 
 /// Final step for a brand-new Google account.
@@ -108,6 +109,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen>
             key: const Key('profile-full-name'),
             controller: _fullName,
             textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            maxLength: AppFieldLimits.shortName,
             autofillHints: const [AutofillHints.name],
             decoration: const InputDecoration(labelText: 'Full name'),
             validator: validateDisplayName,
@@ -117,6 +120,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen>
             key: const Key('profile-display-name'),
             controller: _displayName,
             textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            maxLength: AppFieldLimits.shortName,
             decoration: const InputDecoration(labelText: 'Display name'),
             validator: validateDisplayName,
           ),
@@ -125,6 +130,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen>
             key: const Key('profile-password'),
             controller: _password,
             obscureText: true,
+            textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.newPassword],
             decoration: const InputDecoration(labelText: 'Password'),
             validator: validatePassword,
@@ -134,6 +140,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen>
             key: const Key('profile-confirm-password'),
             controller: _confirm,
             obscureText: true,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _submit(),
             decoration: const InputDecoration(labelText: 'Confirm password'),
             validator: (value) =>
                 validateConfirmPassword(value, _password.text),

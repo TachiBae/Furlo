@@ -9,6 +9,7 @@ import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/form_input.dart';
 import '../../utils/formatting.dart';
 import '../../utils/health_record_validation.dart';
 import '../../widgets/record_components.dart';
@@ -414,6 +415,8 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
                 TextFormField(
                   controller: _titleController,
                   textCapitalization: TextCapitalization.sentences,
+                  maxLength: AppFieldLimits.title,
+                  textInputAction: TextInputAction.next,
                   decoration: _decoration('Title', 'e.g. Annual checkup'),
                   validator: (value) => value == null || value.trim().isEmpty
                       ? 'A title is required'
@@ -485,8 +488,11 @@ class _HealthRecordFormScreenState extends State<HealthRecordFormScreen> {
                 TextFormField(
                   controller: _notesController,
                   textCapitalization: TextCapitalization.sentences,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
                   minLines: 3,
                   maxLines: 5,
+                  maxLength: AppFieldLimits.notes,
                   decoration: _decoration('Notes (optional)', 'Add details'),
                 ),
                 if (_type == HealthRecordTypes.medication) ...[

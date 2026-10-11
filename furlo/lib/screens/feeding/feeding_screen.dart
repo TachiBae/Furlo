@@ -12,6 +12,7 @@ import '../../services/notifications_service.dart';
 import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_diagnostics.dart';
+import '../../utils/form_input.dart';
 import '../../widgets/record_components.dart';
 import '../pets/pet_onboarding_screen.dart';
 
@@ -189,7 +190,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
                     TextFormField(
                       initialValue: name,
                       autofocus: true,
-                      maxLength: 40,
+                      maxLength: AppFieldLimits.shortName,
+                      textInputAction: TextInputAction.next,
                       textCapitalization: TextCapitalization.words,
                       onSaved: (value) => name = value?.trim() ?? '',
                       decoration: _fieldDecoration(
@@ -345,6 +347,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       initialValue: portionSize,
+                      maxLength: AppFieldLimits.shortName,
+                      textInputAction: TextInputAction.done,
                       textCapitalization: TextCapitalization.sentences,
                       onSaved: (value) => portionSize = value?.trim() ?? '',
                       decoration: _fieldDecoration(

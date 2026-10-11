@@ -8,6 +8,7 @@ import '../../providers/weight_tracking_provider.dart';
 import '../../repositories/pet_repository.dart';
 import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/form_input.dart';
 import '../../utils/formatting.dart';
 import '../../utils/weight_tracking.dart';
 import '../../widgets/record_components.dart';
@@ -505,6 +506,7 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
           TextFormField(
             controller: _weight,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
             validator: validateWeight,
             decoration: _decoration('Weight ($weightUnit)'),
           ),
@@ -523,8 +525,11 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _notes,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
             minLines: 3,
             maxLines: 5,
+            maxLength: AppFieldLimits.notes,
             decoration: _decoration('Notes (optional)'),
           ),
           const SizedBox(height: 24),
