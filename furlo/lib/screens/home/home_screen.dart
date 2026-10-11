@@ -288,7 +288,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         _AddFirstPetCard(onTap: _addPet)
                       else
                         SizedBox(
-                          height: 150,
+                          // Tile captions are AppTypography.label, so the strip
+                          // grows with the user's text scale. Pinned at 150 it
+                          // clips the caption at 2.0.
+                          height:
+                              150 +
+                              (MediaQuery.textScalerOf(
+                                    context,
+                                  ).scale(AppTypography.label.fontSize!) -
+                                  AppTypography.label.fontSize!),
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: pets.length + 1,
@@ -363,64 +371,76 @@ class _HomeBottomBar extends StatelessWidget {
   final VoidCallback onAddPet;
 
   @override
-  Widget build(BuildContext context) => BottomAppBar(
-    color: context.appColors.surface,
-    elevation: 8,
-    padding: EdgeInsets.zero,
-    child: SafeArea(
-      top: false,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 68),
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(color: context.appColors.textDisabled, width: 0.35),
+  Widget build(BuildContext context) {
+    // The nav label is set in AppTypography.label, so it grows with the user's
+    // text scale. A bar pinned at 68 clips that label at 2.0, so the bar grows
+    // by exactly the same amount the label does.
+    final labelGrowth =
+        MediaQuery.textScalerOf(context).scale(AppTypography.label.fontSize!) -
+        AppTypography.label.fontSize!;
+    return BottomAppBar(
+      color: context.appColors.surface,
+      elevation: 8,
+      height: 68 + labelGrowth,
+      padding: EdgeInsets.zero,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 68),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: context.appColors.textDisabled,
+                width: 0.35,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _NavItem(
+                  label: 'Home',
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home,
+                  selected: activeTab == 0,
+                  onTap: () => onTap(0),
+                ),
+              ),
+              Expanded(
+                child: _NavItem(
+                  label: 'Alerts',
+                  icon: Icons.notifications_none,
+                  selectedIcon: Icons.notifications,
+                  selected: activeTab == 1,
+                  badgeCount: reminderCount,
+                  onTap: () => onTap(1),
+                ),
+              ),
+              Expanded(child: _AddPetNavItem(onTap: onAddPet)),
+              Expanded(
+                child: _NavItem(
+                  label: 'My Pets',
+                  icon: Icons.pets_outlined,
+                  selectedIcon: Icons.pets,
+                  selected: activeTab == 3,
+                  onTap: () => onTap(3),
+                ),
+              ),
+              Expanded(
+                child: _NavItem(
+                  label: 'Settings',
+                  icon: Icons.settings_outlined,
+                  selectedIcon: Icons.settings,
+                  selected: activeTab == 4,
+                  onTap: () => onTap(4),
+                ),
+              ),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _NavItem(
-                label: 'Home',
-                icon: Icons.home_outlined,
-                selectedIcon: Icons.home,
-                selected: activeTab == 0,
-                onTap: () => onTap(0),
-              ),
-            ),
-            Expanded(
-              child: _NavItem(
-                label: 'Alerts',
-                icon: Icons.notifications_none,
-                selectedIcon: Icons.notifications,
-                selected: activeTab == 1,
-                badgeCount: reminderCount,
-                onTap: () => onTap(1),
-              ),
-            ),
-            Expanded(child: _AddPetNavItem(onTap: onAddPet)),
-            Expanded(
-              child: _NavItem(
-                label: 'My Pets',
-                icon: Icons.pets_outlined,
-                selectedIcon: Icons.pets,
-                selected: activeTab == 3,
-                onTap: () => onTap(3),
-              ),
-            ),
-            Expanded(
-              child: _NavItem(
-                label: 'Settings',
-                icon: Icons.settings_outlined,
-                selectedIcon: Icons.settings,
-                selected: activeTab == 4,
-                onTap: () => onTap(4),
-              ),
-            ),
-          ],
-        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _AddPetNavItem extends StatelessWidget {
