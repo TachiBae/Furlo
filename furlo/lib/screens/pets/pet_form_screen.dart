@@ -14,6 +14,7 @@ import '../../repositories/notification_settings_repository.dart';
 import '../../repositories/account_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../utils/form_input.dart';
 import '../../utils/photo_fit.dart';
 import '../../utils/record_id.dart';
@@ -596,7 +597,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                       label: Text(
                         _birthDate == null
                             ? 'Select birthdate'
-                            : '${_birthDate!.month}/${_birthDate!.day}/${_birthDate!.year}',
+                            : shortDateWithYear(_birthDate!),
                       ),
                     ),
                     if (_birthDate != null)

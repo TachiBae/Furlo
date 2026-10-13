@@ -13,6 +13,7 @@ import '../../services/export_service.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/pet_file_image.dart';
 import '../feeding/feeding_screen.dart';
@@ -494,9 +495,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         _detailRow('Breed', pet.breed),
         _detailRow(
           'Birthdate',
-          pet.birthDate == null
-              ? null
-              : '${pet.birthDate!.month}/${pet.birthDate!.day}/${pet.birthDate!.year}',
+          pet.birthDate == null ? null : shortDateWithYear(pet.birthDate!),
         ),
         _detailRow('Age', petAgeLabel(pet.birthDate)),
       ],
