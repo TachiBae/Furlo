@@ -203,13 +203,9 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                                             formatShortDate(log.date),
                                             style: AppTypography.caption
                                                 .copyWith(
-                                                  color: log.date == null
-                                                      ? context
-                                                            .appColors
-                                                            .textDisabled
-                                                      : context
-                                                            .appColors
-                                                            .textSecondary,
+                                                  color: context
+                                                      .appColors
+                                                      .textSecondary,
                                                 ),
                                           ),
                                           if ((log.notes ?? '')

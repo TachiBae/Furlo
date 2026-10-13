@@ -523,7 +523,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
             style: AppTypography.body.copyWith(
               color: value?.trim().isNotEmpty == true
                   ? context.appColors.textPrimary
-                  : context.appColors.textDisabled,
+                  : context.appColors.textSecondary,
             ),
           ),
         ),

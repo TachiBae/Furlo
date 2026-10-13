@@ -742,7 +742,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                                     formatShortDate(_appointments[pet.id]),
                                     style: AppTypography.caption.copyWith(
                                       color: _appointments[pet.id] == null
-                                          ? context.appColors.textDisabled
+                                          ? context.appColors.textSecondary
                                           : context.appColors.textPrimary,
                                     ),
                                   ),
@@ -817,9 +817,12 @@ class _PetChip extends StatelessWidget {
   const _PetChip(this.label);
   final String label;
   @override
+  // surfaceAlt keeps textPrimary at AA contrast in all three themes; the
+  // muted-primary fill it replaced fell below 3:1 in Light and Dark.
   Widget build(BuildContext context) => Chip(
     label: Text(label),
-    backgroundColor: context.appColors.primaryMuted,
+    backgroundColor: context.appColors.surfaceAlt,
+    side: BorderSide(color: context.appColors.primaryMuted),
     labelStyle: AppTypography.caption.copyWith(
       color: context.appColors.textPrimary,
     ),
