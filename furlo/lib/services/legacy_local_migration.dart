@@ -370,7 +370,7 @@ class LegacyLocalMigration {
         for (final link in links)
           if (petIds[link.petId] != null) petIds[link.petId]!,
       ];
-      if (linkedPetIds.isEmpty) continue;
+      // A vet with no linked pets is still a saved contact: import it too.
       final resolved = ledger.resolve(
         'vets',
         sourceVetId,

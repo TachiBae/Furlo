@@ -185,6 +185,24 @@ void main() {
       });
     });
 
+    test('a vet with no linked pets is still imported', () async {
+      final legacy = WebPetRepository();
+      await legacy.addPet(Pet(id: '1', name: 'Mochi', species: 'Cat'));
+      await legacy.addVet(Vet(id: '4', name: 'Dr Solo', phone: '5554'), []);
+      final target = WebPetRepository(storageScope: 'alice-uid');
+
+      await LegacyLocalMigration(
+        uid: 'alice-uid',
+        target: target,
+        marker: _MemoryMarker(),
+        legacySources: [legacy],
+      ).run();
+
+      final vet = (await target.getAllVets()).single;
+      expect(vet.name, 'Dr Solo');
+      expect(await target.getVetPetAssociations(vet.id!), isEmpty);
+    });
+
     test('a store that mirrors an earlier one is not copied twice', () async {
       final deviceWide = WebPetRepository();
       await deviceWide.addPet(Pet(id: '1', name: 'Mochi', species: 'Cat'));
