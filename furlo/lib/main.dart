@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
-import 'services/account_onboarding_repository.dart';
+import 'repositories/account_repository.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_auth_service.dart';
 import 'services/firestore_setup.dart';
 import 'utils/app_diagnostics.dart';
-import 'utils/app_theme.dart';
+import 'providers/theme_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

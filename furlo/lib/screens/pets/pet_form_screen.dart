@@ -11,7 +11,7 @@ import '../../models/pet.dart';
 import '../../providers/furlo_state.dart';
 import '../../repositories/pet_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
-import '../../services/account_onboarding_repository.dart';
+import '../../repositories/account_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/form_input.dart';

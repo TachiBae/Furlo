@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/app.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/auth/sign_in_screen.dart';
-import 'package:furlo/services/account_onboarding_repository.dart';
+import 'package:furlo/repositories/account_repository.dart';
 import 'package:furlo/services/auth_service.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/auth_error_messages.dart';

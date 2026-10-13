@@ -13,6 +13,7 @@ import 'package:furlo/utils/formatting.dart';
 import 'package:furlo/widgets/record_components.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:furlo/services/account_onboarding_repository.dart';
+import 'package:furlo/repositories/account_repository.dart';
 import 'package:furlo/services/auth_service.dart';
 
 class FakeAuthService implements AuthService {

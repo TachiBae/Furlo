@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../repositories/app_settings_repository.dart';
-import '../../services/account_onboarding_repository.dart';
+import '../../repositories/account_repository.dart';
 import '../../services/auth_service.dart';
 import '../../utils/auth_error_messages.dart';
 import '../../utils/auth_validators.dart';

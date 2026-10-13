@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/app.dart';
 import 'package:furlo/models/pet.dart';
 import 'package:furlo/repositories/pet_repository.dart';
-import 'package:furlo/services/account_onboarding_repository.dart';
+import 'package:furlo/repositories/account_repository.dart';
 import 'package:furlo/services/auth_service.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';

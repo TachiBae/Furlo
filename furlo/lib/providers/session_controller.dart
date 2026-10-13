@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../repositories/app_settings_repository.dart';
 import '../repositories/notification_settings_repository.dart';
 import '../repositories/pet_repository.dart';
-import '../services/account_onboarding_repository.dart';
+import '../repositories/account_repository.dart';
 import '../services/auth_service.dart';
 import '../services/legacy_local_migration.dart';
 import '../services/notifications_service.dart';

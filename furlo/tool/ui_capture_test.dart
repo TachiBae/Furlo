@@ -42,6 +42,7 @@ import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 const _outDir = String.fromEnvironment(
   'CAPTURE_DIR',

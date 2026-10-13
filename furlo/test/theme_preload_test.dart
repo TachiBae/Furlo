@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_account_onboarding_repository.dart';
 import 'helpers/fake_auth_service.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

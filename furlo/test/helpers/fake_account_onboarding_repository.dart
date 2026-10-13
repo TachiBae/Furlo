@@ -1,4 +1,4 @@
-import 'package:furlo/services/account_onboarding_repository.dart';
+import 'package:furlo/repositories/account_repository.dart';
 
 class FakeAccountOnboardingRepository implements AccountOnboardingRepository {
   final deletedRecords = <String>[];

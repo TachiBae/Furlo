@@ -30,6 +30,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_auth_service.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 /// Responsive sweep: every screen at every supported width and text scale.
 ///

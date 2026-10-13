@@ -8,6 +8,7 @@ import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {
   String value = '';

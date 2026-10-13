@@ -4,6 +4,7 @@ import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/pets/pet_form_screen.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

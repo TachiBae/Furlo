@@ -9,9 +9,9 @@ import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
-import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:furlo/providers/theme_settings.dart';
 
 class _FailingClearRepository extends WebPetRepository {
   @override

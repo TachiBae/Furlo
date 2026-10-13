@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'account_onboarding_repository.dart';
+import '../repositories/account_repository.dart';
 import 'auth_service.dart';
 import 'google_identity_provider.dart';
 import 'google_web_identity_stub.dart'

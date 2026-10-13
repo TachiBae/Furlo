@@ -13,6 +13,7 @@ import '../../utils/app_diagnostics.dart';
 import '../../utils/form_input.dart';
 import 'notifications_screen.dart';
 import 'privacy_screen.dart';
+import '../../providers/theme_settings.dart';
 
 const _buildName = String.fromEnvironment(
   'FLUTTER_BUILD_NAME',

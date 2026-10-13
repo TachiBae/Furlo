@@ -1,7 +1,7 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/repositories/app_settings_repository.dart';
-import 'package:furlo/services/account_onboarding_repository.dart';
+import 'package:furlo/repositories/account_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _OfflineProfile extends NoOpAccountProfileRepository {

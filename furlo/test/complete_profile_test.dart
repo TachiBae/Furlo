@@ -4,7 +4,7 @@ import 'package:furlo/app.dart';
 import 'package:furlo/repositories/app_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/auth/complete_profile_screen.dart';
-import 'package:furlo/services/account_onboarding_repository.dart';
+import 'package:furlo/repositories/account_repository.dart';
 import 'package:furlo/services/auth_service.dart';
 import 'package:furlo/services/firebase_auth_service.dart';
 import 'package:furlo/services/notifications_service.dart';
