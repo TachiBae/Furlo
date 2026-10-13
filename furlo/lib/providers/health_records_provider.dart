@@ -1,87 +1,32 @@
-import 'package:flutter/foundation.dart';
-
 import '../models/health_record.dart';
-import '../models/pet.dart';
-import '../repositories/pet_repository.dart';
-import '../services/notifications_service.dart';
+import 'pet_records_provider.dart';
 
-class HealthRecordsProvider extends ChangeNotifier {
+class HealthRecordsProvider extends PetRecordsProvider<HealthRecord> {
   HealthRecordsProvider({
-    required this.repository,
-    this.notificationService = const NoOpNotificationService(),
-    required this.pets,
-    Pet? selectedPet,
-  }) : _selectedPet = selectedPet ?? pets.firstOrNull {
-    refresh();
-  }
+    required super.repository,
+    super.notificationService,
+    required super.pets,
+    super.selectedPet,
+  });
 
-  final PetRepository repository;
-  final NotificationService notificationService;
-  final List<Pet> pets;
-  Pet? _selectedPet;
-  List<HealthRecord> _records = [];
-  bool _loading = true;
-  bool _saving = false;
-  String? _error;
+  List<HealthRecord> get records => items;
 
-  Pet? get selectedPet => _selectedPet;
-  List<HealthRecord> get records => List.unmodifiable(_records);
-  bool get loading => _loading;
-  bool get saving => _saving;
-  String? get error => _error;
+  @override
+  String get loadErrorMessage => 'Health records could not be loaded.';
 
-  Future<void> selectPet(Pet pet) async {
-    if (_selectedPet?.id == pet.id) return;
-    _selectedPet = pet;
-    _records = [];
-    notifyListeners();
-    await refresh();
-  }
+  @override
+  Future<List<HealthRecord>> loadFor(String petId) =>
+      repository.getHealthRecordsForPet(petId);
 
-  Future<void> refresh() async {
-    final petId = _selectedPet?.id;
-    if (petId == null) {
-      _records = [];
-      _loading = false;
-      notifyListeners();
-      return;
-    }
-    _loading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      final records = await repository.getHealthRecordsForPet(petId);
-      if (_selectedPet?.id == petId) _records = records;
-    } catch (_) {
-      _error = 'Health records could not be loaded.';
-    } finally {
-      _loading = false;
-      notifyListeners();
-    }
-  }
+  @override
+  Future<void> persist(HealthRecord record) => record.id == null
+      ? repository.addHealthRecord(record)
+      : repository.updateHealthRecord(record);
 
-  Future<void> save(HealthRecord record) async {
-    _saving = true;
-    notifyListeners();
-    try {
-      if (record.id == null) {
-        await repository.addHealthRecord(record);
-      } else {
-        await repository.updateHealthRecord(record);
-      }
-      await notificationService.rescheduleAll();
-      await refresh();
-    } finally {
-      _saving = false;
-      notifyListeners();
-    }
-  }
+  @override
+  Future<void> remove(HealthRecord record) =>
+      repository.deleteHealthRecord(record.id!, record.petId);
 
-  Future<void> delete(HealthRecord record) async {
-    final id = record.id;
-    if (id == null) return;
-    await repository.deleteHealthRecord(id, record.petId);
-    await notificationService.rescheduleAll();
-    await refresh();
-  }
+  @override
+  String? idOf(HealthRecord record) => record.id;
 }
