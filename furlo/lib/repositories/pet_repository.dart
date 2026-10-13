@@ -1562,11 +1562,17 @@ class FirestorePetRepository implements PetRepository {
   @override
   Future<void> clearAllData() async {
     final refs = <DocumentReference<Map<String, dynamic>>>[];
+    final petIds = <String>[];
     for (final name in _all) {
       final snapshot = await _col(name).get();
       refs.addAll(snapshot.docs.map((doc) => doc.reference));
+      if (name == _pets) petIds.addAll(snapshot.docs.map((doc) => doc.id));
     }
     await _deleteBatch(refs);
+    // The photos cached on this device go too: deleted means deleted.
+    for (final id in petIds) {
+      await _photos.write(id, null);
+    }
   }
 
   @override

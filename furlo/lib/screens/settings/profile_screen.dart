@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/furlo_state.dart';
 import '../../repositories/app_settings_repository.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../repositories/pet_repository.dart';
@@ -48,6 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _displayName = '';
   bool _loading = true;
   bool _signingOut = false;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -86,6 +88,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Deletes every pet and record in the account after an explicit
+  /// confirmation. The account itself, and its settings, stay.
+  Future<void> _deleteAllData() async {
+    if (_deleting) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.appColors.surface,
+        title: const Text('Delete all your pet data?'),
+        content: const Text(
+          'This permanently deletes every pet, feeding schedule, vaccination, '
+          'health record, weight entry and vet contact in your account, on '
+          'every device. Your account stays. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: context.appColors.danger,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete everything'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final furloState = context.read<FurloState?>();
+    setState(() => _deleting = true);
+    try {
+      await widget.repository.clearAllData();
+      // Nothing is left to remind about; this also clears pending ones.
+      await widget.notificationService.rescheduleAll();
+      await furloState?.load();
+      if (mounted) _showMessage('All your pet data was deleted.');
+    } catch (_) {
+      logAppDiagnostic('Delete all data failed.');
+      // A partial delete is safe to retry: it only removes what is left.
+      if (mounted) {
+        _showMessage('Your data could not be deleted. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
   }
 
   Future<void> _signOut(AuthService authService) async {
@@ -200,6 +251,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _GroupHeading('Data'),
+              ListTile(
+                minTileHeight: 56,
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: context.appColors.danger,
+                ),
+                title: Text(
+                  'Delete all my data',
+                  style: TextStyle(color: context.appColors.danger),
+                ),
+                subtitle: const Text('Every pet and record in your account'),
+                trailing: _deleting
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                onTap: _deleting ? null : _deleteAllData,
               ),
               const SizedBox(height: AppSpacing.md),
               _GroupHeading('About'),
