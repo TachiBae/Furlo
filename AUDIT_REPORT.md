@@ -295,3 +295,30 @@ All four commands were run from `furlo/` on 2026-10-13 against `ca77b3b`. None o
 | `url_launcher` | 6.3.2 | 6.3.3 | No (patch) |
 
 The Firebase packages, `provider`, `fl_chart`, `pdf`, `font_awesome_flutter`, `path` and `web` are current. Upgrading is out of scope for this audit. The patch bumps are low risk. The three major bumps (`device_preview`, `file_picker`, `share_plus`) touch the web frame and PDF export, so retest those flows after upgrading.
+
+## 6. Readiness for in-progress work
+
+### Accounts / auth (already merged on this branch)
+Sign-in, register, Google, password reset and complete-profile are in and tested against fakes. Before calling this done:
+1. **Make the cloud the source of truth for profile data (D4).** Read and write `displayName` from `users/{uid}/settings/profile`. Otherwise a second device shows a blank greeting.
+2. **Fix the import before real users sign in (D1, D2, T3).** It is the only path that moves existing local data into an account, and it currently corrupts the cloud copy when both legacy stores hold data.
+3. **Move session logic out of `_AuthGate` (S2)** into a testable `SessionController`. Vet accounts will add a role-based routing branch there, and `app.dart` is already 834 lines.
+4. **Handle re-authentication (Q11).** Account deletion or email changes will hit `requires-recent-login`, which currently surfaces as "Something went wrong".
+5. **Update `../AGENTS.md` and `../README.md` (S5).** Both still describe a local-only app with no Firebase, which will mislead the next agent or reviewer.
+
+### Vet account type (not started)
+The current model has no concept of a second kind of user. These must change first:
+1. **Add a role to the account.** `accountMetadata/{uid}` rules allow only the `requiresFirstPet` key (`firestore.rules:36`). Add a `role` field (`owner` | `vet`), set once at registration, and let only the client create it, never change it (or have a Cloud Function set it).
+2. **Design how a vet reaches an owner's data.** Every rule is owner-only (`isOwner(uid)` on `users/{uid}/**`), so a vet account cannot read any owner's pets. Decide on a grant document (e.g. `users/{ownerUid}/grants/{vetUid}`) and extend the per-collection rules to allow reads when a grant exists, before writing any vet UI.
+3. **Separate vet contacts from vet accounts.** Today's `Vet` (`lib/models/vet.dart:1`) is an address-book contact owned by the pet owner. Link an account to a contact by a `vetUid` field rather than repurposing `users/{uid}/vets`.
+4. **Get the routing in place.** With the gate extracted (S2), add a `role` branch that sends vet accounts to their own home and skips first-pet onboarding (`lib/app.dart:726` `_StartupGate`, `requiresFirstPet` logic).
+5. **Test the rules.** Grants make the rules much more complex, so the manual Playground checklist (T5) is no longer enough. Automate them with the emulator.
+
+### Cloud-stored pet photos (partly done, as inline base64)
+Photos currently ride inside the pet document (`cloudPhotoField`, `pet_repository.dart:1297`), capped at 600 KB, with an uncapped SharedPreferences mirror. To land real per-account cloud storage:
+1. **Add `firebase_storage`.** It's a new dependency, so it needs your approval per AGENTS.md. Store files at `users/{uid}/pets/{petId}.jpg` with Storage rules that mirror `isOwner`.
+2. **Change the pet document to hold `photoUrl` (or a storage path) instead of `photo`.** Update `_petData` (`pet_repository.dart:1711`) and the `hasOnly` whitelist in `firestore.rules`. During the transition, read both `photo` and `photoUrl` so existing pets keep their pictures. That is a non-destructive migration; don't delete the old field until every client has upgraded.
+3. **Make photo writes ordered and idempotent (Q4).** Upload first, then write the document with the URL, using a pre-generated pet ID so a retry never duplicates.
+4. **Delete the photo when the pet is deleted.** `deletePet` (`pet_repository.dart:1434`) and `clearAllData` (`:1444`) must also remove the Storage object.
+5. **Shrink the local mirror (D5).** Cache the URL or a small thumbnail rather than full base64 in localStorage.
+6. **Testing.** Add the repository tests (T1) first so the photo-field change is covered when it happens.
