@@ -31,6 +31,7 @@ import 'package:furlo/screens/feeding/feeding_screen.dart';
 import 'package:furlo/repositories/app_settings_repository.dart';
 import 'package:furlo/screens/home/home_screen.dart';
 import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
+import 'package:furlo/screens/settings/privacy_screen.dart';
 import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
 import 'package:furlo/screens/settings/notifications_screen.dart';
@@ -152,6 +153,7 @@ class _FailingSettings extends SharedPreferencesNotificationSettingsRepository {
 // ---------------------------------------------------------------- scenes
 
 final List<Scene> scenes = [
+  Scene('privacy', () async => const PrivacyScreen()),
   Scene('profile', () async {
     final s = await _seed();
     return _withState(
