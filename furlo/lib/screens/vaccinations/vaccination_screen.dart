@@ -109,7 +109,8 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
   Widget build(BuildContext context) => Consumer<VaccinationsProvider>(
     builder: (context, state, _) {
       final records = state.vaccinations.where((item) {
-        return _filter == VaccinationStatuses.all || item.status == _filter;
+        return _filter == VaccinationStatuses.all ||
+            vaccinationDisplayStatus(item) == _filter;
       }).toList();
       return Scaffold(
         appBar: AppBar(
@@ -266,8 +267,8 @@ class _VaccinationCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               StatusPill(
-                label: capitalizeWords(vaccination.status),
-                status: vaccination.status,
+                label: capitalizeWords(vaccinationDisplayStatus(vaccination)),
+                status: vaccinationDisplayStatus(vaccination),
               ),
             ],
           ),

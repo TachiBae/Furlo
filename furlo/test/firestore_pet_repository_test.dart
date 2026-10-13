@@ -57,6 +57,17 @@ void main() {
       expect(await repository.getPets(), isEmpty);
     });
 
+    test('pets come back in a stable, name order', () async {
+      for (final (id, name) in [('a9', 'Zed'), ('b1', 'amy'), ('c5', 'Bob')]) {
+        await repository.addPet(Pet(id: id, name: name, species: 'Cat'));
+      }
+      expect((await repository.getPets()).map((p) => p.name), [
+        'amy',
+        'Bob',
+        'Zed',
+      ]);
+    });
+
     test('a pet without an id gets a generated one', () async {
       await repository.addPet(Pet(name: 'Rex', species: 'Dog'));
       expect((await repository.getPets()).single.id, isNotEmpty);

@@ -1517,7 +1517,13 @@ class FirestorePetRepository implements PetRepository {
         }
       }),
     );
-    return pets.nonNulls.toList();
+    // Firestore lists documents by their random ids, so without a sort the
+    // pets reshuffle whenever one is added. Name order is stable and
+    // predictable (case-insensitive, id as the tie-breaker).
+    return pets.nonNulls.toList()..sort((a, b) {
+      final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return byName != 0 ? byName : (a.id ?? '').compareTo(b.id ?? '');
+    });
   }
 
   void _logLocalOnlyPhoto(Pet pet) {

@@ -5,7 +5,22 @@ abstract final class VaccinationStatuses {
   static const dueSoon = 'due soon';
   static const overdue = 'overdue';
   static const all = 'all';
+
+  /// Display-only: never stored, so the deployed Firestore rules (which
+  /// whitelist the stored statuses) are unaffected.
+  static const noDueDate = 'no due date';
 }
+
+/// The status a screen shows for [vaccination].
+///
+/// A record with no next due date stores `completed` (the date is the source
+/// of truth for the stored status), but if it was never marked complete
+/// calling it "Completed" contradicts its own "Mark complete" button, so it
+/// reads "No due date" instead.
+String vaccinationDisplayStatus(Vaccination vaccination) =>
+    !vaccination.isCompleted && vaccination.nextDueDate == null
+    ? VaccinationStatuses.noDueDate
+    : vaccination.status;
 
 /// Derives the display status from completion and next due date.
 String deriveVaccinationStatus(

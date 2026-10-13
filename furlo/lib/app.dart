@@ -32,6 +32,7 @@ class FurloApp extends StatefulWidget {
     this.firebaseInitError,
     this.repositoryFactory,
     this.legacyConsentEnabled,
+    this.themeSettings,
   });
 
   final PetRepository? repository;
@@ -46,13 +47,20 @@ class FurloApp extends StatefulWidget {
   /// including production) enables it outside a test harness; tests opt in.
   final bool? legacyConsentEnabled;
 
+  /// Theme settings already restored before runApp. Without them the app
+  /// restores the saved theme itself and shows a splash meanwhile, which
+  /// flashes the Default palette for Light and Dark users.
+  final ThemeSettings? themeSettings;
+
   @override
   State<FurloApp> createState() => _FurloAppState();
 }
 
 class _FurloAppState extends State<FurloApp> {
-  late final ThemeSettings _themeSettings = ThemeSettings();
-  late final Future<void> _themeLoad;
+  late final ThemeSettings _themeSettings =
+      widget.themeSettings ?? ThemeSettings();
+  // Null when the theme was restored before runApp: no splash frame at all.
+  Future<void>? _themeLoad;
   FurloState? _furloState;
 
   void _handleFurloState(FurloState? state) {
@@ -63,12 +71,13 @@ class _FurloAppState extends State<FurloApp> {
   @override
   void initState() {
     super.initState();
-    _themeLoad = _themeSettings.load();
+    if (widget.themeSettings == null) _themeLoad = _themeSettings.load();
   }
 
   @override
   void dispose() {
-    _themeSettings.dispose();
+    // Settings passed in belong to main(); only dispose ones made here.
+    if (widget.themeSettings == null) _themeSettings.dispose();
     super.dispose();
   }
 
@@ -81,7 +90,8 @@ class _FurloAppState extends State<FurloApp> {
     child: FutureBuilder<void>(
       future: _themeLoad,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        if (_themeLoad != null &&
+            snapshot.connectionState != ConnectionState.done) {
           return ColoredBox(
             color: AppPalette.defaultTheme.bg,
             child: Center(
@@ -676,39 +686,6 @@ class _AuthGateState extends State<_AuthGate> {
   }
 }
 
-/// Small inline error that keeps the loaded page usable underneath it.
-///
-/// Mirrors the reminders error card on the home dashboard: surface-coloured
-/// rounded container, secondary body text, one retry action.
-class _LoadErrorBanner extends StatelessWidget {
-  const _LoadErrorBanner({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(AppSpacing.md),
-    decoration: BoxDecoration(
-      color: context.appColors.surface,
-      borderRadius: AppRadius.lgRadius,
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Your pets could not be refreshed.',
-            style: AppTypography.body.copyWith(
-              color: context.appColors.textSecondary,
-            ),
-          ),
-        ),
-        TextButton(onPressed: onRetry, child: const Text('Try again')),
-      ],
-    ),
-  );
-}
-
 class _CloudSetupError extends StatelessWidget {
   const _CloudSetupError();
 
@@ -773,23 +750,8 @@ class _StartupGate extends StatelessWidget {
         ),
       );
     }
-    if (loadError != null) {
-      // Pets were loaded before this failure: keep them on screen rather than
-      // making an offline moment look like deleted data.
-      return Column(
-        children: [
-          _LoadErrorBanner(onRetry: context.read<FurloState>().load),
-          Expanded(
-            child: HomeScreen(
-              repository: repository,
-              notificationSettings: notificationSettings,
-              notificationService: notificationService,
-              storageScope: storageScope,
-            ),
-          ),
-        ],
-      );
-    }
+    // A failed refresh with pets already loaded falls through to the
+    // dashboard, which keeps them on screen and shows its own retry banner.
     if (requiresFirstPet || (!setupComplete && !hasPets)) {
       return AddPetScreen(
         repository: repository,

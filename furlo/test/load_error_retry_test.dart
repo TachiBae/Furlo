@@ -109,6 +109,15 @@ void main() {
         expect(find.text('Mochi'), findsWidgets);
         expect(find.text('Your pets could not be refreshed.'), findsOneWidget);
         expect(find.text('Your pets could not be loaded.'), findsNothing);
+        // Inside the dashboard's Scaffold, so it gets Material styling and
+        // the safe area instead of floating above the screen.
+        expect(
+          find.ancestor(
+            of: find.text('Your pets could not be refreshed.'),
+            matching: find.byType(Scaffold),
+          ),
+          findsOneWidget,
+        );
 
         // The banner's retry recovers once the read works again.
         repo.fail = false;

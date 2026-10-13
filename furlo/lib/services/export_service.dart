@@ -194,7 +194,7 @@ class ExportService {
                               _safePdfText(item.vaccineName),
                               formatSummaryDate(item.dateGiven),
                               formatSummaryDate(item.nextDueDate),
-                              _safePdfText(item.status),
+                              _safePdfText(vaccinationDisplayStatus(item)),
                             ],
                           )
                           .toList(),

@@ -381,6 +381,11 @@ class _HomeScreenState extends State<HomeScreen> {
     // notifications (e.g. load progress) pass through without a rebuild.
     final pets = context.select<FurloState, List<Pet>>((s) => s.pets);
     final selectedPet = context.select<FurloState, Pet?>((s) => s.selectedPet);
+    // Pets loaded earlier stay on screen when a refresh fails: an offline
+    // moment must not look like deleted data.
+    final refreshFailed = context.select<FurloState, bool>(
+      (s) => s.loadError != null && s.pets.isNotEmpty,
+    );
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -402,6 +407,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         displayName: _displayName,
                         onSettings: _openProfile,
                       ),
+                      if (refreshFailed) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        _PetsRefreshBanner(onRetry: _furloState.load),
+                      ],
                       const SizedBox(height: AppSpacing.lg),
                       _SectionHeading(
                         title: 'My Pets',
@@ -1306,4 +1315,37 @@ class _ActionData {
   final String label;
   final IconData icon;
   final Widget Function() buildScreen;
+}
+
+/// Inline notice that a pet refresh failed, with one retry action. Lives in
+/// the dashboard's own scroll view, so it gets the screen's Material, safe
+/// area and theme like every other row.
+class _PetsRefreshBanner extends StatelessWidget {
+  const _PetsRefreshBanner({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpacing.md),
+    decoration: BoxDecoration(
+      color: context.appColors.surface,
+      borderRadius: AppRadius.lgRadius,
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.cloud_off_outlined, color: context.appColors.textSecondary),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            'Your pets could not be refreshed.',
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
+          ),
+        ),
+        TextButton(onPressed: onRetry, child: const Text('Try again')),
+      ],
+    ),
+  );
 }
