@@ -15,6 +15,7 @@ import '../../services/account_onboarding_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/form_input.dart';
+import '../../utils/record_id.dart';
 import '../../utils/pet_file_image.dart';
 import '../../widgets/record_components.dart';
 
@@ -136,6 +137,10 @@ class _AddPetScreenState extends State<AddPetScreen> {
   Uint8List? _photoBytes;
   bool _saving = false;
   bool _newPetSaved = false;
+
+  /// Fixed for the life of the form, so a retry after a half-finished save
+  /// overwrites the same pet instead of adding a duplicate.
+  late final String _newPetId = generateRecordId();
 
   @override
   void initState() {
@@ -271,7 +276,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     try {
       final petName = _capitalizeFirst(_nameController.text.trim());
       final pet = Pet(
-        id: widget.existingPet?.id,
+        id: widget.existingPet?.id ?? _newPetId,
         name: petName,
         species: _species!,
         breed: _breed,

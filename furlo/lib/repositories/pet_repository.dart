@@ -618,16 +618,21 @@ class WebPetRepository implements PetRepository {
                 }) +
                 1)
             .toString();
-    pets.add(
-      Pet(
-        id: id,
-        name: pet.name,
-        species: pet.species,
-        breed: pet.breed,
-        birthDate: pet.birthDate,
-        photoPath: pet.photoPath,
-      ),
+    final saved = Pet(
+      id: id,
+      name: pet.name,
+      species: pet.species,
+      breed: pet.breed,
+      birthDate: pet.birthDate,
+      photoPath: pet.photoPath,
     );
+    // Re-adding a known id (a retried save) replaces it, as Firestore does.
+    final existing = pets.indexWhere((item) => item.id == id);
+    if (existing >= 0) {
+      pets[existing] = saved;
+    } else {
+      pets.add(saved);
+    }
     await _savePets(preferences, pets);
   }
 
@@ -1776,13 +1781,20 @@ class LocalPetPhotoStore {
     return legacy;
   }
 
+  /// Best-effort: the mirror is a cache, so a full or unavailable store
+  /// (browser localStorage has a small quota) must never fail the save of
+  /// the pet it belongs to.
   Future<void> write(String petId, String? photoPath) async {
     final preferences = await _preferences();
     if (preferences == null) return;
-    if (photoPath == null || photoPath.isEmpty) {
-      await preferences.remove(_key(petId));
-      return;
+    try {
+      if (photoPath == null || photoPath.isEmpty) {
+        await preferences.remove(_key(petId));
+        return;
+      }
+      await preferences.setString(_key(petId), photoPath);
+    } catch (_) {
+      logAppDiagnostic('Pet photo could not be cached on this device.');
     }
-    await preferences.setString(_key(petId), photoPath);
   }
 }
