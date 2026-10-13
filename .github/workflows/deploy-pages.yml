@@ -30,6 +30,15 @@ jobs:
         working-directory: furlo
         run: flutter pub get
 
+      # A red build must never reach the live site.
+      - name: Analyze
+        working-directory: furlo
+        run: flutter analyze
+
+      - name: Test
+        working-directory: furlo
+        run: flutter test
+
       - name: Build web
         working-directory: furlo
         run: flutter build web --release --base-href "/Furlo/"
