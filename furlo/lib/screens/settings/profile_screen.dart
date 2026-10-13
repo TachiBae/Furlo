@@ -12,6 +12,7 @@ import '../../utils/auth_error_messages.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/form_input.dart';
 import 'notifications_screen.dart';
+import 'privacy_screen.dart';
 
 const _buildName = String.fromEnvironment(
   'FLUTTER_BUILD_NAME',
@@ -337,6 +338,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
               const SizedBox(height: AppSpacing.md),
               _GroupHeading('About'),
+              ListTile(
+                minTileHeight: 56,
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('Privacy'),
+                subtitle: const Text('What is stored and who can see it'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PrivacyScreen(),
+                  ),
+                ),
+              ),
               ListTile(
                 minTileHeight: 56,
                 leading: const Icon(Icons.info_outline),
