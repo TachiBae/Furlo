@@ -215,3 +215,55 @@ Format: **ID · Severity · File:line.** Problem, then Fix.
 - **T6 · Low · `test/record_error_retry_test.dart:13`**
   - Problem: No test pops a record screen while its load is still pending, which is the Q1 failure.
   - Fix: Add a widget test with a repository whose future never completes, pop the route, and assert `tester.takeException()` is null.
+
+## 4. Proposed file structure
+
+The current layer split (`models/`, `providers/`, `repositories/`, `services/`, `screens/`, `widgets/`, `utils/`, `data/`) suits an app this size and should stay. The real problems are three oversized files (S1–S3), repositories filed under `services/` (S6), state kept in `utils/` (S8), and plan files cluttering the package root (S10). All of these are moves; no logic changes.
+
+```
+furlo/
+├── lib/
+│   ├── main.dart
+│   ├── app.dart                         # FurloApp + MaterialApp only
+│   ├── firebase_options.dart
+│   ├── data/                            # static catalogs (unchanged)
+│   ├── models/                          # unchanged; + feeding_frequency.dart (Q8)
+│   ├── providers/
+│   │   ├── furlo_state.dart
+│   │   ├── session_controller.dart      # ← _AuthGate logic from app.dart (S2)
+│   │   ├── theme_settings.dart          # ← ThemeSettings from utils/app_theme.dart (S8)
+│   │   ├── pet_records_provider.dart    # generic base for the 3 record providers (S4)
+│   │   ├── health_records_provider.dart
+│   │   ├── vaccinations_provider.dart
+│   │   ├── weight_tracking_provider.dart
+│   │   ├── home_reminders_provider.dart
+│   │   └── notification_settings_provider.dart
+│   ├── repositories/
+│   │   ├── pet_repository.dart          # interface + createPetRepository()
+│   │   ├── firestore_pet_repository.dart
+│   │   ├── pet_photo_store.dart         # LocalPetPhotoStore + cloudPhotoField
+│   │   ├── record_mappers.dart          # _petFromMap, _feedingEntryToMap, decode helpers
+│   │   ├── legacy/
+│   │   │   ├── sqlite_pet_repository.dart   # read-only, import source
+│   │   │   └── web_pet_repository.dart      # read-only, import source
+│   │   ├── account_repository.dart      # ← services/account_onboarding_repository.dart (S6)
+│   │   ├── app_settings_repository.dart
+│   │   └── notification_settings_repository.dart
+│   ├── services/                        # auth, notifications, export, migration, google identity
+│   ├── screens/
+│   │   ├── auth/
+│   │   ├── gate/                        # ← _StartupGate, _LegacyImportDialog, error screens from app.dart
+│   │   ├── home/
+│   │   │   ├── home_screen.dart
+│   │   │   └── widgets/                 # bottom bar, reminders section, quick actions, pet tiles (S3)
+│   │   ├── pets/
+│   │   │   ├── pet_form_screen.dart     # ← pet_onboarding_screen.dart (S7)
+│   │   │   ├── all_pets_screen.dart     # ← _AllPetsScreen from home_screen.dart
+│   │   │   └── pet_profile_screen.dart
+│   │   └── feeding/ health/ settings/ vaccinations/ vets/ weight/   # unchanged
+│   ├── widgets/                         # unchanged
+│   └── utils/                           # tokens/palette, formatting, validators (no ChangeNotifiers)
+├── docs/
+│   └── plans/                           # ← the 32 *_PLAN.md / *_TASK*.md files from furlo/ (S10)
+└── test/                                # mirror new paths; + firestore_pet_repository_test.dart (T1)
+```
