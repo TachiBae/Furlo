@@ -536,42 +536,14 @@ class _FeedingScreenState extends State<FeedingScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Labels only: fill, borders and text styles come from the theme's
+  /// inputDecorationTheme, like every other form in the app.
   InputDecoration _fieldDecoration(
     String label, {
     String? hint,
     Widget? prefixIcon,
-  }) {
-    final border = OutlineInputBorder(
-      borderRadius: AppRadius.mdRadius,
-      borderSide: BorderSide(color: context.appColors.textDisabled, width: 1),
-    );
-    return InputDecoration(
-      labelText: label,
-      floatingLabelBehavior: FloatingLabelBehavior.always,
-      hintText: hint,
-      prefixIcon: prefixIcon,
-      filled: true,
-      fillColor: context.appColors.surfaceAlt,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      labelStyle: AppTypography.label.copyWith(
-        color: context.appColors.textSecondary,
-      ),
-      hintStyle: AppTypography.body.copyWith(
-        color: context.appColors.textSecondary,
-      ),
-      border: border,
-      enabledBorder: border,
-      focusedBorder: border.copyWith(
-        borderSide: BorderSide(color: context.appColors.primary, width: 1.5),
-      ),
-      errorBorder: border.copyWith(
-        borderSide: BorderSide(color: context.appColors.danger, width: 1.5),
-      ),
-      focusedErrorBorder: border.copyWith(
-        borderSide: BorderSide(color: context.appColors.danger, width: 1.5),
-      ),
-    );
-  }
+  }) =>
+      InputDecoration(labelText: label, hintText: hint, prefixIcon: prefixIcon);
 
   @override
   Widget build(BuildContext context) {

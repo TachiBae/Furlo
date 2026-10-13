@@ -518,12 +518,7 @@ class _VetFormScreenState extends State<VetFormScreen> {
                     ? '$label is required'
                     : null
               : null),
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: context.appColors.surface,
-        border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
-      ),
+      decoration: InputDecoration(labelText: label),
     ),
   );
 }

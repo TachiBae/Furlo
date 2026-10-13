@@ -552,9 +552,6 @@ class _DateField extends StatelessWidget {
     child: InputDecorator(
       decoration: InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: context.appColors.surfaceAlt,
-        border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
         suffixIcon: value == null
             ? const Icon(Icons.calendar_month_outlined)
             : IconButton(

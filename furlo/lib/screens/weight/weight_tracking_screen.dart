@@ -546,12 +546,8 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
     ),
   );
 
-  InputDecoration _decoration(String label) => InputDecoration(
-    labelText: label,
-    filled: true,
-    fillColor: context.appColors.surface,
-    border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
-  );
+  InputDecoration _decoration(String label) =>
+      InputDecoration(labelText: label);
 }
 
 String _weight(double value) =>

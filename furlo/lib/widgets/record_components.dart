@@ -10,18 +10,13 @@ class RecordFilterOption {
   final String label;
 }
 
-/// Shared form-field decoration for record forms (vaccinations, health).
+/// Form-field labels for record forms (vaccinations, health). Fill, borders
+/// and text styles come from the theme's inputDecorationTheme.
 InputDecoration recordFormDecoration(
   BuildContext context, {
   required String label,
   String? hint,
-}) => InputDecoration(
-  labelText: label,
-  hintText: hint,
-  filled: true,
-  fillColor: context.appColors.surfaceAlt,
-  border: OutlineInputBorder(borderRadius: AppRadius.mdRadius),
-);
+}) => InputDecoration(labelText: label, hintText: hint);
 
 /// The single chip recipe for every selectable chip in the app: the pet
 /// selector, the record filter tabs, and the feeding day picker.
