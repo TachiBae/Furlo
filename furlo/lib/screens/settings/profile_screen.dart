@@ -33,6 +33,7 @@ class ProfileScreen extends StatefulWidget {
     required this.notificationSettings,
     required this.notificationService,
     this.storageScope,
+    this.onDeleteAccount,
   });
 
   final PetRepository repository;
@@ -40,6 +41,10 @@ class ProfileScreen extends StatefulWidget {
   final NotificationSettingsRepository notificationSettings;
   final NotificationService notificationService;
   final String? storageScope;
+
+  /// Deletes the signed-in account (re-authenticating with the password
+  /// when one is given). Null hides the option.
+  final Future<void> Function(String? password)? onDeleteAccount;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -50,6 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _signingOut = false;
   bool _deleting = false;
+  bool _deletingAccount = false;
 
   @override
   void initState() {
@@ -136,6 +142,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } finally {
       if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  Future<void> _deleteAccount(AuthService authService) async {
+    final onDelete = widget.onDeleteAccount;
+    if (onDelete == null || _deletingAccount) return;
+    final usesPassword = authService.signsInWithPassword;
+    // The dialog owns its text field; it returns the typed password ('' for
+    // a Google account) or null when cancelled.
+    final typed = await showDialog<String>(
+      context: context,
+      builder: (_) => _DeleteAccountDialog(usesPassword: usesPassword),
+    );
+    if (typed == null || !mounted) return;
+    if (usesPassword && typed.isEmpty) {
+      _showMessage('Enter your password to delete your account.');
+      return;
+    }
+    setState(() => _deletingAccount = true);
+    try {
+      await onDelete(usesPassword ? typed : null);
+      // Signed out now: return to the root, where sign-in is showing.
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(authErrorMessage(error.code));
+    } catch (_) {
+      logAppDiagnostic('Account deletion failed.');
+      if (mounted) {
+        _showMessage('Your account could not be deleted. Please try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _deletingAccount = false);
     }
   }
 
@@ -273,6 +311,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : null,
                 onTap: _deleting ? null : _deleteAllData,
               ),
+              if (widget.onDeleteAccount != null)
+                if (Provider.of<AuthService?>(context, listen: false)
+                    case final authService?)
+                  ListTile(
+                    minTileHeight: 56,
+                    leading: Icon(
+                      Icons.person_remove_outlined,
+                      color: context.appColors.danger,
+                    ),
+                    title: Text(
+                      'Delete account',
+                      style: TextStyle(color: context.appColors.danger),
+                    ),
+                    subtitle: const Text('Your account and all its data'),
+                    trailing: _deletingAccount
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : null,
+                    onTap: _deletingAccount
+                        ? null
+                        : () => _deleteAccount(authService),
+                  ),
               const SizedBox(height: AppSpacing.md),
               _GroupHeading('About'),
               ListTile(
@@ -402,5 +464,73 @@ class _GroupHeading extends StatelessWidget {
       title,
       style: AppTypography.label.copyWith(color: context.appColors.primary),
     ),
+  );
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog({required this.usesPassword});
+
+  final bool usesPassword;
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _password = TextEditingController();
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  void _confirm() => Navigator.pop(context, _password.text);
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: context.appColors.surface,
+    title: const Text('Delete your account?'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'This permanently deletes your Furlo account and every pet and '
+          'record in it, on every device. This cannot be undone.',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (widget.usesPassword)
+          TextField(
+            controller: _password,
+            obscureText: true,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: 'Password',
+              hintText: 'Confirm it is you',
+            ),
+            onSubmitted: (_) => _confirm(),
+          )
+        else
+          Text(
+            'You will confirm with Google first.',
+            style: AppTypography.body.copyWith(
+              color: context.appColors.textSecondary,
+            ),
+          ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      TextButton(
+        style: TextButton.styleFrom(foregroundColor: context.appColors.danger),
+        onPressed: _confirm,
+        child: const Text('Delete account'),
+      ),
+    ],
   );
 }

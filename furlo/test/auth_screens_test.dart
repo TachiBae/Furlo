@@ -77,6 +77,7 @@ void main() {
       'Too many attempts. Please wait and try again.',
       'Sign-in was cancelled.',
       'Pop-ups are blocked for this site. Allow them, then try again.',
+      'For your security, please sign in again, then try once more.',
       'Something went wrong. Please try again.',
     ]);
   });

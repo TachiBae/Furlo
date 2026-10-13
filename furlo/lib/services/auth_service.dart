@@ -42,6 +42,7 @@ enum AuthErrorCode {
   tooManyRequests,
   cancelled,
   popupBlocked,
+  reauthRequired,
   unknown,
 }
 
@@ -63,6 +64,8 @@ String authErrorText(AuthErrorCode code) => switch (code) {
   AuthErrorCode.cancelled => 'Sign-in was cancelled.',
   AuthErrorCode.popupBlocked =>
     'Pop-ups are blocked for this site. Allow them, then try again.',
+  AuthErrorCode.reauthRequired =>
+    'For your security, please sign in again, then try once more.',
   AuthErrorCode.unknown => 'Something went wrong. Please try again.',
 };
 
@@ -95,4 +98,15 @@ abstract interface class AuthService {
 
   /// Sets the account's full name as held by the auth provider.
   Future<void> updateFullName(String fullName);
+
+  /// Whether the signed-in account can confirm with a password (otherwise
+  /// it confirms with Google).
+  bool get signsInWithPassword;
+
+  /// Confirms the signed-in person again, as Firebase requires before
+  /// sensitive changes. Uses [password] for password accounts, else Google.
+  Future<void> reauthenticate({String? password});
+
+  /// Deletes the signed-in account itself. Call [reauthenticate] first.
+  Future<void> deleteAccount();
 }

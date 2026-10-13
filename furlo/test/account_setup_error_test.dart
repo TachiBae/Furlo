@@ -12,6 +12,9 @@ import 'helpers/fake_auth_service.dart';
 /// Account setup status that fails the way a missing database or unpublished
 /// rules would: a [FirebaseException] carrying a platform error code.
 class _FailingOnboardingRepository implements AccountOnboardingRepository {
+  @override
+  Future<void> deleteAccountRecord(String uid) async {}
+
   _FailingOnboardingRepository(this._error);
 
   final Object _error;

@@ -234,5 +234,32 @@ class FakeAuthService implements AuthService {
     setUser(null);
   }
 
+  /// Password the fake accepts in [reauthenticate]; null accepts any.
+  String? acceptedPassword;
+  bool passwordAccount = true;
+  AuthException? nextDeleteException;
+
+  @override
+  bool get signsInWithPassword => passwordAccount;
+
+  @override
+  Future<void> reauthenticate({String? password}) async {
+    calls.add('reauthenticate');
+    if (passwordAccount &&
+        acceptedPassword != null &&
+        password != acceptedPassword) {
+      throw const AuthException(code: AuthErrorCode.invalidCredentials);
+    }
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    calls.add('deleteAccount');
+    final failure = nextDeleteException;
+    nextDeleteException = null;
+    if (failure != null) throw failure;
+    setUser(null);
+  }
+
   Future<void> dispose() => _changes.close();
 }

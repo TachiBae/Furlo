@@ -32,6 +32,7 @@ class HomeScreen extends StatefulWidget {
     required this.notificationService,
     this.storageScope,
     this.appSettings,
+    this.onDeleteAccount,
   });
 
   final PetRepository repository;
@@ -42,6 +43,9 @@ class HomeScreen extends StatefulWidget {
   /// Where the display name lives. The signed-in app passes the
   /// account-synced store; without one this device's store is used.
   final AppSettingsRepository? appSettings;
+
+  /// Deletes the signed-in account; null hides the option (no account).
+  final Future<void> Function(String? password)? onDeleteAccount;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -154,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfileScreen(
       repository: widget.repository,
       appSettings: _appSettings,
+      onDeleteAccount: widget.onDeleteAccount,
       notificationSettings: widget.notificationSettings,
       notificationService: widget.notificationService,
       storageScope: widget.storageScope,

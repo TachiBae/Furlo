@@ -1,6 +1,14 @@
 import 'package:furlo/services/account_onboarding_repository.dart';
 
 class FakeAccountOnboardingRepository implements AccountOnboardingRepository {
+  final deletedRecords = <String>[];
+
+  @override
+  Future<void> deleteAccountRecord(String uid) async {
+    deletedRecords.add(uid);
+    _needsFirstPet.remove(uid);
+  }
+
   final Set<String> _needsFirstPet = {};
 
   @override

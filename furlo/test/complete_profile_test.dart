@@ -18,6 +18,9 @@ import 'helpers/fake_auth_service.dart';
 /// Profile marker store whose behaviour each test drives.
 class _FakeAccountProfileRepository implements AccountProfileRepository {
   @override
+  Future<void> deleteProfile(String uid) async {}
+
+  @override
   Future<String?> getDisplayName(String uid) async => null;
 
   @override
@@ -519,9 +522,11 @@ void main() {
         mapLinkPasswordErrorCode('too-many-requests'),
         AuthErrorCode.tooManyRequests,
       );
+      // A stale session asks the person to sign in again (Q11), rather
+      // than the generic 'Something went wrong'.
       expect(
         mapLinkPasswordErrorCode('requires-recent-login'),
-        AuthErrorCode.unknown,
+        AuthErrorCode.reauthRequired,
       );
       expect(mapLinkPasswordErrorCode('anything-else'), AuthErrorCode.unknown);
     },

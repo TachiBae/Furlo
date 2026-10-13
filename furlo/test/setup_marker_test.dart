@@ -14,6 +14,9 @@ import 'helpers/fake_auth_service.dart';
 /// Profile marker store each test drives directly.
 class _SetupMarkerRepository implements AccountProfileRepository {
   @override
+  Future<void> deleteProfile(String uid) async {}
+
+  @override
   Future<String?> getDisplayName(String uid) async => null;
 
   @override

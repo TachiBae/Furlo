@@ -23,6 +23,8 @@ AuthErrorCode mapFirebaseAuthErrorCode(String code) => switch (code) {
   'popup-closed-by-user' ||
   'cancelled-popup-request' => AuthErrorCode.cancelled,
   'popup-blocked' => AuthErrorCode.popupBlocked,
+  'requires-recent-login' => AuthErrorCode.reauthRequired,
+  'user-mismatch' => AuthErrorCode.invalidCredentials,
   _ => AuthErrorCode.unknown,
 };
 
@@ -37,7 +39,7 @@ AuthErrorCode? mapLinkPasswordErrorCode(String code) => switch (code) {
   'weak-password' => AuthErrorCode.weakPassword,
   'invalid-credential' ||
   'invalid-verification-code' => AuthErrorCode.invalidCredentials,
-  'requires-recent-login' => AuthErrorCode.unknown,
+  'requires-recent-login' => AuthErrorCode.reauthRequired,
   'too-many-requests' => AuthErrorCode.tooManyRequests,
   'network-request-failed' => AuthErrorCode.networkError,
   _ => AuthErrorCode.unknown,
@@ -228,6 +230,65 @@ class FirebaseAuthService implements AuthService {
     } on FirebaseAuthException catch (error) {
       debugPrint('Full-name update failed: ${error.code}');
       throw _mapFirebaseException(error);
+    }
+  }
+
+  @override
+  bool get signsInWithPassword =>
+      _auth.currentUser?.providerData.any(
+        (info) => info.providerId == EmailAuthProvider.PROVIDER_ID,
+      ) ??
+      false;
+
+  @override
+  Future<void> reauthenticate({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) throw const AuthException(code: AuthErrorCode.unknown);
+    try {
+      final email = user.email;
+      if (password != null && signsInWithPassword && email != null) {
+        await user.reauthenticateWithCredential(
+          EmailAuthProvider.credential(email: email, password: password),
+        );
+        return;
+      }
+      if (kIsWeb) {
+        await user.reauthenticateWithPopup(buildGoogleWebAuthProvider());
+        return;
+      }
+      final idToken = await acquireGoogleIdToken(_googleIdentity);
+      if (idToken == null) {
+        throw const AuthException(code: AuthErrorCode.cancelled);
+      }
+      await user.reauthenticateWithCredential(
+        GoogleAuthProvider.credential(idToken: idToken),
+      );
+    } on FirebaseAuthException catch (error) {
+      throw _mapFirebaseException(error);
+    } on GoogleSignInException catch (error) {
+      throw AuthException(
+        code: error.code == GoogleSignInExceptionCode.canceled
+            ? AuthErrorCode.cancelled
+            : AuthErrorCode.unknown,
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) throw const AuthException(code: AuthErrorCode.unknown);
+    try {
+      await user.delete();
+    } on FirebaseAuthException catch (error) {
+      throw _mapFirebaseException(error);
+    }
+    if (!kIsWeb) {
+      try {
+        await _googleIdentity.clearSession();
+      } catch (_) {
+        // The account is already gone; a stale Google session is harmless.
+      }
     }
   }
 

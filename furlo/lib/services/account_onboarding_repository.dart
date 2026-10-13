@@ -4,6 +4,9 @@ abstract interface class AccountOnboardingRepository {
   Future<bool> requiresFirstPet(String uid);
   Future<void> markFirstPetRequired(String uid);
   Future<void> markFirstPetComplete(String uid);
+
+  /// Removes the account's onboarding record (account deletion).
+  Future<void> deleteAccountRecord(String uid);
 }
 
 class FirestoreAccountOnboardingRepository
@@ -32,6 +35,17 @@ class FirestoreAccountOnboardingRepository
   @override
   Future<void> markFirstPetComplete(String uid) async {
     await _document(uid).set({_field: false}, SetOptions(merge: true));
+  }
+
+  @override
+  Future<void> deleteAccountRecord(String uid) async {
+    try {
+      await _document(uid).delete();
+    } on FirebaseException catch (error) {
+      // Rules deployed before account deletion forbid this delete. The
+      // record holds only a boolean flag, nothing personal, so it can stay.
+      if (error.code != 'permission-denied') rethrow;
+    }
   }
 }
 
@@ -73,6 +87,10 @@ abstract interface class AccountProfileRepository {
 
   /// Saves the display name on the account, so every device shows it.
   Future<void> setDisplayName(String uid, String displayName);
+
+  /// Removes the account's profile and settings documents (account
+  /// deletion).
+  Future<void> deleteProfile(String uid);
 }
 
 /// [AccountProfileRepository] backed by `users/{uid}/settings/profile`.
@@ -144,6 +162,33 @@ class FirestoreAccountProfileRepository implements AccountProfileRepository {
         'displayName': displayName,
         'updatedAt': DateTime.now().toIso8601String(),
       }, SetOptions(merge: true));
+
+  @override
+  Future<void> deleteProfile(String uid) async {
+    try {
+      await _document(uid).delete();
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') rethrow;
+      // Rules deployed before account deletion allow updates only: blank
+      // the personal fields so no name outlives the account.
+      await _document(uid).set({
+        'fullName': '',
+        'displayName': '',
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+    }
+    try {
+      // The migration marker holds only timestamps.
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection(_settings)
+          .doc('meta')
+          .delete();
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') rethrow;
+    }
+  }
 }
 
 /// [AccountProfileRepository] that never asks for setup work.
@@ -179,4 +224,7 @@ class NoOpAccountProfileRepository implements AccountProfileRepository {
 
   @override
   Future<void> setDisplayName(String uid, String displayName) async {}
+
+  @override
+  Future<void> deleteProfile(String uid) async {}
 }

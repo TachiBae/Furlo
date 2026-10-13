@@ -15,6 +15,9 @@ import 'helpers/fake_auth_service.dart';
 /// Stands in for an account whose first-pet write fails, e.g. while offline.
 class _FailingOnboardingRepository implements AccountOnboardingRepository {
   @override
+  Future<void> deleteAccountRecord(String uid) async {}
+
+  @override
   Future<bool> requiresFirstPet(String uid) async => false;
 
   @override

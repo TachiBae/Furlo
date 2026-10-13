@@ -424,6 +424,33 @@ class _AuthGateState extends State<_AuthGate> {
     }
   }
 
+  /// Deletes the signed-in account and everything it owns, in an order
+  /// where a failure never strands the person half-deleted:
+  /// 1. confirm who they are (Firebase requires a recent sign-in), so a
+  ///    wrong password stops here with nothing removed;
+  /// 2. delete the pet data, profile and onboarding records, and this
+  ///    device's caches and reminders (each step is safe to repeat);
+  /// 3. delete the sign-in account, which signs them out.
+  Future<void> _deleteAccount(String? password) async {
+    final service = widget.authService!;
+    final uid = _user?.uid;
+    final repository = _repository;
+    if (uid == null || repository == null) {
+      throw const AuthException(code: AuthErrorCode.unknown);
+    }
+    await service.reauthenticate(password: password);
+    await repository.clearAllData();
+    await (_profileRepository ?? const NoOpAccountProfileRepository())
+        .deleteProfile(uid);
+    await widget.accountOnboardingRepository!.deleteAccountRecord(uid);
+    await _notificationService?.clearScheduled();
+    await _notificationSettings?.clearAll();
+    await SharedPreferencesAppSettingsRepository(
+      storageScope: uid,
+    ).clearDisplayName();
+    await service.deleteAccount();
+  }
+
   Future<void> _markProfileComplete() async {
     if (!mounted) return;
     setState(() => _profileRequired = false);
@@ -681,6 +708,7 @@ class _AuthGateState extends State<_AuthGate> {
         notificationSettings: notificationSettings,
         notificationService: notificationService,
         storageScope: _user!.uid,
+        onDeleteAccount: _deleteAccount,
         appSettings: AccountSyncedAppSettingsRepository(
           local: SharedPreferencesAppSettingsRepository(
             storageScope: _user!.uid,
@@ -718,6 +746,7 @@ class _StartupGate extends StatelessWidget {
     required this.notificationService,
     required this.storageScope,
     required this.appSettings,
+    required this.onDeleteAccount,
   });
 
   final AccountOnboardingRepository? accountOnboardingRepository;
@@ -729,6 +758,7 @@ class _StartupGate extends StatelessWidget {
   final NotificationService notificationService;
   final String storageScope;
   final AppSettingsRepository appSettings;
+  final Future<void> Function(String? password) onDeleteAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -777,6 +807,7 @@ class _StartupGate extends StatelessWidget {
       notificationService: notificationService,
       storageScope: storageScope,
       appSettings: appSettings,
+      onDeleteAccount: onDeleteAccount,
     );
   }
 }

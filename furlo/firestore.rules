@@ -35,10 +35,12 @@ service cloud.firestore {
     // ------------------------------------------------------------------
     match /accountMetadata/{uid} {
       allow get: if isOwner(uid);
+      // Account deletion removes the record along with the account.
+      allow delete: if isOwner(uid);
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(['requiresFirstPet'])
         && request.resource.data.requiresFirstPet is bool;
-      // list / delete are intentionally not allowed: the app never does them.
+      // list is intentionally not allowed: the app never does it.
     }
 
     // ------------------------------------------------------------------
@@ -203,7 +205,7 @@ service cloud.firestore {
     // markComplete merges both fields together on every write.
     // ------------------------------------------------------------------
     match /users/{uid}/settings/meta {
-      allow get: if isOwner(uid);
+      allow get, delete: if isOwner(uid);
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(
           ['localMigratedAt', 'schemaVersion'])
@@ -219,7 +221,7 @@ service cloud.firestore {
     // validated <= 40 chars in the profile forms.
     // ------------------------------------------------------------------
     match /users/{uid}/settings/profile {
-      allow get: if isOwner(uid);
+      allow get, delete: if isOwner(uid);
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
           'fullName', 'displayName', 'profileCompleted', 'setupCompleted',
@@ -240,8 +242,7 @@ service cloud.firestore {
 
     // ------------------------------------------------------------------
     // Anything else is denied: other collections, the users/{uid} root
-    // document itself, stray paths, lists of settings docs, deletes the
-    // app never performs (accountMetadata), etc.
+    // document itself, stray paths, lists of settings docs, etc.
     // ------------------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
