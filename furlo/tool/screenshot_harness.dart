@@ -36,8 +36,7 @@ const String _scope = 'screenshot-harness';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) {
-    debugPrint('HARNESS FLUTTER ERROR: ${details.exception}')
-    ;
+    debugPrint('HARNESS FLUTTER ERROR: ${details.exception}');
     debugPrint('${details.stack}');
   };
   try {
@@ -134,10 +133,7 @@ class _HarnessApp extends StatelessWidget {
   Widget _screenFor(BuildContext context) {
     switch (screen) {
       case 'feeding':
-        return FeedingScreen(
-          repository: repository,
-          storageScope: _scope,
-        );
+        return FeedingScreen(repository: repository, storageScope: _scope);
       case 'health':
         return HealthRecordsScreen(
           repository: repository,
@@ -353,10 +349,18 @@ Future<void> _seed(PetRepository repository) async {
     );
   }
   await repository.addWeightLog(
-    WeightLog(petId: poppy.id!, date: now.subtract(const Duration(days: 45)), weight: 4.2),
+    WeightLog(
+      petId: poppy.id!,
+      date: now.subtract(const Duration(days: 45)),
+      weight: 4.2,
+    ),
   );
   await repository.addWeightLog(
-    WeightLog(petId: poppy.id!, date: now.subtract(const Duration(days: 5)), weight: 4.3),
+    WeightLog(
+      petId: poppy.id!,
+      date: now.subtract(const Duration(days: 5)),
+      weight: 4.3,
+    ),
   );
 
   // Vet contact plus the next appointment.
