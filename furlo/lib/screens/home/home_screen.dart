@@ -49,6 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
     widget.repository,
   );
   late final FurloState _furloState;
+  // The pet list the reminders were last built for. FurloState caches its
+  // pets view, so identity changes only when the list itself changes.
+  List<Pet>? _remindersBuiltFor;
   int _activeTab = 0;
   String _displayName = '';
 
@@ -56,8 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _furloState = context.read<FurloState>();
-    _furloState.addListener(_refreshReminders);
-    unawaited(_remindersProvider.refresh(pets: _furloState.pets));
+    _furloState.addListener(_onFurloStateChanged);
+    _refreshReminders();
     _loadDisplayName();
   }
 
@@ -72,12 +75,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _refreshReminders() =>
-      unawaited(_remindersProvider.refresh(pets: _furloState.pets));
+  /// Selecting a pet or a load toggling notifies too; reminders only depend
+  /// on which pets exist, so anything else would be a wasted reload.
+  void _onFurloStateChanged() {
+    if (identical(_furloState.pets, _remindersBuiltFor)) return;
+    _refreshReminders();
+  }
+
+  void _refreshReminders() {
+    _remindersBuiltFor = _furloState.pets;
+    unawaited(_remindersProvider.refresh(pets: _remindersBuiltFor));
+  }
 
   @override
   void dispose() {
-    _furloState.removeListener(_refreshReminders);
+    _furloState.removeListener(_onFurloStateChanged);
     _remindersProvider.dispose();
     super.dispose();
   }
@@ -107,6 +119,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (!mounted) return;
+    // Records may have changed on the profile's linked screens.
+    _refreshReminders();
     if (deleted == true && mounted) {
       ScaffoldMessenger.of(
         context,
@@ -119,6 +133,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
     ).push<void>(MaterialPageRoute<void>(builder: (_) => screen));
     if (!mounted) return;
+    // Feeding, vaccinations, health and vets all change what is due today.
+    _refreshReminders();
     await _loadDisplayName();
   }
 
