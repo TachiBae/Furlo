@@ -165,6 +165,7 @@ class RecordEmptyState extends StatelessWidget {
     required this.icon,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.add,
   });
 
   final String title;
@@ -173,34 +174,41 @@ class RecordEmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Add for "create the first one"; pass Icons.refresh for a retry.
+  final IconData actionIcon;
+
   @override
+  // Capped so the action button does not stretch across a desktop window.
   Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: context.appColors.primary),
-          const SizedBox(height: AppSpacing.md),
-          Text(title, style: AppTypography.h2, textAlign: TextAlign.center),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(
-              color: context.appColors.textSecondary,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: context.appColors.primary),
+            const SizedBox(height: AppSpacing.md),
+            Text(title, style: AppTypography.h2, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTypography.body.copyWith(
+                color: context.appColors.textSecondary,
+              ),
             ),
-          ),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: AppSpacing.lg),
-            ElevatedButton.icon(
-              onPressed: onAction,
-              style: AppComponents.primaryButton,
-              icon: const Icon(Icons.add),
-              label: Text(actionLabel!),
-            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                style: AppComponents.primaryButton,
+                icon: Icon(actionIcon),
+                label: Text(actionLabel!),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     ),
   );

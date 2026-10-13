@@ -140,6 +140,7 @@ class _NotificationsViewState extends State<_NotificationsView>
             title: state.error!,
             message: 'Please try again.',
             actionLabel: 'Try again',
+            actionIcon: Icons.refresh,
             onAction: () => state.load().catchError((Object _) {}),
           );
         }

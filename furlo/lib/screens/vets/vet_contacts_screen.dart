@@ -198,6 +198,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
                   title: 'Vet contacts could not be loaded.',
                   message: AppCopy.checkConnection,
                   actionLabel: 'Try again',
+                  actionIcon: Icons.refresh,
                   onAction: () => _load(),
                 ),
               )
@@ -687,6 +688,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                 title: 'This vet could not be loaded.',
                 message: AppCopy.checkConnection,
                 actionLabel: 'Try again',
+                actionIcon: Icons.refresh,
                 onAction: _load,
               )
             : vet == null

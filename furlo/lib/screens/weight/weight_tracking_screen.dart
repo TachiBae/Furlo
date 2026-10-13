@@ -121,6 +121,7 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                           title: state.error!,
                           message: AppCopy.checkConnection,
                           actionLabel: 'Try again',
+                          actionIcon: Icons.refresh,
                           onAction: state.refresh,
                         ),
                       )
@@ -139,7 +140,8 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                         child: RecordEmptyState(
                           title: 'No weight entries yet',
                           message:
-                              'Add your pet’s first weight to start tracking its trend.',
+                              'Add ${petPossessive(state.selectedPet?.name)} '
+                              'first weight to start tracking their trend.',
                           icon: Icons.monitor_weight_outlined,
                           actionLabel: 'Add weight',
                           onAction: () => _edit(state),

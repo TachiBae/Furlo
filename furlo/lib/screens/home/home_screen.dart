@@ -1051,7 +1051,12 @@ class _ReminderTile extends StatelessWidget {
       ReminderUrgency.today => context.appColors.primary,
       ReminderUrgency.upcoming => context.appColors.textSecondary,
     };
-    final trailing = reminder.time ?? _dateLabel(reminder.date);
+    // Same clock format as the Feeding screen (and the device's 24-hour
+    // setting), not the stored HH:mm.
+    final time = reminder.time;
+    final trailing = time == null
+        ? _dateLabel(reminder.date)
+        : _clock(time).format(context);
     return Material(
       color: context.appColors.surface,
       borderRadius: AppRadius.mdRadius,
@@ -1133,6 +1138,14 @@ class _ReminderTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  TimeOfDay _clock(String time) {
+    final parts = time.split(':');
+    return TimeOfDay(
+      hour: int.tryParse(parts.first) ?? 0,
+      minute: parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
     );
   }
 
@@ -1290,16 +1303,22 @@ class _QuickActions extends StatelessWidget {
           child: InkWell(
             borderRadius: AppRadius.mdRadius,
             onTap: () => onOpen(action.buildScreen()),
+            // No chevron: the whole tile is the target, and at 375px the
+            // label needs that width or 'Vaccinations' breaks mid-word.
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
                   Icon(action.icon, color: context.appColors.primary, size: 21),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: Text(action.label, style: AppTypography.bodyStrong),
+                    child: Text(
+                      action.label,
+                      style: AppTypography.bodyStrong,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  const Icon(Icons.chevron_right, size: 18),
                 ],
               ),
             ),

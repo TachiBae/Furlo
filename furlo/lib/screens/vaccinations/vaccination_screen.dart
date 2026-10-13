@@ -173,6 +173,7 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                           title: state.error!,
                           message: AppCopy.checkConnection,
                           actionLabel: 'Try again',
+                          actionIcon: Icons.refresh,
                           onAction: state.refresh,
                         ),
                       )
@@ -193,7 +194,9 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                               : 'No vaccinations yet',
                           message: state.vaccinations.isNotEmpty
                               ? 'Choose another filter to see more records.'
-                              : 'Keep your pet’s vaccine history up to date.',
+                              : 'Add ${petPossessive(state.selectedPet?.name)} '
+                                    'first vaccination to keep their vaccine '
+                                    'history up to date.',
                           actionLabel: state.vaccinations.isNotEmpty
                               ? null
                               : 'Add vaccination',

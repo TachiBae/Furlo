@@ -147,6 +147,7 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
                           title: state.error!,
                           message: AppCopy.checkConnection,
                           actionLabel: 'Try again',
+                          actionIcon: Icons.refresh,
                           onAction: state.refresh,
                         ),
                       )
@@ -168,7 +169,9 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
                               ? 'No health records yet'
                               : 'No records of this type',
                           message: state.records.isEmpty
-                              ? 'Keep your pet’s health history in one place.'
+                              ? 'Add ${petPossessive(state.selectedPet?.name)} '
+                                    'first record to keep their health '
+                                    'history in one place.'
                               : 'Choose another type to see more records.',
                           icon: Icons.medical_information_outlined,
                           actionLabel: state.records.isEmpty

@@ -11,6 +11,7 @@ import '../../repositories/pet_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/form_input.dart';
 import '../../widgets/record_components.dart';
@@ -625,6 +626,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                       title: _error!,
                                       message: AppCopy.checkConnection,
                                       actionLabel: 'Try again',
+                                      actionIcon: Icons.refresh,
                                       onAction: _loadSchedules,
                                     ),
                                   )
@@ -635,7 +637,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                       icon: Icons.restaurant_outlined,
                                       title: 'No feeding schedules yet',
                                       message:
-                                          'Add a schedule to keep track of your pet’s meals.',
+                                          'Add ${petPossessive(_selectedPet?.name)} '
+                                          'first meal to keep track of their '
+                                          'feeding.',
                                       actionLabel: 'Add feeding schedule',
                                       onAction: _saving
                                           ? null

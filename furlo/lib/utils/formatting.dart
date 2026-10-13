@@ -39,3 +39,10 @@ String capitalizeWords(String value) => value
           word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}',
     )
     .join(' ');
+
+/// "Mochi’s", or "Max’" for a name ending in s; "your pet’s" without one.
+String petPossessive(String? name) {
+  final trimmed = name?.trim() ?? '';
+  if (trimmed.isEmpty) return 'your pet’s';
+  return trimmed.toLowerCase().endsWith('s') ? '$trimmed’' : '$trimmed’s';
+}
