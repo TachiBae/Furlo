@@ -117,6 +117,98 @@ void main() {
       expect(marker.complete, isTrue);
     });
 
+    group('two sources that both numbered their rows from 1', () {
+      Future<(WebPetRepository, WebPetRepository)> seedTwoStores() async {
+        final deviceWide = WebPetRepository();
+        await deviceWide.addPet(Pet(id: '1', name: 'Mochi', species: 'Cat'));
+        await deviceWide.addFeedingSchedule(
+          FeedingEntry(id: '1', petId: '1', name: 'Breakfast', time: '08:00'),
+        );
+        await deviceWide.addVet(
+          Vet(id: '1', name: 'Dr Kim', phone: '5551'),
+          ['1'],
+        );
+        final scoped = WebPetRepository(storageScope: 'old-scope');
+        await scoped.addPet(Pet(id: '1', name: 'Rex', species: 'Dog'));
+        await scoped.addFeedingSchedule(
+          FeedingEntry(id: '1', petId: '1', name: 'Dinner', time: '18:00'),
+        );
+        await scoped.addVet(
+          Vet(id: '1', name: 'Dr Lee', phone: '5552'),
+          ['1'],
+        );
+        return (deviceWide, scoped);
+      }
+
+      test('imports both pets and overwrites nothing', () async {
+        final (deviceWide, scoped) = await seedTwoStores();
+        final target = WebPetRepository(storageScope: 'alice-uid');
+
+        await LegacyLocalMigration(
+          uid: 'alice-uid',
+          target: target,
+          marker: _MemoryMarker(),
+          legacySources: [deviceWide, scoped],
+        ).run();
+
+        final pets = {for (final pet in await target.getPets()) pet.id: pet};
+        expect(pets.keys, unorderedEquals(['1', 's1-1']));
+        expect(pets['1']!.name, 'Mochi');
+        expect(pets['s1-1']!.name, 'Rex');
+        expect(
+          (await target.getFeedingSchedules('1')).single.name,
+          'Breakfast',
+        );
+        final rexMeal = (await target.getFeedingSchedules('s1-1')).single;
+        expect(rexMeal.name, 'Dinner');
+        expect(rexMeal.id, 's1-1');
+        expect((await target.getVetsForPet('1')).single.name, 'Dr Kim');
+        expect((await target.getVetsForPet('s1-1')).single.name, 'Dr Lee');
+      });
+
+      test('a resumed import lands on the same ids', () async {
+        final (deviceWide, scoped) = await seedTwoStores();
+        final target = WebPetRepository(storageScope: 'alice-uid');
+        LegacyLocalMigration migration() => LegacyLocalMigration(
+          uid: 'alice-uid',
+          target: target,
+          marker: _MemoryMarker(),
+          legacySources: [deviceWide, scoped],
+        );
+
+        await migration().run();
+        await migration().run(resumePartial: true);
+
+        expect(await target.getPets(), hasLength(2));
+        expect(await target.getFeedingSchedules('s1-1'), hasLength(1));
+        expect(await target.getAllVets(), hasLength(2));
+      });
+    });
+
+    test('a store that mirrors an earlier one is not copied twice', () async {
+      final deviceWide = WebPetRepository();
+      await deviceWide.addPet(Pet(id: '1', name: 'Mochi', species: 'Cat'));
+      await deviceWide.addFeedingSchedule(
+        FeedingEntry(id: '1', petId: '1', name: 'Breakfast', time: '08:00'),
+      );
+      final mirror = WebPetRepository(storageScope: 'old-scope');
+      await mirror.addPet(Pet(id: '1', name: 'Mochi', species: 'Cat'));
+      await mirror.addFeedingSchedule(
+        FeedingEntry(id: '1', petId: '1', name: 'Breakfast', time: '08:00'),
+      );
+      final target = WebPetRepository(storageScope: 'alice-uid');
+
+      await LegacyLocalMigration(
+        uid: 'alice-uid',
+        target: target,
+        marker: _MemoryMarker(),
+        legacySources: [deviceWide, mirror],
+      ).run();
+
+      expect((await target.getPets()).single.id, '1');
+      expect(await target.getFeedingSchedules('1'), hasLength(1));
+    });
+
     test('a failing marker does not throw', () async {
       final migration = LegacyLocalMigration(
         uid: 'alice-uid',

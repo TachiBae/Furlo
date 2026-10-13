@@ -2,6 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/feeding_entry.dart';
+import '../models/health_record.dart';
+import '../models/pet.dart';
+import '../models/vaccination.dart';
+import '../models/vet.dart';
+import '../models/weight_log.dart';
 import '../repositories/pet_repository.dart';
 import '../utils/app_diagnostics.dart';
 import '../utils/user_storage_scope.dart';
@@ -139,12 +145,20 @@ class LegacyLocalMigration {
           }
         : <String>{};
     var migrated = false;
-    // One id set for the whole run: a source that happens to be (or mirror)
-    // the target must never copy the same pet into the account twice.
-    final copiedIds = <String>{};
-    for (final source in _legacySources()) {
+    // One ledger for the whole run: a source that mirrors an earlier one must
+    // never copy the same pet twice, and two sources that both numbered their
+    // rows from 1 must never overwrite each other's records.
+    final ledger = _IdLedger();
+    final sources = _legacySources();
+    for (var index = 0; index < sources.length; index++) {
       migrated =
-          await _copyFrom(source, copiedIds, existingPetIds, resumePartial) ||
+          await _copyFrom(
+            sources[index],
+            index,
+            ledger,
+            existingPetIds,
+            resumePartial,
+          ) ||
           migrated;
     }
     await _marker.markComplete();
@@ -195,71 +209,153 @@ class LegacyLocalMigration {
 
   Future<bool> _copyFrom(
     PetRepository source,
-    Set<String> copiedIds,
+    int sourceIndex,
+    _IdLedger ledger,
     Set<String> existingPetIds,
     bool resume,
   ) async {
     var copied = false;
+    // Source pet id -> account pet id, for this source's children and links.
+    final petIds = <String, String>{};
 
-    /// Copies one record type for [petId], skipping rows the failed attempt
+    /// Copies one record type for a pet, skipping rows the failed attempt
     /// already wrote when resuming. Non-resume runs target an empty account,
     /// so they keep the original write-everything path.
     Future<bool> copyAll<T>(
+      String collection,
       Future<List<T>> Function(PetRepository repo, String petId) read,
       Future<void> Function(T record) add,
       String? Function(T record) idOf,
-      String petId,
+      T Function(T record, String? id, String petId) rehome,
+      String sourcePetId,
+      String targetPetId,
     ) async {
       final alreadySaved = resume
-          ? (await read(target, petId)).map(idOf).toSet()
+          ? (await read(target, targetPetId)).map(idOf).toSet()
           : <String?>{};
       var wrote = false;
-      for (final record in await read(source, petId)) {
-        if (alreadySaved.contains(idOf(record))) continue;
-        await add(record);
+      for (final record in await read(source, sourcePetId)) {
+        final sourceId = idOf(record);
+        // Children always belong to a newly copied pet, so the fingerprint
+        // never matches: a reused id is renamed rather than overwritten.
+        final id = sourceId == null
+            ? null
+            : ledger
+                  .resolve(
+                    collection,
+                    sourceId,
+                    '$sourceIndex:$sourceId',
+                    sourceIndex,
+                  )
+                  .id;
+        if (id != null && alreadySaved.contains(id)) continue;
+        await add(rehome(record, id, targetPetId));
         wrote = true;
       }
       return wrote;
     }
 
     for (final pet in await source.getPets()) {
-      final id = pet.id;
-      if (id == null || copiedIds.contains(id)) continue;
-      copiedIds.add(id);
-      if (!existingPetIds.contains(id)) {
-        await target.addPet(pet);
+      final sourceId = pet.id;
+      if (sourceId == null) continue;
+      final resolved = ledger.resolve(
+        'pets',
+        sourceId,
+        _petFingerprint(pet),
+        sourceIndex,
+      );
+      petIds[sourceId] = resolved.id;
+      // The same pet already came from an earlier source: copy nothing twice.
+      if (!resolved.isNew) continue;
+      final targetId = resolved.id;
+      if (!existingPetIds.contains(targetId)) {
+        await target.addPet(
+          Pet(
+            id: targetId,
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed,
+            birthDate: pet.birthDate,
+            photoPath: pet.photoPath,
+          ),
+        );
         copied = true;
       }
       copied =
-          await copyAll(
+          await copyAll<FeedingEntry>(
+            'feedings',
             (repo, petId) => repo.getFeedingSchedules(petId),
             target.addFeedingSchedule,
             (entry) => entry.id,
-            id,
+            (entry, id, petId) => FeedingEntry(
+              id: id,
+              petId: petId,
+              name: entry.name,
+              time: entry.time,
+              frequency: entry.frequency,
+              scheduledDate: entry.scheduledDate,
+              daysOfWeek: entry.daysOfWeek,
+              portionSize: entry.portionSize,
+              remindMe: entry.remindMe,
+              lastFedAt: entry.lastFedAt,
+            ),
+            sourceId,
+            targetId,
           ) ||
           copied;
       copied =
-          await copyAll(
+          await copyAll<HealthRecord>(
+            'healthRecords',
             (repo, petId) => repo.getHealthRecordsForPet(petId),
             target.addHealthRecord,
             (record) => record.id,
-            id,
+            (record, id, petId) => HealthRecord(
+              id: id,
+              petId: petId,
+              title: record.title,
+              date: record.date,
+              type: record.type,
+              notes: record.notes,
+              reminderFrequency: record.reminderFrequency,
+              reminderActive: record.reminderActive,
+            ),
+            sourceId,
+            targetId,
           ) ||
           copied;
       copied =
-          await copyAll(
+          await copyAll<Vaccination>(
+            'vaccinations',
             (repo, petId) => repo.getVaccinationsForPet(petId),
             target.addVaccination,
             (vaccination) => vaccination.id,
-            id,
+            (vaccination, id, petId) => Vaccination(
+              id: id,
+              petId: petId,
+              vaccineName: vaccination.vaccineName,
+              dateGiven: vaccination.dateGiven,
+              nextDueDate: vaccination.nextDueDate,
+              isCompleted: vaccination.isCompleted,
+            ),
+            sourceId,
+            targetId,
           ) ||
           copied;
       copied =
-          await copyAll(
+          await copyAll<WeightLog>(
+            'weightLogs',
             (repo, petId) => repo.getWeightLogsForPet(petId),
             target.addWeightLog,
             (log) => log.id,
-            id,
+            (log, id, petId) => WeightLog(
+              id: id,
+              petId: petId,
+              date: log.date,
+              weight: log.weight,
+              notes: log.notes,
+            ),
+            sourceId,
+            targetId,
           ) ||
           copied;
     }
@@ -268,28 +364,78 @@ class LegacyLocalMigration {
         ? (await target.getAllVets()).map((vet) => vet.id).toSet()
         : <String?>{};
     for (final vet in await source.getAllVets()) {
-      final vetId = vet.id!;
-      final links = await source.getVetPetAssociations(vetId);
-      final petIds = links
-          .map((link) => link.petId)
-          .where(copiedIds.contains)
-          .toList();
-      if (petIds.isEmpty) continue;
-      var savedId = vetId;
-      if (!existingVetIds.contains(vetId)) {
-        final saved = await target.addVet(vet, petIds);
+      final sourceVetId = vet.id!;
+      final links = await source.getVetPetAssociations(sourceVetId);
+      final linkedPetIds = [
+        for (final link in links)
+          if (petIds[link.petId] != null) petIds[link.petId]!,
+      ];
+      if (linkedPetIds.isEmpty) continue;
+      final resolved = ledger.resolve(
+        'vets',
+        sourceVetId,
+        _vetFingerprint(vet),
+        sourceIndex,
+      );
+      if (!resolved.isNew) continue;
+      var savedId = resolved.id;
+      if (!existingVetIds.contains(savedId)) {
+        final saved = await target.addVet(
+          vet.copyWith(id: savedId),
+          linkedPetIds,
+        );
         savedId = saved.id!;
       }
       for (final link in links) {
-        if (!copiedIds.contains(link.petId)) continue;
+        final targetPetId = petIds[link.petId];
+        if (targetPetId == null) continue;
         // Upsert by (vet, pet) key in every target, so a resume may repeat it.
         await target.setNextAppointment(
           savedId,
-          link.petId,
+          targetPetId,
           link.nextAppointmentDate,
         );
       }
     }
     return copied;
+  }
+
+  String _petFingerprint(Pet pet) => [
+    pet.name,
+    pet.species,
+    pet.breed ?? '',
+    pet.birthDate?.toIso8601String() ?? '',
+  ].join('\u0000');
+
+  String _vetFingerprint(Vet vet) =>
+      (vet.toMap()..remove('id')).values.map((v) => v ?? '').join('\u0000');
+}
+
+/// Decides the account id for each legacy record during one import run.
+///
+/// Every local store numbered its rows from 1, so the same id in two sources
+/// usually means two different records. A record whose fingerprint matches
+/// one already written is the same record seen again (a mirrored store) and
+/// is skipped. Any other reused id is renamed `s{sourceIndex}-{id}`.
+/// Renaming is deterministic, so a resumed import lands on the same ids.
+class _IdLedger {
+  final _written = <String, Map<String, String>>{};
+
+  ({String id, bool isNew}) resolve(
+    String collection,
+    String sourceId,
+    String fingerprint,
+    int sourceIndex,
+  ) {
+    final ids = _written.putIfAbsent(collection, () => {});
+    for (final candidate in [
+      sourceId,
+      for (var index = 0; index < sourceIndex; index++) 's$index-$sourceId',
+    ]) {
+      if (ids[candidate] == fingerprint) return (id: candidate, isNew: false);
+    }
+    final id = ids.containsKey(sourceId) ? 's$sourceIndex-$sourceId' : sourceId;
+    ids[id] = fingerprint;
+    return (id: id, isNew: true);
   }
 }
