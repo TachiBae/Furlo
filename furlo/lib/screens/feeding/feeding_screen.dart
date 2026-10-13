@@ -750,6 +750,8 @@ class _FeedingScreenState extends State<FeedingScreen> {
       }
       return now.isAfter(scheduled) ? 'Overdue' : 'Upcoming';
     }
+    // A weekly or custom meal is not due on days it is not scheduled.
+    if (!entry.isScheduledOn(now)) return 'Upcoming';
     // Twice daily: judge by the meal still waiting to be fed.
     final pendingTime = entry.isTwiceDaily && entry.isDoneOn(now)
         ? entry.effectiveSecondTime
@@ -893,14 +895,16 @@ class _FeedingScheduleCard extends StatelessWidget {
                           if (entry.daysOfWeek.isNotEmpty)
                             entry.daysOfWeek
                                 .map(
+                                  // Full short names: 'T' and 'S' alone could
+                                  // not tell Tuesday from Thursday.
                                   (day) => const [
-                                    'M',
-                                    'T',
-                                    'W',
-                                    'T',
-                                    'F',
-                                    'S',
-                                    'S',
+                                    'Mon',
+                                    'Tue',
+                                    'Wed',
+                                    'Thu',
+                                    'Fri',
+                                    'Sat',
+                                    'Sun',
                                   ][day - 1],
                                 )
                                 .join(' '),
@@ -960,7 +964,7 @@ class _FeedingScheduleCard extends StatelessWidget {
                       entry.isComplete
                           ? 'Done'
                           : entry.isTwiceDaily && entry.isDoneOn(DateTime.now())
-                          ? 'Mark second meal fed'
+                          ? 'Mark 2nd meal'
                           : 'Mark fed',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

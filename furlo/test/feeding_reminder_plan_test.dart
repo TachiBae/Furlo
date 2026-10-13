@@ -281,9 +281,49 @@ void main() {
 
     await tester.tap(find.text('Mark fed'));
     await tester.pumpAndSettle();
-    expect(find.text('Mark second meal fed'), findsOneWidget);
-    await tester.tap(find.text('Mark second meal fed'));
+    expect(find.text('Mark 2nd meal'), findsOneWidget);
+    await tester.tap(find.text('Mark 2nd meal'));
     await tester.pumpAndSettle();
     expect(find.text('Completed'), findsOneWidget);
+  });
+
+  testWidgets('a weekly meal is not overdue on a day it is not scheduled', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final repository = WebPetRepository();
+    await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
+    final tomorrow = DateTime.now().weekday % 7 + 1;
+    await repository.addFeedingSchedule(
+      FeedingEntry(
+        petId: '1',
+        name: 'Supplement',
+        // Already past today, so the old status logic called it overdue.
+        time: '00:00',
+        frequency: FeedingFrequency.weekly,
+        daysOfWeek: [tomorrow],
+      ),
+    );
+    final state = FurloState(repository);
+    await state.load();
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: MaterialApp(home: FeedingScreen(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Upcoming'), findsOneWidget);
+    expect(find.text('Overdue'), findsNothing);
+    const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    expect(
+      find.textContaining('Weekly · ${names[tomorrow - 1]}'),
+      findsOneWidget,
+    );
   });
 }
