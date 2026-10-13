@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
       SharedPreferencesAppSettingsRepository(storageScope: widget.storageScope);
   late final HomeRemindersProvider _remindersProvider = HomeRemindersProvider(
     widget.repository,
+    notificationService: widget.notificationService,
   );
   late final FurloState _furloState;
   // The pet list the reminders were last built for. FurloState caches its
@@ -194,6 +195,18 @@ class _HomeScreenState extends State<HomeScreen> {
     _open(screen);
   }
 
+  Future<void> _markFed(HomeReminder reminder) async {
+    try {
+      await _remindersProvider.markFed(reminder);
+    } catch (_) {
+      logAppDiagnostic('Dashboard mark-fed failed.');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The meal could not be marked fed.')),
+      );
+    }
+  }
+
   void _showMoreReminders(List<HomeReminder> reminders, List<Pet> pets) {
     showModalBottomSheet<void>(
       context: context,
@@ -232,6 +245,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.pop(sheetContext);
                       _openReminder(reminders[index], pets);
+                    },
+                    onMarkFed: () {
+                      Navigator.pop(sheetContext);
+                      _markFed(reminders[index]);
                     },
                   ),
                 ),
@@ -342,6 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _HomeRemindersSection(
                         provider: _remindersProvider,
                         onTap: (reminder) => _openReminder(reminder, pets),
+                        onMarkFed: _markFed,
                         onMore: (reminders) =>
                             _showMoreReminders(reminders, pets),
                       ),
@@ -856,11 +874,13 @@ class _HomeRemindersSection extends StatelessWidget {
   const _HomeRemindersSection({
     required this.provider,
     required this.onTap,
+    required this.onMarkFed,
     required this.onMore,
   });
 
   final HomeRemindersProvider provider;
   final ValueChanged<HomeReminder> onTap;
+  final ValueChanged<HomeReminder> onMarkFed;
   final ValueChanged<List<HomeReminder>> onMore;
 
   @override
@@ -899,6 +919,7 @@ class _HomeRemindersSection extends StatelessWidget {
                 child: _ReminderTile(
                   reminder: reminder,
                   onTap: () => onTap(reminder),
+                  onMarkFed: () => onMarkFed(reminder),
                 ),
               ),
             ),
@@ -919,9 +940,16 @@ class _HomeRemindersSection extends StatelessWidget {
 }
 
 class _ReminderTile extends StatelessWidget {
-  const _ReminderTile({required this.reminder, required this.onTap});
+  const _ReminderTile({
+    required this.reminder,
+    required this.onTap,
+    required this.onMarkFed,
+  });
   final HomeReminder reminder;
   final VoidCallback onTap;
+
+  /// Shown only on feeding reminders: feeds the meal without leaving home.
+  final VoidCallback onMarkFed;
 
   @override
   Widget build(BuildContext context) {
@@ -986,11 +1014,27 @@ class _ReminderTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(width: AppSpacing.xs),
-                Icon(
-                  Icons.chevron_right,
-                  color: context.appColors.textSecondary,
-                ),
+                if (reminder.type == ReminderType.feeding &&
+                    reminder.recordId != null)
+                  IconButton(
+                    tooltip: 'Mark ${reminder.title} fed',
+                    onPressed: onMarkFed,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    icon: Icon(
+                      Icons.check_circle_outline,
+                      color: context.appColors.accent,
+                    ),
+                  )
+                else ...[
+                  const SizedBox(width: AppSpacing.xs),
+                  Icon(
+                    Icons.chevron_right,
+                    color: context.appColors.textSecondary,
+                  ),
+                ],
               ],
             ),
           ),

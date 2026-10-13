@@ -13,6 +13,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _CountingRepository extends WebPetRepository {
   int feedingLoads = 0;
+  bool failUpdates = false;
+
+  @override
+  Future<void> updateFeedingSchedule(FeedingEntry entry) async {
+    if (failUpdates) throw StateError('offline');
+    return super.updateFeedingSchedule(entry);
+  }
 
   @override
   Future<List<FeedingEntry>> getFeedingSchedules(String petId) {
@@ -31,7 +38,18 @@ Future<(_CountingRepository, FurloState)> _pumpHome(WidgetTester tester) async {
   await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
   await repository.addPet(Pet(id: '2', name: 'Poppy', species: 'Cat'));
   await repository.addFeedingSchedule(
-    FeedingEntry(petId: '1', name: 'Breakfast', time: '00:00'),
+    FeedingEntry(id: 'f1', petId: '1', name: 'Breakfast', time: '00:00'),
+  );
+  await repository.addFeedingSchedule(
+    FeedingEntry(
+      id: 'f2',
+      petId: '2',
+      name: 'Kibble',
+      time: '00:01',
+      frequency: FeedingFrequency.twiceDaily,
+      secondTime: '00:02',
+      lastFedAt: DateTime.now(),
+    ),
   );
   final state = FurloState(repository);
   await state.load();
@@ -84,5 +102,42 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.feedingLoads, before);
+  });
+
+  testWidgets('a feeding reminder can be marked fed from the dashboard', (
+    tester,
+  ) async {
+    final (repository, _) = await _pumpHome(tester);
+    expect(find.text('Breakfast'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Mark Breakfast fed'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Breakfast'), findsNothing);
+    expect(find.text('Feeding Schedule'), findsNothing); // stayed home
+    final saved = (await repository.getFeedingSchedules('1')).single;
+    expect(saved.doneToday, isTrue);
+  });
+
+  testWidgets('the second meal is recorded as the second meal', (tester) async {
+    final (repository, _) = await _pumpHome(tester);
+
+    await tester.tap(find.byTooltip('Mark Kibble (second meal) fed'));
+    await tester.pumpAndSettle();
+
+    final saved = (await repository.getFeedingSchedules('2')).single;
+    expect(saved.isSecondDoneOn(DateTime.now()), isTrue);
+    expect(find.text('Kibble (second meal)'), findsNothing);
+  });
+
+  testWidgets('a failed dashboard mark-fed says so', (tester) async {
+    final (repository, _) = await _pumpHome(tester);
+    repository.failUpdates = true;
+
+    await tester.tap(find.byTooltip('Mark Breakfast fed'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('The meal could not be marked fed.'), findsOneWidget);
+    expect(find.text('Breakfast'), findsOneWidget);
   });
 }

@@ -6,6 +6,7 @@ import '../models/pet.dart';
 import '../models/vaccination.dart';
 import '../models/vet.dart';
 import '../repositories/pet_repository.dart';
+import '../services/notifications_service.dart';
 
 enum ReminderType { feeding, vaccination, vetAppointment, medication }
 
@@ -32,6 +33,8 @@ class HomeReminder {
     required this.urgency,
     this.time,
     this.date,
+    this.recordId,
+    this.secondMeal = false,
   });
 
   final String petId;
@@ -41,6 +44,13 @@ class HomeReminder {
   final ReminderUrgency urgency;
   final String? time;
   final DateTime? date;
+
+  /// The feeding schedule behind a feeding reminder, so it can be marked fed
+  /// from the dashboard.
+  final String? recordId;
+
+  /// Whether this is the second meal of a twice-daily schedule.
+  final bool secondMeal;
 
   DateTime get sortDate => date ?? DateTime(0);
 }
@@ -78,13 +88,13 @@ TodayReminderResult buildTodayReminders({
       continue;
     }
     // A twice-daily schedule lists each meal that is still unfed on its own.
-    final meals = <(String title, String time)>[
+    final meals = <(String title, String time, bool second)>[
       if (!feeding.isTwiceDaily || !feeding.isDoneOn(today))
-        (feeding.name, feeding.time),
+        (feeding.name, feeding.time, false),
       if (feeding.isTwiceDaily && !feeding.isSecondDoneOn(today))
-        ('${feeding.name} (second meal)', feeding.effectiveSecondTime),
+        ('${feeding.name} (second meal)', feeding.effectiveSecondTime, true),
     ];
-    for (final (title, time) in meals) {
+    for (final (title, time, second) in meals) {
       reminders.add(
         HomeReminder(
           petId: feeding.petId,
@@ -94,6 +104,8 @@ TodayReminderResult buildTodayReminders({
           urgency: ReminderUrgency.today,
           time: time,
           date: _dateAtTime(todayOnly, time),
+          recordId: feeding.id,
+          secondMeal: second,
         ),
       );
     }
@@ -209,9 +221,14 @@ DateTime _dateAtTime(DateTime day, String time) {
 }
 
 class HomeRemindersProvider extends ChangeNotifier {
-  HomeRemindersProvider(this._repository);
+  HomeRemindersProvider(
+    this._repository, {
+    this.notificationService = const NoOpNotificationService(),
+  });
 
   final PetRepository _repository;
+  final NotificationService notificationService;
+  List<Pet>? _lastPets;
   TodayReminderResult _result = const TodayReminderResult(allItems: []);
   bool _loading = false;
   bool _hasError = false;
@@ -239,8 +256,9 @@ class HomeRemindersProvider extends ChangeNotifier {
     _loading = true;
     _hasError = false;
     _notify();
+    if (pets != null) _lastPets = pets;
     try {
-      final currentPets = pets ?? await _repository.getPets();
+      final currentPets = pets ?? _lastPets ?? await _repository.getPets();
       // The owning screen may be gone by now; futures cannot be cancelled, so
       // the work is abandoned at the next checkpoint instead.
       if (_disposed) return;
@@ -267,6 +285,27 @@ class HomeRemindersProvider extends ChangeNotifier {
         _notify();
       }
     }
+  }
+
+  /// Marks the meal behind a feeding [reminder] fed now, then rebuilds the
+  /// reminders. Throws when the save fails, so the caller can say so.
+  Future<void> markFed(HomeReminder reminder) async {
+    final id = reminder.recordId;
+    if (_disposed || reminder.type != ReminderType.feeding || id == null) {
+      return;
+    }
+    final entry = (await _repository.getFeedingSchedules(
+      reminder.petId,
+    )).where((item) => item.id == id).firstOrNull;
+    if (entry == null) return;
+    final now = DateTime.now();
+    await _repository.updateFeedingSchedule(
+      reminder.secondMeal
+          ? entry.copyWith(lastSecondFedAt: now)
+          : entry.copyWith(lastFedAt: now),
+    );
+    await notificationService.rescheduleAll();
+    await refresh();
   }
 
   Future<_PetReminders> _loadPet(Pet pet) async {
