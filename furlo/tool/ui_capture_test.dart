@@ -27,6 +27,7 @@ import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/models/vaccination.dart';
+import 'package:furlo/models/weight_log.dart';
 import 'package:furlo/screens/feeding/feeding_screen.dart';
 import 'package:furlo/repositories/app_settings_repository.dart';
 import 'package:furlo/screens/home/home_screen.dart';
@@ -36,6 +37,7 @@ import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
 import 'package:furlo/screens/settings/notifications_screen.dart';
 import 'package:furlo/screens/vets/vet_contacts_screen.dart';
+import 'package:furlo/services/export_service.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -153,6 +155,33 @@ class _FailingSettings extends SharedPreferencesNotificationSettingsRepository {
 // ---------------------------------------------------------------- scenes
 
 final List<Scene> scenes = [
+  Scene(
+    'vaccinations-timeline',
+    () async {
+      final s = await _seed();
+      await s.repository.addVaccination(
+        Vaccination(
+          petId: '1',
+          vaccineName: 'Rabies',
+          dateGiven: DateTime(2025, 10, 1),
+          nextDueDate: DateTime.now().subtract(const Duration(days: 5)),
+        ),
+      );
+      await s.repository.addVaccination(
+        Vaccination(
+          petId: '1',
+          vaccineName: 'DHPP booster',
+          dateGiven: DateTime(2026, 3, 5),
+          nextDueDate: DateTime.now().add(const Duration(days: 60)),
+        ),
+      );
+      return VaccinationScreen(repository: s.repository, pets: s.state.pets);
+    },
+    act: (tester) async {
+      await tester.tap(find.byTooltip('Show as timeline'));
+      await _settle(tester);
+    },
+  ),
   Scene('privacy', () async => const PrivacyScreen()),
   Scene('profile', () async {
     final s = await _seed();
@@ -357,6 +386,39 @@ void main() {
   final wanted = _only.isEmpty
       ? <String>[]
       : _only.split(',').map((s) => s.trim()).toList();
+
+  // The care-summary PDF, written as a file to open or rasterise
+  // (macOS: sips -s format png care-summary.pdf --out care-summary.png).
+  if (wanted.isEmpty || wanted.any('care-summary'.startsWith)) {
+    testWidgets('$_outDir/care-summary.pdf', (tester) async {
+      await tester.runAsync(() async {
+        final s = await _seed();
+        await s.repository.addVaccination(
+          Vaccination(
+            petId: '1',
+            vaccineName: 'Rabies',
+            dateGiven: DateTime(2025, 11, 2),
+            nextDueDate: DateTime.now().add(const Duration(days: 18)),
+          ),
+        );
+        for (final (days, kg) in [(70, 11.6), (35, 11.9), (3, 12.3)]) {
+          await s.repository.addWeightLog(
+            WeightLog(
+              petId: '1',
+              date: DateTime.now().subtract(Duration(days: days)),
+              weight: kg,
+            ),
+          );
+        }
+        final service = ExportService(repository: s.repository);
+        final summary = await service.assemblePetSummary('1');
+        final bytes = await service.renderSummary(summary);
+        File('$_outDir/care-summary.pdf')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(bytes);
+      });
+    });
+  }
 
   for (final scene in scenes) {
     if (wanted.isNotEmpty && !wanted.any(scene.name.startsWith)) continue;
