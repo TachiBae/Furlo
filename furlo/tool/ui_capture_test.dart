@@ -12,6 +12,7 @@
 // Unlike tool/screenshot_harness.dart this can tap through flows (open a
 // dialog, pick a value) before capturing, and it needs no browser.
 import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
@@ -25,7 +26,10 @@ import 'package:furlo/models/vet.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
+import 'package:furlo/models/vaccination.dart';
 import 'package:furlo/screens/feeding/feeding_screen.dart';
+import 'package:furlo/screens/home/home_screen.dart';
+import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
 import 'package:furlo/screens/settings/notifications_screen.dart';
 import 'package:furlo/screens/vets/vet_contacts_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
@@ -99,6 +103,9 @@ Future<_Seeded> _seed([WebPetRepository? repository]) async {
       lastFedAt: now,
     ),
   );
+  await repo.addFeedingSchedule(
+    FeedingEntry(petId: '2', name: 'Wet food', time: '00:05'),
+  );
   final vet = await repo.addVet(
     Vet(
       name: 'Dr. Amelia Kim',
@@ -128,6 +135,12 @@ class _FailingVetRepository extends WebPetRepository {
   }
 }
 
+class _PendingRepository extends WebPetRepository {
+  @override
+  Future<List<Vaccination>> getVaccinationsForPet(String petId) =>
+      Completer<List<Vaccination>>().future;
+}
+
 class _FailingSettings extends SharedPreferencesNotificationSettingsRepository {
   @override
   Future<Map<String, bool>> getAll() async => throw StateError('offline');
@@ -136,6 +149,30 @@ class _FailingSettings extends SharedPreferencesNotificationSettingsRepository {
 // ---------------------------------------------------------------- scenes
 
 final List<Scene> scenes = [
+  Scene('dashboard', () async {
+    final s = await _seed();
+    return _withState(
+      s.state,
+      ChangeNotifierProvider<ThemeSettings>(
+        create: (_) => ThemeSettings(),
+        child: HomeScreen(
+          repository: s.repository,
+          notificationSettings:
+              SharedPreferencesNotificationSettingsRepository(),
+          notificationService: const NoOpNotificationService(),
+        ),
+      ),
+    );
+  }),
+  Scene('vet-list', () async {
+    final s = await _seed();
+    return _withState(s.state, VetContactsScreen(repository: s.repository));
+  }),
+  Scene('vaccinations-loading', () async {
+    final repo = _PendingRepository();
+    final s = await _seed(repo);
+    return VaccinationScreen(repository: repo, pets: s.state.pets);
+  }),
   Scene('feeding-list', () async {
     final s = await _seed();
     return _withState(s.state, FeedingScreen(repository: s.repository));
