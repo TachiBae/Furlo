@@ -8,6 +8,10 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Furlo</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Furlo uses the camera to take a photo of your pet for their profile.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Furlo uses your photo library so you can choose a photo of your pet for their profile.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

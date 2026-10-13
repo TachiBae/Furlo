@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -232,10 +232,46 @@ class _AddPetScreenState extends State<AddPetScreen> {
     super.dispose();
   }
 
-  Future<void> _choosePhoto() async {
+  /// Phones can take a new photo or pick one; web and desktop open the file
+  /// picker directly, where a camera choice would open the same dialog.
+  static bool get _canUseCamera =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  Future<void> _addPhoto() async {
+    if (!_canUseCamera) return _choosePhoto(ImageSource.gallery);
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: context.appColors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              minTileHeight: 56,
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+            ListTile(
+              minTileHeight: 56,
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from library'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+    await _choosePhoto(source);
+  }
+
+  Future<void> _choosePhoto(ImageSource source) async {
     try {
       final image = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 640,
         maxHeight: 640,
         imageQuality: 85,
@@ -368,7 +404,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                   children: [
                     Center(
                       child: InkWell(
-                        onTap: _choosePhoto,
+                        onTap: _addPhoto,
                         borderRadius: AppRadius.pillRadius,
                         child: Builder(
                           builder: (context) {
@@ -399,7 +435,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
                         spacing: AppSpacing.sm,
                         children: [
                           TextButton(
-                            onPressed: _choosePhoto,
+                            onPressed: _addPhoto,
                             child: Text(
                               _photoPath == null
                                   ? 'Add a photo'
