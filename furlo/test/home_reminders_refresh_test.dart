@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/models/feeding_entry.dart';
 import 'package:furlo/models/pet.dart';
+import 'package:furlo/models/vaccination.dart';
+import 'package:furlo/models/vet.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
@@ -21,10 +23,24 @@ class _CountingRepository extends WebPetRepository {
     return super.updateFeedingSchedule(entry);
   }
 
+  int perPetReads = 0;
+
   @override
-  Future<List<FeedingEntry>> getFeedingSchedules(String petId) {
+  Future<List<FeedingEntry>> getAllFeedingSchedules() {
     feedingLoads++;
-    return super.getFeedingSchedules(petId);
+    return super.getAllFeedingSchedules();
+  }
+
+  @override
+  Future<List<Vaccination>> getVaccinationsForPet(String petId) {
+    perPetReads++;
+    return super.getVaccinationsForPet(petId);
+  }
+
+  @override
+  Future<List<Vet>> getVetsForPet(String petId) {
+    perPetReads++;
+    return super.getVetsForPet(petId);
   }
 }
 
@@ -139,5 +155,13 @@ void main() {
 
     expect(find.text('The meal could not be marked fed.'), findsOneWidget);
     expect(find.text('Breakfast'), findsOneWidget);
+  });
+
+  testWidgets('reminders load each collection once, not per pet', (
+    tester,
+  ) async {
+    final (repository, _) = await _pumpHome(tester);
+    expect(repository.feedingLoads, 1);
+    expect(repository.perPetReads, 0);
   });
 }

@@ -93,6 +93,19 @@ class _FakePetRepository implements PetRepository {
   @override
   Future<List<Pet>> getPetsForVet(String vetId) async => [];
   @override
+  Future<List<FeedingEntry>> getAllFeedingSchedules() async =>
+      List.of(schedules);
+
+  @override
+  Future<List<Vaccination>> getAllVaccinations() async => [];
+
+  @override
+  Future<List<HealthRecord>> getAllHealthRecords() async => [];
+
+  @override
+  Future<List<VetPetAssociation>> getAllVetLinks() async => [];
+
+  @override
   Future<List<VetPetAssociation>> getVetPetAssociations(String vetId) async =>
       [];
   @override

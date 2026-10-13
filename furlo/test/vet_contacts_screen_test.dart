@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:furlo/models/pet.dart';
 import 'package:furlo/models/vet.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
@@ -155,10 +156,48 @@ void main() {
       state.dispose();
     },
   );
+
+  testWidgets('the vet list links pets without a read per vet', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(900, 1400);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final repository = _FlakyVetRepository();
+    await repository.addPet(Pet(id: '1', name: 'Mochi', species: 'Dog'));
+    await repository.addPet(Pet(id: '2', name: 'Poppy', species: 'Cat'));
+    await repository.addVet(Vet(name: 'Dr Kim', phone: '1'), ['1', '2']);
+    await repository.addVet(Vet(name: 'Dr Lee', phone: '2'), ['2']);
+    final state = FurloState(repository);
+    await state.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: ChangeNotifierProvider.value(
+          value: state,
+          child: VetContactsScreen(repository: repository),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mochi'), findsWidgets);
+    expect(find.text('Poppy'), findsWidgets);
+    expect(repository.perVetReads, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
 }
 
 class _FlakyVetRepository extends WebPetRepository {
   bool failLoads = false;
+  int perVetReads = 0;
+
+  @override
+  Future<List<Pet>> getPetsForVet(String vetId) {
+    perVetReads++;
+    return super.getPetsForVet(vetId);
+  }
 
   @override
   Future<List<Vet>> getAllVets() async {

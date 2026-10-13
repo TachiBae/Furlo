@@ -262,16 +262,35 @@ class HomeRemindersProvider extends ChangeNotifier {
       // The owning screen may be gone by now; futures cannot be cancelled, so
       // the work is abandoned at the next checkpoint instead.
       if (_disposed) return;
-      final data = await Future.wait<_PetReminders>(
-        currentPets.where((pet) => pet.id != null).map(_loadPet),
-      );
+      // One read per collection, however many pets: the reminders builder
+      // already ignores records whose pet is gone.
+      final results = await Future.wait<Object>([
+        _repository.getAllFeedingSchedules(),
+        _repository.getAllVaccinations(),
+        _repository.getAllHealthRecords(),
+        _repository.getAllVets(),
+        _repository.getAllVetLinks(),
+      ]);
       if (_disposed) return;
+      final vetsById = {
+        for (final vet in results[3] as List<Vet>)
+          if (vet.id != null) vet.id!: vet,
+      };
+      final appointments = <VetAppointmentReminder>[
+        for (final link in results[4] as List<VetPetAssociation>)
+          if (link.nextAppointmentDate != null && vetsById[link.vetId] != null)
+            VetAppointmentReminder(
+              petId: link.petId,
+              vetName: vetsById[link.vetId]!.name,
+              date: link.nextAppointmentDate!,
+            ),
+      ];
       _result = buildTodayReminders(
         pets: currentPets,
-        feedings: data.expand((item) => item.feedings).toList(),
-        vaccinations: data.expand((item) => item.vaccinations).toList(),
-        healthRecords: data.expand((item) => item.healthRecords).toList(),
-        appointments: data.expand((item) => item.appointments).toList(),
+        feedings: results[0] as List<FeedingEntry>,
+        vaccinations: results[1] as List<Vaccination>,
+        healthRecords: results[2] as List<HealthRecord>,
+        appointments: appointments,
         today: today ?? DateTime.now(),
       );
     } catch (error, stackTrace) {
@@ -307,61 +326,4 @@ class HomeRemindersProvider extends ChangeNotifier {
     await notificationService.rescheduleAll();
     await refresh();
   }
-
-  Future<_PetReminders> _loadPet(Pet pet) async {
-    final id = pet.id;
-    if (id == null) {
-      // One id-less pet must not take the whole dashboard down.
-      debugPrint('Reminder load skipped a pet with no id: ${pet.name}');
-      return const _PetReminders(
-        feedings: [],
-        vaccinations: [],
-        healthRecords: [],
-        appointments: [],
-      );
-    }
-    final results = await Future.wait<Object>([
-      _repository.getFeedingSchedules(id),
-      _repository.getVaccinationsForPet(id),
-      _repository.getHealthRecordsForPet(id),
-      _repository.getVetsForPet(id),
-    ]);
-    final vets = results[3] as List<Vet>;
-    final associations = await Future.wait<List<VetPetAssociation>>(
-      vets
-          .where((vet) => vet.id != null)
-          .map((vet) => _repository.getVetPetAssociations(vet.id!)),
-    );
-    final appointments = <VetAppointmentReminder>[];
-    for (var index = 0; index < associations.length; index++) {
-      final vet = vets.where((item) => item.id != null).elementAt(index);
-      for (final association in associations[index]) {
-        final date = association.nextAppointmentDate;
-        if (association.petId == id && date != null) {
-          appointments.add(
-            VetAppointmentReminder(petId: id, vetName: vet.name, date: date),
-          );
-        }
-      }
-    }
-    return _PetReminders(
-      feedings: results[0] as List<FeedingEntry>,
-      vaccinations: results[1] as List<Vaccination>,
-      healthRecords: results[2] as List<HealthRecord>,
-      appointments: appointments,
-    );
-  }
-}
-
-class _PetReminders {
-  const _PetReminders({
-    required this.feedings,
-    required this.vaccinations,
-    required this.healthRecords,
-    required this.appointments,
-  });
-  final List<FeedingEntry> feedings;
-  final List<Vaccination> vaccinations;
-  final List<HealthRecord> healthRecords;
-  final List<VetAppointmentReminder> appointments;
 }

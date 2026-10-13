@@ -51,6 +51,19 @@ class _ExportTestRepository implements PetRepository {
       associationsByVetId[vetId] ?? [];
 
   @override
+  Future<List<FeedingEntry>> getAllFeedingSchedules() async => [];
+
+  @override
+  Future<List<Vaccination>> getAllVaccinations() async => vaccinations;
+
+  @override
+  Future<List<HealthRecord>> getAllHealthRecords() async => healthRecords;
+
+  @override
+  Future<List<VetPetAssociation>> getAllVetLinks() async =>
+      associationsByVetId.values.expand((links) => links).toList();
+
+  @override
   Future<void> addPet(Pet pet) async => throw UnimplementedError();
 
   @override

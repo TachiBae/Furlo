@@ -68,16 +68,30 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
       _loadError = false;
     });
     try {
-      final vets = await widget.repository.getAllVets();
+      // Three reads in total, rather than a full pet list per vet.
+      final (vets, pets, links) = await (
+        widget.repository.getAllVets(),
+        widget.repository.getPets(),
+        widget.repository.getAllVetLinks(),
+      ).wait;
       if (!mounted) return;
-      final linkedPets = <String, List<Pet>>{};
-      for (final vet in vets) {
-        if (vet.id != null) {
-          final pets = await widget.repository.getPetsForVet(vet.id!);
-          if (!mounted) return;
-          linkedPets[vet.id!] = pets;
-        }
-      }
+      final petsById = {
+        for (final pet in pets)
+          if (pet.id != null) pet.id!: pet,
+      };
+      final linkedPets = <String, List<Pet>>{
+        for (final vet in vets)
+          if (vet.id != null)
+            vet.id!:
+                [
+                  for (final link in links)
+                    if (link.vetId == vet.id && petsById[link.petId] != null)
+                      petsById[link.petId]!,
+                ]..sort(
+                  (a, b) =>
+                      a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                ),
+      };
       if (!mounted) return;
       _vets = vets;
       _linkedPets

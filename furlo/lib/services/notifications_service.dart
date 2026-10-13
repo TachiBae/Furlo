@@ -6,7 +6,10 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../data/health_record_types.dart';
 import '../models/feeding_entry.dart';
+import '../models/health_record.dart';
 import '../models/pet.dart';
+import '../models/vaccination.dart';
+import '../models/vet.dart';
 import '../repositories/notification_settings_repository.dart';
 import '../repositories/pet_repository.dart';
 import '../utils/formatting.dart';
@@ -660,22 +663,47 @@ class LocalNotificationService implements NotificationService {
       await initialize();
       await clearScheduled();
       if (!await hasPermission()) return;
-      final pets = await repository.getPets();
+      // One read per collection for the whole account, then grouped by pet:
+      // this runs after every save, so per-pet queries added up fast.
+      final (pets, feedings, vaccinations, healthRecords, vets, links) = await (
+        repository.getPets(),
+        repository.getAllFeedingSchedules(),
+        repository.getAllVaccinations(),
+        repository.getAllHealthRecords(),
+        repository.getAllVets(),
+        repository.getAllVetLinks(),
+      ).wait;
+      final vetsById = {
+        for (final vet in vets)
+          if (vet.id != null) vet.id!: vet,
+      };
+      List<T> ofPet<T>(List<T> items, String Function(T) petIdOf, String id) =>
+          items.where((item) => petIdOf(item) == id).toList();
       for (final pet in pets) {
         final petId = pet.id;
         if (petId == null) continue;
-        await _scheduleFeeding(pet, petId);
-        await _scheduleVaccinations(pet, petId);
-        await _scheduleMedication(pet, petId);
-        await _scheduleAppointments(pet, petId);
+        await _scheduleFeeding(pet, ofPet(feedings, (e) => e.petId, petId));
+        await _scheduleVaccinations(
+          pet,
+          ofPet(vaccinations, (v) => v.petId, petId),
+        );
+        await _scheduleMedication(
+          pet,
+          ofPet(healthRecords, (r) => r.petId, petId),
+        );
+        await _scheduleAppointments(
+          pet,
+          petId,
+          ofPet(links, (l) => l.petId, petId),
+          vetsById,
+        );
       }
     } catch (_) {
       // Rebuild is best-effort; a repository/plugin failure cannot block launch.
     }
   }
 
-  Future<void> _scheduleFeeding(Pet pet, String petId) async {
-    final schedules = await repository.getFeedingSchedules(petId);
+  Future<void> _scheduleFeeding(Pet pet, List<FeedingEntry> schedules) async {
     if (schedules.isEmpty) return;
     final feedingEnabled = await settings.isEnabled(
       NotificationTypes.dailyFeeding,
@@ -703,8 +731,7 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleVaccinations(Pet pet, String petId) async {
-    final records = await repository.getVaccinationsForPet(petId);
+  Future<void> _scheduleVaccinations(Pet pet, List<Vaccination> records) async {
     for (final vaccination in records) {
       final id = vaccination.id;
       final due = vaccination.nextDueDate;
@@ -742,16 +769,17 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleAppointments(Pet pet, String petId) async {
-    final vets = await repository.getVetsForPet(petId);
-    for (final vet in vets) {
-      final vetId = vet.id;
-      if (vetId == null) continue;
-      final link = (await repository.getVetPetAssociations(
-        vetId,
-      )).where((item) => item.petId == petId).firstOrNull;
-      final date = link?.nextAppointmentDate;
-      if (date == null) continue;
+  Future<void> _scheduleAppointments(
+    Pet pet,
+    String petId,
+    List<VetPetAssociation> links,
+    Map<String, Vet> vetsById,
+  ) async {
+    for (final link in links) {
+      final vet = vetsById[link.vetId];
+      final date = link.nextAppointmentDate;
+      if (vet == null || date == null) continue;
+      final vetId = link.vetId;
       final fire = calculateNotificationFireTime(
         type: NotificationTypes.vetAppointment,
         now: DateTime.now(),
@@ -770,8 +798,7 @@ class LocalNotificationService implements NotificationService {
     }
   }
 
-  Future<void> _scheduleMedication(Pet pet, String petId) async {
-    final records = await repository.getHealthRecordsForPet(petId);
+  Future<void> _scheduleMedication(Pet pet, List<HealthRecord> records) async {
     for (final record in records) {
       if (record.type != HealthRecordTypes.medication ||
           record.reminderActive != true ||

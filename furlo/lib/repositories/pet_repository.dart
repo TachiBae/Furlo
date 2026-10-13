@@ -43,6 +43,14 @@ abstract class PetRepository {
   Future<WeightLog> addWeightLog(WeightLog log);
   Future<void> updateWeightLog(WeightLog log);
   Future<void> deleteWeightLog(String id, String petId);
+
+  // Whole-account reads. Screens that summarise every pet (Today's Reminders,
+  // the vet list, reminder scheduling) use these so a refresh costs one read
+  // per collection rather than several per pet.
+  Future<List<FeedingEntry>> getAllFeedingSchedules();
+  Future<List<Vaccination>> getAllVaccinations();
+  Future<List<HealthRecord>> getAllHealthRecords();
+  Future<List<VetPetAssociation>> getAllVetLinks();
 }
 
 /// The cloud-backed repository is the system of record for signed-in accounts.
@@ -443,6 +451,33 @@ class SqlitePetRepository implements PetRepository {
       whereArgs: [int.parse(id), int.parse(petId)],
     );
   }
+
+  @override
+  Future<List<FeedingEntry>> getAllFeedingSchedules() async =>
+      (await (await database).query(
+        'feeding_schedules',
+        orderBy: 'scheduled_time',
+      )).map(_feedingEntryFromMap).toList();
+
+  @override
+  Future<List<Vaccination>> getAllVaccinations() async =>
+      (await (await database).query(
+        'vaccinations',
+        orderBy: 'date_given DESC, id DESC',
+      )).map(Vaccination.fromMap).toList();
+
+  @override
+  Future<List<HealthRecord>> getAllHealthRecords() async =>
+      (await (await database).query(
+        'health_records',
+        orderBy: 'date DESC, id DESC',
+      )).map(HealthRecord.fromMap).toList();
+
+  @override
+  Future<List<VetPetAssociation>> getAllVetLinks() async =>
+      (await (await database).query(
+        'vet_pets',
+      )).map(VetPetAssociation.fromMap).toList();
 }
 
 class WebPetRepository implements PetRepository {
@@ -1075,6 +1110,35 @@ class WebPetRepository implements PetRepository {
     _weightLogs.removeWhere((log) => log.id == id && log.petId == petId);
     final preferences = await SharedPreferences.getInstance();
     await _saveWeightLogs(preferences);
+  }
+
+  @override
+  Future<List<FeedingEntry>> getAllFeedingSchedules() async {
+    final preferences = await SharedPreferences.getInstance();
+    final entries = _decodeRecords(
+      preferences.getStringList(_feedingStorageKey) ?? [],
+      _feedingEntryFromMap,
+    ).toList();
+    entries.sort((a, b) => a.time.compareTo(b.time));
+    return entries;
+  }
+
+  @override
+  Future<List<Vaccination>> getAllVaccinations() async {
+    await _ensureLoaded();
+    return List.of(_vaccinations);
+  }
+
+  @override
+  Future<List<HealthRecord>> getAllHealthRecords() async {
+    await _ensureLoaded();
+    return List.of(_healthRecords);
+  }
+
+  @override
+  Future<List<VetPetAssociation>> getAllVetLinks() async {
+    await _ensureLoaded();
+    return List.of(_vetLinks);
   }
 
   Future<void> _saveFeedingEntries(
@@ -1754,6 +1818,28 @@ class FirestorePetRepository implements PetRepository {
     final refs = await _childrenOf(_weightLogs, 'pet_id', petId);
     await _deleteBatch(refs.where((ref) => ref.id == id).toList());
   }
+
+  @override
+  Future<List<FeedingEntry>> getAllFeedingSchedules() async {
+    final entries = _readDocs(
+      (await _col(_feedings).get()).docs,
+      _feedingEntryFromMap,
+    );
+    entries.sort((a, b) => a.time.compareTo(b.time));
+    return entries;
+  }
+
+  @override
+  Future<List<Vaccination>> getAllVaccinations() async =>
+      _readDocs((await _col(_vaccinations).get()).docs, Vaccination.fromMap);
+
+  @override
+  Future<List<HealthRecord>> getAllHealthRecords() async =>
+      _readDocs((await _col(_healthRecords).get()).docs, HealthRecord.fromMap);
+
+  @override
+  Future<List<VetPetAssociation>> getAllVetLinks() async =>
+      _readDocs((await _col(_vetLinks).get()).docs, VetPetAssociation.fromMap);
 
   /// Pet data without the id (held by the document).
   ///

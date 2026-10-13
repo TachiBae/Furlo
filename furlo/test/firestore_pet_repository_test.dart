@@ -271,6 +271,30 @@ void main() {
     });
   });
 
+  test('whole-account reads return every pet\'s records', () async {
+    for (final id in ['p1', 'p2']) {
+      await repository.addPet(Pet(id: id, name: id, species: 'Cat'));
+      await repository.addFeedingSchedule(
+        FeedingEntry(petId: id, name: 'Meal', time: '08:00'),
+      );
+      await repository.addVaccination(
+        Vaccination(petId: id, vaccineName: 'Rabies'),
+      );
+      await repository.addHealthRecord(
+        HealthRecord(petId: id, title: 'Checkup', type: 'Vet visit'),
+      );
+    }
+    await repository.addVet(Vet(name: 'Dr Kim', phone: '1'), ['p1', 'p2']);
+
+    expect(await repository.getAllFeedingSchedules(), hasLength(2));
+    expect(await repository.getAllVaccinations(), hasLength(2));
+    expect(await repository.getAllHealthRecords(), hasLength(2));
+    expect(
+      (await repository.getAllVetLinks()).map((l) => l.petId),
+      unorderedEquals(['p1', 'p2']),
+    );
+  });
+
   group('vets and the vet-pet links', () {
     setUp(() async {
       await repository.addPet(Pet(id: 'p1', name: 'A', species: 'Cat'));
