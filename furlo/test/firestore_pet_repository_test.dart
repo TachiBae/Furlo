@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/models/feeding_entry.dart';
@@ -238,6 +239,35 @@ void main() {
       await repository.deleteWeightLog(log.id!, 'p1');
       expect(await repository.getHealthRecordsForPet('p1'), isEmpty);
       expect(await repository.getWeightLogsForPet('p1'), isEmpty);
+    });
+  });
+
+  group('damaged documents', () {
+    CollectionReference<Map<String, dynamic>> col(String name) =>
+        firestore.collection('users').doc('alice').collection(name);
+
+    test('one unreadable document never hides the healthy ones', () async {
+      await repository.addPet(Pet(id: 'p1', name: 'Mochi', species: 'Cat'));
+      await col('pets').doc('broken').set({'species': 'Dog'}); // no name
+      await repository.addWeightLog(
+        WeightLog(petId: 'p1', date: DateTime(2026, 10, 1), weight: 4),
+      );
+      await col(
+        'weightLogs',
+      ).doc('bad').set({'pet_id': 'p1', 'weight': 'heavy'});
+      await repository.addFeedingSchedule(
+        FeedingEntry(petId: 'p1', name: 'Dinner', time: '18:00'),
+      );
+      await col(
+        'feedings',
+      ).doc('bad').set({'pet_id': 'p1', 'name': 'Odd', 'days_of_week': 'x,y'});
+
+      expect((await repository.getPets()).single.name, 'Mochi');
+      expect((await repository.getWeightLogsForPet('p1')).single.weight, 4);
+      expect(
+        (await repository.getFeedingSchedules('p1')).single.name,
+        'Dinner',
+      );
     });
   });
 

@@ -1417,15 +1417,43 @@ class FirestorePetRepository implements PetRepository {
     return snapshot.docs.map((doc) => doc.reference).toList();
   }
 
+  /// Maps documents to records, skipping any one that cannot be read.
+  ///
+  /// Mirrors the web store's `_decodeRecords`: one malformed document (an
+  /// older shape, a hand-edited field) must not take the healthy ones down.
+  List<T> _readDocs<T>(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    T Function(Map<String, Object?> map) fromMap,
+  ) {
+    final records = <T>[];
+    for (final doc in docs) {
+      try {
+        records.add(fromMap({...doc.data(), 'id': doc.id}));
+      } on Object {
+        _logSkipped();
+      }
+    }
+    return records;
+  }
+
+  void _logSkipped() =>
+      logAppDiagnostic('Skipped a cloud record that could not be read.');
+
   @override
   Future<List<Pet>> getPets() async {
     final snapshot = await _col(_pets).get();
-    return Future.wait(
+    final pets = await Future.wait(
       snapshot.docs.map((doc) async {
-        final photo = await resolvePetPhoto(doc.data(), doc.id, _photos);
-        return _petFromMap({...doc.data(), 'id': doc.id, 'photoPath': photo});
+        try {
+          final photo = await resolvePetPhoto(doc.data(), doc.id, _photos);
+          return _petFromMap({...doc.data(), 'id': doc.id, 'photoPath': photo});
+        } on Object {
+          _logSkipped();
+          return null;
+        }
       }),
     );
+    return pets.nonNulls.toList();
   }
 
   void _logLocalOnlyPhoto(Pet pet) {
@@ -1476,9 +1504,7 @@ class FirestorePetRepository implements PetRepository {
     final snapshot = await _col(
       _feedings,
     ).where('pet_id', isEqualTo: petId).get();
-    final entries = snapshot.docs
-        .map((doc) => _feedingEntryFromMap({...doc.data(), 'id': doc.id}))
-        .toList();
+    final entries = _readDocs(snapshot.docs, _feedingEntryFromMap);
     entries.sort((a, b) => a.time.compareTo(b.time));
     return entries;
   }
@@ -1510,9 +1536,7 @@ class FirestorePetRepository implements PetRepository {
     final snapshot = await _col(
       _vaccinations,
     ).where('pet_id', isEqualTo: petId).get();
-    final records = snapshot.docs
-        .map((doc) => Vaccination.fromMap({...doc.data(), 'id': doc.id}))
-        .toList();
+    final records = _readDocs(snapshot.docs, Vaccination.fromMap);
     records.sort(
       (a, b) =>
           (b.dateGiven ?? DateTime(0)).compareTo(a.dateGiven ?? DateTime(0)),
@@ -1548,9 +1572,7 @@ class FirestorePetRepository implements PetRepository {
     final snapshot = await _col(
       _healthRecords,
     ).where('pet_id', isEqualTo: petId).get();
-    final records = snapshot.docs
-        .map((doc) => HealthRecord.fromMap({...doc.data(), 'id': doc.id}))
-        .toList();
+    final records = _readDocs(snapshot.docs, HealthRecord.fromMap);
     records.sort((a, b) {
       final dateOrder = (b.date ?? DateTime(0)).compareTo(
         a.date ?? DateTime(0),
@@ -1586,9 +1608,7 @@ class FirestorePetRepository implements PetRepository {
   @override
   Future<List<Vet>> getAllVets() async {
     final snapshot = await _col(_vets).get();
-    final vets = snapshot.docs
-        .map((doc) => Vet.fromMap({...doc.data(), 'id': doc.id}))
-        .toList();
+    final vets = _readDocs(snapshot.docs, Vet.fromMap);
     vets.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return vets;
   }
@@ -1605,7 +1625,12 @@ class FirestorePetRepository implements PetRepository {
   Future<Vet?> getVetById(String id) async {
     final doc = await _col(_vets).doc(id).get();
     if (!doc.exists || doc.data() == null) return null;
-    return Vet.fromMap({...doc.data()!, 'id': doc.id});
+    try {
+      return Vet.fromMap({...doc.data()!, 'id': doc.id});
+    } on Object {
+      _logSkipped();
+      return null;
+    }
   }
 
   @override
@@ -1621,9 +1646,7 @@ class FirestorePetRepository implements PetRepository {
     final snapshot = await _col(
       _vetLinks,
     ).where('vet_id', isEqualTo: vetId).get();
-    return snapshot.docs
-        .map((doc) => VetPetAssociation.fromMap(doc.data()))
-        .toList();
+    return _readDocs(snapshot.docs, VetPetAssociation.fromMap);
   }
 
   @override
@@ -1695,9 +1718,7 @@ class FirestorePetRepository implements PetRepository {
     final snapshot = await _col(
       _weightLogs,
     ).where('pet_id', isEqualTo: petId).get();
-    final logs = snapshot.docs
-        .map((doc) => WeightLog.fromMap({...doc.data(), 'id': doc.id}))
-        .toList();
+    final logs = _readDocs(snapshot.docs, WeightLog.fromMap);
     logs.sort((a, b) {
       final dateOrder = (b.date ?? DateTime(0)).compareTo(
         a.date ?? DateTime(0),
