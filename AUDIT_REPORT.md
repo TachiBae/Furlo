@@ -95,7 +95,7 @@ Format: **ID · Severity · File:line.** Problem, then Fix.
 - **S9 · Low · `pubspec.yaml:38`**
   - Problem: `cupertino_icons` is declared but never imported (0 hits in `lib/`).
   - Fix: Remove the dependency.
-- **S10 · Low · `furlo/` root (`PHASE1_PLAN.md` and 31 other `*_PLAN.md` / `*_TASK*.md` files)**
+- **S10 · Low · `PHASE1_PLAN.md:1` (plus 31 other `*_PLAN.md` / `*_TASK*.md` files)**
   - Problem: Thirty-two agent plan and task files sit in the Flutter package root next to `pubspec.yaml`, which buries the real project files.
   - Fix: Move them under `docs/plans/`.
 - **S11 · Low · `tool/screenshot_harness.dart:1`**
