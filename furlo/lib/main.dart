@@ -9,7 +9,6 @@ import 'firebase_options.dart';
 import 'services/account_onboarding_repository.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_auth_service.dart';
-import 'services/firestore_setup.dart';
 import 'utils/app_diagnostics.dart';
 
 Future<void> main() async {
@@ -22,7 +21,6 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    configureFirestore(FirebaseFirestore.instance);
     accountOnboardingRepository = FirestoreAccountOnboardingRepository(
       firestore: FirebaseFirestore.instance,
     );
