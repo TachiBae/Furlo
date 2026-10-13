@@ -9,7 +9,9 @@ class NotificationSettingsProvider extends ChangeNotifier {
     required this.service,
     this.storageScope,
   }) {
-    ready = load();
+    // The first load reports failure through [error] instead of throwing:
+    // nothing awaits the constructor, so a rethrow here would be unhandled.
+    ready = load().catchError((Object _) {});
   }
 
   final NotificationSettingsRepository repository;
@@ -22,11 +24,15 @@ class NotificationSettingsProvider extends ChangeNotifier {
   bool _loading = true;
   bool? _permissionGranted;
   bool _busy = false;
+  String? _error;
 
   Map<String, bool> get settings => Map.unmodifiable(_settings);
   bool get loading => _loading;
   bool? get permissionGranted => _permissionGranted;
   bool get busy => _busy;
+
+  /// Set when the saved settings could not be read; the screen offers retry.
+  String? get error => _error;
   bool get isWeb => kIsWeb;
   late final Future<void> ready;
 
@@ -35,6 +41,7 @@ class NotificationSettingsProvider extends ChangeNotifier {
   Future<void> load() async {
     final generation = _sessionGeneration;
     _loading = true;
+    _error = null;
     notifyListeners();
     late final Map<String, bool> settings;
     try {
@@ -42,6 +49,7 @@ class NotificationSettingsProvider extends ChangeNotifier {
     } catch (_) {
       if (generation == _sessionGeneration) {
         _loading = false;
+        _error = 'Notification settings could not be loaded.';
         notifyListeners();
       }
       rethrow;

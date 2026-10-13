@@ -535,7 +535,9 @@ class VetDetailsScreen extends StatefulWidget {
 
 class _VetDetailsScreenState extends State<VetDetailsScreen> {
   bool _loading = true;
+  bool _loadError = false;
   bool _changed = false;
+  bool _busy = false;
   Vet? _vet;
   List<Pet> _pets = [];
   Map<String, DateTime?> _appointments = {};
@@ -548,10 +550,17 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
   Future<void> _load() async {
     final id = widget.vet.id;
     if (id == null) return;
-    final vet = await widget.repository.getVetById(id);
-    final pets = await widget.repository.getPetsForVet(id);
-    final links = await widget.repository.getVetPetAssociations(id);
     if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = false;
+      });
+    }
+    try {
+      final vet = await widget.repository.getVetById(id);
+      final pets = await widget.repository.getPetsForVet(id);
+      final links = await widget.repository.getVetPetAssociations(id);
+      if (!mounted) return;
       setState(() {
         _vet = vet;
         _pets = pets;
@@ -560,8 +569,19 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
         };
         _loading = false;
       });
+    } catch (_) {
+      logAppDiagnostic('Vet details load failed.');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = true;
+      });
     }
   }
+
+  void _showMessage(String message) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _call() async {
     final phone = _vet?.phone ?? '';
@@ -588,12 +608,25 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
       lastDate: DateTime(2100),
     );
     if (selected == null || !mounted) return;
-    await widget.repository.setNextAppointment(_vet!.id!, pet.id!, selected);
-    if (!mounted) return;
-    await widget.notificationService.rescheduleAll();
-    if (!mounted) return;
-    _changed = true;
-    await _load();
+    await _saveAppointment(pet, selected);
+  }
+
+  /// Sets ([date]) or clears (null) a pet's next appointment with this vet.
+  Future<void> _saveAppointment(Pet pet, DateTime? date) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.repository.setNextAppointment(_vet!.id!, pet.id!, date);
+      _changed = true;
+      await widget.notificationService.rescheduleAll();
+      if (!mounted) return;
+      await _load();
+    } catch (_) {
+      logAppDiagnostic('Vet appointment save failed.');
+      if (mounted) _showMessage('The appointment could not be saved.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _delete() async {
@@ -604,8 +637,20 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
     )) {
       return;
     }
-    await widget.repository.deleteVet(_vet!.id!);
-    await widget.notificationService.rescheduleAll();
+    if (!mounted || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.repository.deleteVet(_vet!.id!);
+    } catch (_) {
+      logAppDiagnostic('Vet delete failed.');
+      if (mounted) {
+        setState(() => _busy = false);
+        _showMessage('The vet could not be deleted.');
+      }
+      return;
+    }
+    // The vet is gone either way; a reminder rebuild failure is not fatal.
+    await widget.notificationService.rescheduleAll().catchError((Object _) {});
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -630,6 +675,14 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
+            : _loadError
+            ? RecordEmptyState(
+                icon: Icons.error_outline,
+                title: 'This vet could not be loaded.',
+                message: AppCopy.checkConnection,
+                actionLabel: 'Try again',
+                onAction: _load,
+              )
             : vet == null
             ? const RecordEmptyState(
                 title: 'Vet not found',
@@ -697,19 +750,7 @@ class _VetDetailsScreenState extends State<VetDetailsScreen> {
                             if (_appointments[pet.id] != null)
                               IconButton(
                                 tooltip: 'Clear date',
-                                onPressed: () async {
-                                  await widget.repository.setNextAppointment(
-                                    vet.id!,
-                                    pet.id!,
-                                    null,
-                                  );
-                                  if (!mounted) return;
-                                  await widget.notificationService
-                                      .rescheduleAll();
-                                  if (!mounted) return;
-                                  _changed = true;
-                                  await _load();
-                                },
+                                onPressed: () => _saveAppointment(pet, null),
                                 icon: const Icon(Icons.clear),
                               ),
                           ],

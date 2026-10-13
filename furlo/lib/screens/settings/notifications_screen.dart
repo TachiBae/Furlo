@@ -5,6 +5,7 @@ import '../../providers/notification_settings_provider.dart';
 import '../../repositories/notification_settings_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
+import '../../widgets/record_components.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({
@@ -133,6 +134,15 @@ class _NotificationsViewState extends State<_NotificationsView>
         if (state.loading) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (state.error != null) {
+          return RecordEmptyState(
+            icon: Icons.error_outline,
+            title: state.error!,
+            message: 'Please try again.',
+            actionLabel: 'Try again',
+            onAction: () => state.load().catchError((Object _) {}),
+          );
+        }
         return ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
@@ -191,6 +201,22 @@ class _NotificationsViewState extends State<_NotificationsView>
     ),
   );
 
+  Future<void> _toggle(
+    NotificationSettingsProvider state,
+    String type,
+    bool enabled,
+  ) async {
+    try {
+      await state.toggle(type, enabled);
+    } catch (_) {
+      // The provider already restored the switch; say why it moved back.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('That setting could not be saved.')),
+      );
+    }
+  }
+
   Widget _group(
     String title,
     List<_NotificationOption> options,
@@ -237,7 +263,7 @@ class _NotificationsViewState extends State<_NotificationsView>
                   value: state.isEnabled(options[index].type),
                   onChanged: state.busy
                       ? null
-                      : (value) => state.toggle(options[index].type, value),
+                      : (value) => _toggle(state, options[index].type, value),
                 ),
               ],
             ],
