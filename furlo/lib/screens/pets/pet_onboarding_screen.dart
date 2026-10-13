@@ -15,6 +15,7 @@ import '../../services/account_onboarding_repository.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/form_input.dart';
+import '../../utils/photo_fit.dart';
 import '../../utils/record_id.dart';
 import '../../utils/pet_file_image.dart';
 import '../../widgets/record_components.dart';
@@ -241,11 +242,26 @@ class _AddPetScreenState extends State<AddPetScreen> {
       );
       if (image == null) return;
       final bytes = await image.readAsBytes();
+      // Shrinks the photo if needed so it fits the pet's cloud record and
+      // follows the account to every device.
+      final fitted = await fitPhotoDataUri(
+        bytes,
+        mimeType: image.mimeType ?? 'image/jpeg',
+      );
       if (!mounted) return;
+      if (fitted == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'That photo is too large to save. Please choose another one.',
+            ),
+          ),
+        );
+        return;
+      }
       setState(() {
-        _photoBytes = bytes;
-        _photoPath =
-            'data:${image.mimeType ?? 'image/jpeg'};base64,${base64Encode(bytes)}';
+        _photoBytes = base64Decode(fitted.substring(fitted.indexOf(',') + 1));
+        _photoPath = fitted;
       });
     } catch (_) {
       if (!mounted) return;

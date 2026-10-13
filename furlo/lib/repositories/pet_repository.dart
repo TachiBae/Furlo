@@ -1908,6 +1908,14 @@ class LocalPetPhotoStore {
         await preferences.remove(_key(petId));
         return;
       }
+      // Photos too large for the cloud would also crowd out the browser's
+      // small storage quota, so they are not cached either.
+      if (photoPath.startsWith('data:') &&
+          photoPath.length > kMaxCloudPhotoBytes) {
+        logAppDiagnostic('Pet photo too large to cache on this device.');
+        await preferences.remove(_key(petId));
+        return;
+      }
       await preferences.setString(_key(petId), photoPath);
     } catch (_) {
       logAppDiagnostic('Pet photo could not be cached on this device.');

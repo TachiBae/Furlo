@@ -78,10 +78,11 @@ void main() {
       expect((await doc('pets', 'p1'))['photo'], small);
       expect((await doc('pets', 'p2'))['photo'], isNull);
       expect((await doc('pets', 'p3'))['photo'], isNull);
-      // The device mirror still shows the local-only photos here.
+      // Device file paths stay in the local mirror; an oversized data URI
+      // is not cached either (the form shrinks photos before this point).
       final pets = {for (final p in await repository.getPets()) p.id: p};
       expect(pets['p2']!.photoPath, '/tmp/b.jpg');
-      expect(pets['p3']!.photoPath, huge);
+      expect(pets['p3']!.photoPath, isNull);
     });
 
     test('accounts never see each other\'s pets', () async {
