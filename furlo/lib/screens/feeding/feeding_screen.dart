@@ -118,7 +118,11 @@ class _FeedingScreenState extends State<FeedingScreen> {
     final formKey = GlobalKey<FormState>();
     var name = existing?.name ?? '';
     var time = _parseTime(existing?.time ?? '08:00');
-    var frequency = existing?.frequency ?? 'Daily';
+    var secondTime = _parseTime(
+      existing?.effectiveSecondTime ??
+          FeedingEntry.defaultSecondTime(_formatTime(time)),
+    );
+    var frequency = existing?.frequency ?? FeedingFrequency.daily;
     var scheduledDate = existing?.scheduledDate ?? DateTime.now();
     var selectedPetId = existing?.petId ?? petId;
     var daysOfWeek = [...?existing?.daysOfWeek];
@@ -233,34 +237,52 @@ class _FeedingScreenState extends State<FeedingScreen> {
                       initialValue: frequency,
                       decoration: _fieldDecoration('Frequency'),
                       isExpanded: true,
-                      items:
-                          const [
-                                'Does not repeat',
-                                'Daily',
-                                'Twice daily',
-                                'Weekly',
-                                'Custom',
-                              ]
-                              .map(
-                                (value) => DropdownMenuItem(
-                                  value: value,
-                                  child: Text(value),
-                                ),
-                              )
-                              .toList(),
+                      items: FeedingFrequency.all
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(value),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setDialogState(() {
                             frequency = value;
-                            if (value == 'Daily' ||
-                                value == 'Twice daily' ||
-                                value == FeedingEntry.doesNotRepeat) {
+                            if (!FeedingFrequency.usesDays(value)) {
                               daysOfWeek.clear();
                             }
                           });
                         }
                       },
                     ),
+                    if (frequency == FeedingFrequency.twiceDaily) ...[
+                      const SizedBox(height: 16),
+                      InkWell(
+                        borderRadius: AppRadius.mdRadius,
+                        onTap: () async {
+                          final selected = await showTimePicker(
+                            context: context,
+                            initialTime: secondTime,
+                          );
+                          if (selected == null || !context.mounted) return;
+                          setDialogState(() => secondTime = selected);
+                        },
+                        child: InputDecorator(
+                          decoration: _fieldDecoration(
+                            'Second meal time',
+                            prefixIcon: const Icon(Icons.schedule_outlined),
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              secondTime.format(context),
+                              style: AppTypography.body,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (frequency == FeedingEntry.doesNotRepeat) ...[
                       const SizedBox(height: 16),
                       InkWell(
@@ -298,7 +320,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                         ),
                       ),
                     ],
-                    if (frequency == 'Weekly' || frequency == 'Custom') ...[
+                    if (FeedingFrequency.usesDays(frequency)) ...[
                       const SizedBox(height: 16),
                       Text('Days of week', style: AppTypography.label),
                       const SizedBox(height: 8),
@@ -391,8 +413,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                       if (!formKey.currentState!.validate()) {
                         return;
                       }
-                      final needsDays =
-                          frequency == 'Weekly' || frequency == 'Custom';
+                      final needsDays = FeedingFrequency.usesDays(frequency);
                       if (needsDays && daysOfWeek.isEmpty) {
                         setDialogState(() => daysError = true);
                         return;
@@ -421,6 +442,14 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                       ))
                               ? null
                               : existing?.lastFedAt,
+                          secondTime: frequency == FeedingFrequency.twiceDaily
+                              ? _formatTime(secondTime)
+                              : null,
+                          lastSecondFedAt:
+                              existing?.frequency == frequency &&
+                                  frequency == FeedingFrequency.twiceDaily
+                              ? existing?.lastSecondFedAt
+                              : null,
                         ),
                       );
                     },
@@ -464,8 +493,12 @@ class _FeedingScreenState extends State<FeedingScreen> {
     if (entry.isComplete || entry.id == null || _saving) return;
     setState(() => _saving = true);
     try {
+      final now = DateTime.now();
+      // Twice daily: the first tap feeds the first meal, the next the second.
       await widget.repository.updateFeedingSchedule(
-        entry.copyWith(lastFedAt: DateTime.now()),
+        entry.isTwiceDaily && entry.isDoneOn(now)
+            ? entry.copyWith(lastSecondFedAt: now)
+            : entry.copyWith(lastFedAt: now),
       );
       await widget.notificationService.rescheduleAll();
       await _loadSchedules();
@@ -717,7 +750,11 @@ class _FeedingScreenState extends State<FeedingScreen> {
       }
       return now.isAfter(scheduled) ? 'Overdue' : 'Upcoming';
     }
-    final parts = entry.time.split(':');
+    // Twice daily: judge by the meal still waiting to be fed.
+    final pendingTime = entry.isTwiceDaily && entry.isDoneOn(now)
+        ? entry.effectiveSecondTime
+        : entry.time;
+    final parts = pendingTime.split(':');
     final scheduled = DateTime(
       now.year,
       now.month,
@@ -843,7 +880,10 @@ class _FeedingScheduleCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         [
-                          scheduledTime,
+                          entry.isTwiceDaily
+                              ? '$scheduledTime & '
+                                    '${_parseTime(entry.effectiveSecondTime).format(context)}'
+                              : scheduledTime,
                           if (entry.frequency == FeedingEntry.doesNotRepeat &&
                               entry.scheduledDate != null)
                             MaterialLocalizations.of(
@@ -917,7 +957,11 @@ class _FeedingScheduleCard extends StatelessWidget {
                       size: 18,
                     ),
                     label: Text(
-                      entry.isComplete ? 'Done' : 'Mark fed',
+                      entry.isComplete
+                          ? 'Done'
+                          : entry.isTwiceDaily && entry.isDoneOn(DateTime.now())
+                          ? 'Mark second meal fed'
+                          : 'Mark fed',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

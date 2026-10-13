@@ -67,6 +67,169 @@ bool notificationPayloadIsOwnedByScope(String payload, {String? storageScope}) {
       fields.first == userStorageScopeToken(storageScope);
 }
 
+/// One reminder [LocalNotificationService] should schedule.
+@immutable
+class PlannedReminder {
+  const PlannedReminder({
+    required this.type,
+    required this.recordKey,
+    required this.title,
+    required this.body,
+    required this.fireAt,
+    this.repeat = NotificationRepeat.none,
+  });
+
+  final String type;
+
+  /// Distinct per notification of one record (e.g. `5:w3` for Wednesday), so
+  /// each gets its own stable id.
+  final String recordKey;
+  final String title;
+  final String body;
+  final DateTime fireAt;
+  final NotificationRepeat repeat;
+}
+
+/// Feeding reminders for one schedule, kept pure so the rules are testable.
+///
+/// - Daily: one reminder repeating every day.
+/// - Twice daily: one repeating reminder per meal time.
+/// - Weekly / Custom: one reminder per chosen weekday, repeating weekly, so
+///   nothing fires on days the pet is not fed.
+/// - Does not repeat: a single reminder on its date.
+///
+/// Repeating meals also get a one-shot missed-meal nudge an hour after their
+/// next occurrence, unless that meal is already marked fed.
+List<PlannedReminder> planFeedingReminders({
+  required String petName,
+  required FeedingEntry entry,
+  required DateTime now,
+  required bool feedingEnabled,
+  required bool missedEnabled,
+}) {
+  final id = entry.id;
+  if (id == null || !entry.remindMe) return const [];
+  final reminders = <PlannedReminder>[];
+  final title = 'Feeding reminder';
+  final body = '$petName is due for ${entry.name}.';
+
+  void missed(String key, DateTime nextMeal, String mealName) {
+    if (!missedEnabled) return;
+    reminders.add(
+      PlannedReminder(
+        type: NotificationTypes.missedMeal,
+        recordKey: key,
+        title: 'Missed meal reminder',
+        body: '$petName may have missed $mealName.',
+        fireAt: nextMeal.add(const Duration(minutes: 60)),
+      ),
+    );
+  }
+
+  if (entry.frequency == FeedingFrequency.doesNotRepeat) {
+    final date = entry.scheduledDate;
+    if (date == null || entry.isComplete) return const [];
+    final fire = calculateOneTimeFeedingFireTime(
+      now: now,
+      enabled: feedingEnabled,
+      date: date,
+      time: entry.time,
+    );
+    if (fire == null) return const [];
+    return [
+      PlannedReminder(
+        type: NotificationTypes.dailyFeeding,
+        recordKey: id,
+        title: title,
+        body: body,
+        fireAt: fire,
+      ),
+    ];
+  }
+
+  if (FeedingFrequency.usesDays(entry.frequency)) {
+    final days = entry.daysOfWeek.toSet().where((d) => d >= 1 && d <= 7);
+    DateTime? soonest;
+    for (final day in days.toList()..sort()) {
+      final fire = _nextWeekdayAt(now, day, entry.time);
+      if (feedingEnabled) {
+        reminders.add(
+          PlannedReminder(
+            type: NotificationTypes.dailyFeeding,
+            recordKey: '$id:w$day',
+            title: title,
+            body: body,
+            fireAt: fire,
+            repeat: NotificationRepeat.weekly,
+          ),
+        );
+      }
+      // A meal already fed today does not count as the next missed one.
+      final next = entry.isDoneOn(now) && _sameDate(fire, now)
+          ? fire.add(const Duration(days: 7))
+          : fire;
+      if (soonest == null || next.isBefore(soonest)) soonest = next;
+    }
+    if (soonest != null) missed(id, soonest, entry.name);
+    return reminders;
+  }
+
+  // Daily, twice daily, and any unrecognised stored value (treated as daily).
+  final meals = <(String key, String time, bool doneToday, String name)>[
+    (id, entry.time, entry.isDoneOn(now), entry.name),
+    if (entry.isTwiceDaily)
+      (
+        '$id:2',
+        entry.effectiveSecondTime,
+        entry.isSecondDoneOn(now),
+        '${entry.name} (second meal)',
+      ),
+  ];
+  for (final (key, time, doneToday, mealName) in meals) {
+    if (feedingEnabled) {
+      reminders.add(
+        PlannedReminder(
+          type: NotificationTypes.dailyFeeding,
+          recordKey: key,
+          title: title,
+          body: entry.isTwiceDaily ? '$petName is due for $mealName.' : body,
+          fireAt: _nextTime(now, time),
+          repeat: NotificationRepeat.daily,
+        ),
+      );
+    }
+    var nextMeal = _nextTime(now, time);
+    if (doneToday && _sameDate(nextMeal, now)) {
+      nextMeal = nextMeal.add(const Duration(days: 1));
+    }
+    missed(key, nextMeal, mealName);
+  }
+  return reminders;
+}
+
+/// Next [weekday] (1 = Monday) at [time] strictly after [now].
+DateTime _nextWeekdayAt(DateTime now, int weekday, String time) {
+  final today = _nextTime(now, time);
+  // _nextTime already rolled to tomorrow when today's time has passed.
+  var candidate = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    today.hour,
+    today.minute,
+  );
+  var offset = (weekday - now.weekday) % 7;
+  if (offset == 0 && !candidate.isAfter(now)) offset = 7;
+  candidate = DateTime(
+    candidate.year,
+    candidate.month,
+    candidate.day + offset,
+    candidate.hour,
+    candidate.minute,
+  );
+  return candidate;
+}
+
 DateTime? calculateOneTimeFeedingFireTime({
   required DateTime now,
   required bool enabled,
@@ -513,58 +676,28 @@ class LocalNotificationService implements NotificationService {
 
   Future<void> _scheduleFeeding(Pet pet, String petId) async {
     final schedules = await repository.getFeedingSchedules(petId);
+    if (schedules.isEmpty) return;
+    final feedingEnabled = await settings.isEnabled(
+      NotificationTypes.dailyFeeding,
+    );
+    final missedEnabled = await settings.isEnabled(
+      NotificationTypes.missedMeal,
+    );
     for (final entry in schedules) {
-      final id = entry.id;
-      if (id == null || !entry.remindMe) continue;
-      final now = DateTime.now();
-      final isOneTime = entry.frequency == FeedingEntry.doesNotRepeat;
-      final scheduledDate = entry.scheduledDate;
-      if (isOneTime &&
-          (scheduledDate == null ||
-              scheduledDate.isBefore(DateTime(now.year, now.month, now.day)) ||
-              entry.isComplete)) {
-        continue;
-      }
-      final feedDate = isOneTime
-          ? calculateOneTimeFeedingFireTime(
-              now: now,
-              enabled: await settings.isEnabled(NotificationTypes.dailyFeeding),
-              date: scheduledDate!,
-              time: entry.time,
-            )
-          : calculateNotificationFireTime(
-              type: NotificationTypes.dailyFeeding,
-              now: now,
-              enabled: await settings.isEnabled(NotificationTypes.dailyFeeding),
-              time: entry.time,
-            );
-      if (feedDate == null) continue;
-      final title = 'Feeding reminder';
-      final body = '${pet.name} is due for ${entry.name}.';
-      await schedule(
-        NotificationTypes.dailyFeeding,
-        id,
-        title,
-        body,
-        feedDate,
-        repeat: isOneTime ? NotificationRepeat.none : NotificationRepeat.daily,
-      );
-      final missed = isOneTime
-          ? null
-          : calculateNotificationFireTime(
-              type: NotificationTypes.missedMeal,
-              now: now,
-              enabled: await settings.isEnabled(NotificationTypes.missedMeal),
-              time: entry.time,
-              isDone: entry.doneToday,
-            );
-      if (missed != null) {
+      for (final reminder in planFeedingReminders(
+        petName: pet.name,
+        entry: entry,
+        now: DateTime.now(),
+        feedingEnabled: feedingEnabled,
+        missedEnabled: missedEnabled,
+      )) {
         await schedule(
-          NotificationTypes.missedMeal,
-          id,
-          'Missed meal reminder',
-          '${pet.name} may have missed ${entry.name}.',
-          missed,
+          reminder.type,
+          reminder.recordKey,
+          reminder.title,
+          reminder.body,
+          reminder.fireAt,
+          repeat: reminder.repeat,
         );
       }
     }

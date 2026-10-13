@@ -118,8 +118,7 @@ abstract class PetRecordsProvider<T> extends ChangeNotifier {
     }
   }
 
-  bool _isStale(int generation) =>
-      _disposed || generation != _loadGeneration;
+  bool _isStale(int generation) => _disposed || generation != _loadGeneration;
 
   void _notify() {
     if (!_disposed) notifyListeners();

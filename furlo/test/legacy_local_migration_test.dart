@@ -124,19 +124,15 @@ void main() {
         await deviceWide.addFeedingSchedule(
           FeedingEntry(id: '1', petId: '1', name: 'Breakfast', time: '08:00'),
         );
-        await deviceWide.addVet(
-          Vet(id: '1', name: 'Dr Kim', phone: '5551'),
-          ['1'],
-        );
+        await deviceWide.addVet(Vet(id: '1', name: 'Dr Kim', phone: '5551'), [
+          '1',
+        ]);
         final scoped = WebPetRepository(storageScope: 'old-scope');
         await scoped.addPet(Pet(id: '1', name: 'Rex', species: 'Dog'));
         await scoped.addFeedingSchedule(
           FeedingEntry(id: '1', petId: '1', name: 'Dinner', time: '18:00'),
         );
-        await scoped.addVet(
-          Vet(id: '1', name: 'Dr Lee', phone: '5552'),
-          ['1'],
-        );
+        await scoped.addVet(Vet(id: '1', name: 'Dr Lee', phone: '5552'), ['1']);
         return (deviceWide, scoped);
       }
 

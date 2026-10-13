@@ -77,17 +77,26 @@ TodayReminderResult buildTodayReminders({
         !feeding.isScheduledOn(today)) {
       continue;
     }
-    reminders.add(
-      HomeReminder(
-        petId: feeding.petId,
-        petName: pet.name,
-        title: feeding.name,
-        type: ReminderType.feeding,
-        urgency: ReminderUrgency.today,
-        time: feeding.time,
-        date: _dateAtTime(todayOnly, feeding.time),
-      ),
-    );
+    // A twice-daily schedule lists each meal that is still unfed on its own.
+    final meals = <(String title, String time)>[
+      if (!feeding.isTwiceDaily || !feeding.isDoneOn(today))
+        (feeding.name, feeding.time),
+      if (feeding.isTwiceDaily && !feeding.isSecondDoneOn(today))
+        ('${feeding.name} (second meal)', feeding.effectiveSecondTime),
+    ];
+    for (final (title, time) in meals) {
+      reminders.add(
+        HomeReminder(
+          petId: feeding.petId,
+          petName: pet.name,
+          title: title,
+          type: ReminderType.feeding,
+          urgency: ReminderUrgency.today,
+          time: time,
+          date: _dateAtTime(todayOnly, time),
+        ),
+      );
+    }
   }
 
   for (final vaccination in vaccinations) {

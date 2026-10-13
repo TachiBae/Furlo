@@ -1126,6 +1126,8 @@ Future<void> _createFeedingSchedulesTable(Database db) => db.execute('''
     remind_me INTEGER NOT NULL DEFAULT 0,
     last_fed_at TEXT,
     done_today INTEGER NOT NULL DEFAULT 0,
+    second_time TEXT,
+    last_second_fed_at TEXT,
     FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
   )
       ''');
@@ -1138,6 +1140,8 @@ Future<void> _ensureFeedingScheduleColumns(Database db) async {
     'portion_size': 'TEXT',
     'remind_me': 'INTEGER NOT NULL DEFAULT 0',
     'scheduled_date': 'TEXT',
+    'second_time': 'TEXT',
+    'last_second_fed_at': 'TEXT',
   };
   for (final entry in additions.entries) {
     if (!names.contains(entry.key)) {
@@ -1228,6 +1232,12 @@ Map<String, Object?> _feedingEntryToMap(FeedingEntry entry) => {
   'remind_me': entry.remindMe ? 1 : 0,
   'last_fed_at': entry.lastFedAt?.toIso8601String(),
   'done_today': entry.doneToday ? 1 : 0,
+  // Written only when set: the deployed Firestore rules whitelist document
+  // keys, so absent-when-unused keeps every other schedule writable even
+  // before rules that know these fields are deployed.
+  if (entry.secondTime != null) 'second_time': entry.secondTime,
+  if (entry.lastSecondFedAt != null)
+    'last_second_fed_at': entry.lastSecondFedAt!.toIso8601String(),
 };
 
 FeedingEntry _feedingEntryFromMap(Map<String, Object?> row) => FeedingEntry(
@@ -1249,6 +1259,12 @@ FeedingEntry _feedingEntryFromMap(Map<String, Object?> row) => FeedingEntry(
       row['remind_me']?.toString() == '1' ||
       row['remind_me']?.toString().toLowerCase() == 'true',
   lastFedAt: DateTime.tryParse(row['last_fed_at']?.toString() ?? ''),
+  secondTime: (row['second_time']?.toString().isEmpty ?? true)
+      ? null
+      : row['second_time'].toString(),
+  lastSecondFedAt: DateTime.tryParse(
+    row['last_second_fed_at']?.toString() ?? '',
+  ),
 );
 
 Map<String, Object?> _decodeMap(String value) => Map<String, Object?>.from(
