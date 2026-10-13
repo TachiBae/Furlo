@@ -267,23 +267,55 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final latest = logs.first;
     final change = weightChangeSincePrevious(logs);
+    final trend = weightTrend(logs);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: _SummaryValue(
-              label: 'Current weight',
-              value: _weight(latest.weight),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryValue(
+                  label: 'Current weight',
+                  value: _weight(latest.weight),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SummaryValue(
+                  label: 'Change',
+                  value: change == null ? '—' : formatWeightChange(change),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _SummaryValue(
-              label: 'Change',
-              value: change == null ? '—' : _formatChange(change),
+          if (trend != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+              child: Row(
+                children: [
+                  Icon(
+                    trend.change > 0.005
+                        ? Icons.trending_up
+                        : trend.change < -0.005
+                        ? Icons.trending_down
+                        : Icons.trending_flat,
+                    size: 18,
+                    color: context.appColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      weightTrendText(trend),
+                      style: AppTypography.body.copyWith(
+                        color: context.appColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -550,12 +582,3 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
 
 String _weight(double value) =>
     '${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2)} $weightUnit';
-String _formatChange(double change) {
-  final twoPlaces = change.toStringAsFixed(2);
-  final amount = twoPlaces.endsWith('00')
-      ? change.toStringAsFixed(1)
-      : twoPlaces.endsWith('0')
-      ? twoPlaces.substring(0, twoPlaces.length - 1)
-      : twoPlaces;
-  return '${change > 0 ? '+' : ''}$amount $weightUnit';
-}
