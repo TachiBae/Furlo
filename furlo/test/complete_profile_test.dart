@@ -17,6 +17,12 @@ import 'helpers/fake_auth_service.dart';
 
 /// Profile marker store whose behaviour each test drives.
 class _FakeAccountProfileRepository implements AccountProfileRepository {
+  @override
+  Future<String?> getDisplayName(String uid) async => null;
+
+  @override
+  Future<void> setDisplayName(String uid, String displayName) async {}
+
   _FakeAccountProfileRepository({this.requiresCompletion = false});
 
   bool requiresCompletion;

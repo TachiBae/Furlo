@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/account_onboarding_repository.dart';
+import '../utils/app_diagnostics.dart';
 import '../utils/form_input.dart';
 import '../utils/user_storage_scope.dart';
 
@@ -101,4 +103,52 @@ String? validateDisplayName(String? value) {
     return maxLengthMessage(AppFieldLimits.shortName);
   }
   return null;
+}
+
+/// Display name kept on the account, with this device's copy as a cache.
+///
+/// Reads prefer the account's name (and refresh the cache), so a name set
+/// on one device shows on every other; when the account cannot be reached
+/// the cached name is used. Writes go to both, the device first, so the
+/// greeting updates even if the cloud write then fails (and is reported).
+class AccountSyncedAppSettingsRepository implements AppSettingsRepository {
+  AccountSyncedAppSettingsRepository({
+    required this.local,
+    required this.profile,
+    required this.uid,
+  });
+
+  final AppSettingsRepository local;
+  final AccountProfileRepository profile;
+  final String uid;
+
+  @override
+  Future<String> getDisplayName() async {
+    try {
+      final cloud = (await profile.getDisplayName(uid))?.trim();
+      if (cloud != null && cloud.isNotEmpty) {
+        try {
+          await local.setDisplayName(cloud);
+        } catch (_) {
+          // The cache is a convenience; the account copy was still read.
+        }
+        return cloud;
+      }
+    } catch (_) {
+      logAppDiagnostic('Account display name could not be read.');
+    }
+    return local.getDisplayName();
+  }
+
+  @override
+  Future<void> setDisplayName(String value) async {
+    await local.setDisplayName(value);
+    await profile.setDisplayName(uid, value.trim());
+  }
+
+  @override
+  Future<void> clearDisplayName() async {
+    await local.clearDisplayName();
+    await profile.setDisplayName(uid, '');
+  }
 }

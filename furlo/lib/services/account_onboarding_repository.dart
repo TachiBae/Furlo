@@ -67,6 +67,12 @@ abstract interface class AccountProfileRepository {
 
   /// Records that the account's first pet was saved.
   Future<void> markSetupComplete(String uid);
+
+  /// The display name saved on the account, or null when none was saved.
+  Future<String?> getDisplayName(String uid);
+
+  /// Saves the display name on the account, so every device shows it.
+  Future<void> setDisplayName(String uid, String displayName);
 }
 
 /// [AccountProfileRepository] backed by `users/{uid}/settings/profile`.
@@ -125,6 +131,19 @@ class FirestoreAccountProfileRepository implements AccountProfileRepository {
     _setupField: true,
     'updatedAt': DateTime.now().toIso8601String(),
   }, SetOptions(merge: true));
+
+  @override
+  Future<String?> getDisplayName(String uid) async {
+    final value = (await _document(uid).get()).data()?['displayName'];
+    return value is String ? value : null;
+  }
+
+  @override
+  Future<void> setDisplayName(String uid, String displayName) =>
+      _document(uid).set({
+        'displayName': displayName,
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
 }
 
 /// [AccountProfileRepository] that never asks for setup work.
@@ -154,4 +173,10 @@ class NoOpAccountProfileRepository implements AccountProfileRepository {
 
   @override
   Future<void> markSetupComplete(String uid) async {}
+
+  @override
+  Future<String?> getDisplayName(String uid) async => null;
+
+  @override
+  Future<void> setDisplayName(String uid, String displayName) async {}
 }

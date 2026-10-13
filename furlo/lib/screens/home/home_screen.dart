@@ -31,6 +31,7 @@ class HomeScreen extends StatefulWidget {
     required this.notificationSettings,
     required this.notificationService,
     this.storageScope,
+    this.appSettings,
   });
 
   final PetRepository repository;
@@ -38,12 +39,17 @@ class HomeScreen extends StatefulWidget {
   final NotificationService notificationService;
   final String? storageScope;
 
+  /// Where the display name lives. The signed-in app passes the
+  /// account-synced store; without one this device's store is used.
+  final AppSettingsRepository? appSettings;
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   late final AppSettingsRepository _appSettings =
+      widget.appSettings ??
       SharedPreferencesAppSettingsRepository(storageScope: widget.storageScope);
   late final HomeRemindersProvider _remindersProvider = HomeRemindersProvider(
     widget.repository,

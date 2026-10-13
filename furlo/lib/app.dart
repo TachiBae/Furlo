@@ -681,6 +681,13 @@ class _AuthGateState extends State<_AuthGate> {
         notificationSettings: notificationSettings,
         notificationService: notificationService,
         storageScope: _user!.uid,
+        appSettings: AccountSyncedAppSettingsRepository(
+          local: SharedPreferencesAppSettingsRepository(
+            storageScope: _user!.uid,
+          ),
+          profile: _profileRepository ?? const NoOpAccountProfileRepository(),
+          uid: _user!.uid,
+        ),
       ),
     );
   }
@@ -710,6 +717,7 @@ class _StartupGate extends StatelessWidget {
     required this.notificationSettings,
     required this.notificationService,
     required this.storageScope,
+    required this.appSettings,
   });
 
   final AccountOnboardingRepository? accountOnboardingRepository;
@@ -720,6 +728,7 @@ class _StartupGate extends StatelessWidget {
   final NotificationSettingsRepository notificationSettings;
   final NotificationService notificationService;
   final String storageScope;
+  final AppSettingsRepository appSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -767,6 +776,7 @@ class _StartupGate extends StatelessWidget {
       notificationSettings: notificationSettings,
       notificationService: notificationService,
       storageScope: storageScope,
+      appSettings: appSettings,
     );
   }
 }
