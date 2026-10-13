@@ -22,6 +22,7 @@ import '../../screens/weight/weight_tracking_screen.dart';
 import '../../services/notifications_service.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/formatting.dart';
 import '../../widgets/record_components.dart';
 
 part 'widgets/all_pets_screen.dart';

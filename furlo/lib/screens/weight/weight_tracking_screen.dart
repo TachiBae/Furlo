@@ -370,6 +370,12 @@ class _WeightTrendChart extends StatelessWidget {
         .toDouble()
         .clamp(1, chronological.length)
         .toDouble();
+    // Labels sit on the grid lines. Without a shared interval fl_chart also
+    // labels the exact min and max, which round to the same text as a
+    // neighbouring grid label and overlap it.
+    final gridInterval = ((maxValue - minValue).abs() / 3)
+        .clamp(.5, double.infinity)
+        .toDouble();
     final maxX = chronological.length <= 1
         ? 1.0
         : (chronological.length - 1).toDouble();
@@ -382,10 +388,7 @@ class _WeightTrendChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: ((maxValue - minValue).abs() / 3).clamp(
-            .5,
-            double.infinity,
-          ),
+          horizontalInterval: gridInterval,
           getDrawingHorizontalLine: (_) => FlLine(
             color: context.appColors.textDisabled.withValues(alpha: .35),
             strokeWidth: 1,
@@ -404,6 +407,9 @@ class _WeightTrendChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 42,
+              interval: gridInterval,
+              minIncluded: false,
+              maxIncluded: false,
               getTitlesWidget: (value, meta) => SideTitleWidget(
                 meta: meta,
                 child: Text(

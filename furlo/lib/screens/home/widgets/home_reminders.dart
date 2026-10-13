@@ -234,7 +234,8 @@ class _ReminderTile extends StatelessWidget {
         date.day == today.day) {
       return 'Today';
     }
-    return '${date.month}/${date.day}';
+    // Same month-name style as dates elsewhere in the app ('Oct 5').
+    return formatMonthDay(date);
   }
 
   String _urgencyLabel(ReminderUrgency urgency) => switch (urgency) {
