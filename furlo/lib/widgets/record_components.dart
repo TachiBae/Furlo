@@ -303,3 +303,84 @@ class RecordDetailRow extends StatelessWidget {
     ],
   );
 }
+
+/// Placeholder cards shown while a record list loads, shaped like
+/// [RecordCard] rows so the screen keeps its layout instead of flashing a
+/// lone spinner. Deliberately static: no shimmer, so it respects reduced
+/// motion and never keeps a frame loop alive.
+class RecordListSkeleton extends StatelessWidget {
+  const RecordListSkeleton({
+    super.key,
+    this.count = 3,
+    this.padding = const EdgeInsets.fromLTRB(
+      AppSpacing.md,
+      AppSpacing.sm,
+      AppSpacing.md,
+      0,
+    ),
+  });
+
+  final int count;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final bar = context.appColors.textDisabled.withValues(alpha: 0.25);
+    Widget line(double widthFactor, double height) => FractionallySizedBox(
+      alignment: Alignment.centerLeft,
+      widthFactor: widthFactor,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(color: bar, borderRadius: AppRadius.smRadius),
+      ),
+    );
+    return Semantics(
+      label: 'Loading',
+      container: true,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: padding,
+          child: Column(
+            children: [
+              for (var index = 0; index < count; index++)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: context.appColors.surface,
+                    borderRadius: AppRadius.lgRadius,
+                    border: Border.all(
+                      color: context.appColors.primary.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: bar,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            line(0.6, 14),
+                            const SizedBox(height: AppSpacing.sm),
+                            line(0.4, 10),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

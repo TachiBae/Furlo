@@ -112,10 +112,7 @@ class _WeightTrackingViewState extends State<_WeightTrackingView> {
                         ),
                       ),
                     if (state.loading)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(child: CircularProgressIndicator()),
-                      )
+                      const SliverToBoxAdapter(child: RecordListSkeleton())
                     else if (state.error != null)
                       SliverFillRemaining(
                         hasScrollBody: false,

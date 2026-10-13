@@ -640,10 +640,9 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                   ),
                                 ),
                                 if (_loading)
-                                  const SliverFillRemaining(
-                                    hasScrollBody: false,
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
+                                  const SliverToBoxAdapter(
+                                    child: RecordListSkeleton(
+                                      padding: EdgeInsets.zero,
                                     ),
                                   )
                                 else if (_error != null && _schedules.isEmpty)

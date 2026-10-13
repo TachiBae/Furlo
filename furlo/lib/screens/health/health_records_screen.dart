@@ -138,10 +138,7 @@ class _HealthRecordsViewState extends State<_HealthRecordsView> {
                       ),
                     ),
                     if (state.loading)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(child: CircularProgressIndicator()),
-                      )
+                      const SliverToBoxAdapter(child: RecordListSkeleton())
                     else if (state.error != null)
                       SliverFillRemaining(
                         hasScrollBody: false,

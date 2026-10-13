@@ -10,6 +10,7 @@ import 'package:furlo/providers/weight_tracking_provider.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
 import 'package:furlo/utils/app_theme.dart';
+import 'package:furlo/widgets/record_components.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Every record load waits until the test releases it.
@@ -106,7 +107,9 @@ void main() {
     // A spinner never settles, so pump through the route transitions.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // Loading shows placeholder cards, labelled for screen readers.
+    expect(find.byType(RecordListSkeleton), findsOneWidget);
+    expect(find.bySemanticsLabel('Loading'), findsOneWidget);
 
     navigatorKey.currentState!.pop();
     await tester.pump();

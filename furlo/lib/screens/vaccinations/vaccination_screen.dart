@@ -163,10 +163,7 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                       ),
                     ),
                     if (state.loading)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(child: CircularProgressIndicator()),
-                      )
+                      const SliverToBoxAdapter(child: RecordListSkeleton())
                     else if (state.error != null)
                       SliverFillRemaining(
                         hasScrollBody: false,

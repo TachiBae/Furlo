@@ -189,10 +189,7 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
               ),
             ),
             if (_loading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const SliverToBoxAdapter(child: RecordListSkeleton())
             else if (_loadError)
               SliverFillRemaining(
                 hasScrollBody: false,

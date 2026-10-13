@@ -976,10 +976,7 @@ class _HomeRemindersSection extends StatelessWidget {
     child: Consumer<HomeRemindersProvider>(
       builder: (context, state, _) {
         if (state.loading && state.reminders.isEmpty) {
-          return const SizedBox(
-            height: 84,
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return const RecordListSkeleton(count: 2, padding: EdgeInsets.zero);
         }
         if (state.hasError && state.reminders.isEmpty) {
           return Container(
