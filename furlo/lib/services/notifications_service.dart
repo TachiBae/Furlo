@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -34,6 +36,81 @@ abstract interface class NotificationService {
   Future<void> cancelAllOfType(String type);
   Future<void> rescheduleAll();
   Future<void> clearScheduled();
+
+  /// Reminders the user tapped, or acted on, including the one that launched
+  /// the app. Broadcast; a tap that arrives before anyone listens is kept.
+  Stream<NotificationTap> get taps;
+}
+
+/// Action id of the "Mark fed" button on feeding reminders.
+const markFedActionId = 'mark_fed';
+
+/// iOS category that carries the "Mark fed" action.
+const feedingCategoryId = 'feeding';
+
+/// What the user did with one delivered reminder.
+@immutable
+class NotificationTap {
+  const NotificationTap({
+    required this.type,
+    required this.recordId,
+    this.slot,
+    this.petId,
+    this.markFed = false,
+  });
+
+  /// A [NotificationTypes] value.
+  final String type;
+
+  /// The schedule, vaccination, health record or (appointments) vet id.
+  final String recordId;
+
+  /// Which notification of the record: `2` = second meal, `w3` = Wednesday.
+  final String? slot;
+
+  /// Set for appointment reminders, whose key names the pet directly.
+  final String? petId;
+
+  /// The "Mark fed" action was pressed rather than the notification body.
+  final bool markFed;
+
+  bool get isSecondMeal => slot == '2';
+}
+
+/// Decodes the payload [LocalNotificationService] writes:
+/// `[{scope}|]{type}|[{scope}:]{recordKey}`, where recordKey is the record id
+/// with an optional `:slot` (or `vetId:petId` for appointments).
+///
+/// Returns null for payloads of another account, or ones it cannot read.
+NotificationTap? parseNotificationTap(
+  String? payload, {
+  String? actionId,
+  String? storageScope,
+}) {
+  if (payload == null ||
+      !notificationPayloadIsOwnedByScope(payload, storageScope: storageScope)) {
+    return null;
+  }
+  final fields = payload.split('|');
+  final type = storageScope == null ? fields.first : fields[1];
+  var parts = (storageScope == null ? fields.last : fields.sublist(2).join('|'))
+      .split(':');
+  if (storageScope != null) {
+    // The record key repeats the scope token first.
+    if (parts.length < 2) return null;
+    parts = parts.sublist(1);
+  }
+  if (parts.first.isEmpty) return null;
+  if (type == NotificationTypes.vetAppointment) {
+    if (parts.length < 2) return null;
+    return NotificationTap(type: type, recordId: parts[0], petId: parts[1]);
+  }
+  return NotificationTap(
+    type: type,
+    recordId: parts[0],
+    slot: parts.length > 1 ? parts[1] : null,
+    markFed: actionId == markFedActionId,
+  );
 }
 
 NotificationService createNotificationService({
@@ -338,6 +415,8 @@ DateTime _nextMedicationTime(DateTime now, DateTime start, String frequency) {
 class NoOpNotificationService implements NotificationService {
   const NoOpNotificationService();
   @override
+  Stream<NotificationTap> get taps => const Stream.empty();
+  @override
   Future<void> initialize() async {}
   @override
   Future<bool> requestPermission() async => true;
@@ -379,6 +458,33 @@ class LocalNotificationService implements NotificationService {
   static const _timezoneChannel = MethodChannel('furlo/device_timezone');
   bool _initialized = false;
   tz.Location _localLocation = tz.UTC;
+  static bool _launchTapDelivered = false;
+  final _pendingTaps = <NotificationTap>[];
+  late final StreamController<NotificationTap> _taps =
+      StreamController<NotificationTap>.broadcast(
+        onListen: () {
+          final pending = List.of(_pendingTaps);
+          _pendingTaps.clear();
+          pending.forEach(_taps.add);
+        },
+      );
+
+  @override
+  Stream<NotificationTap> get taps => _taps.stream;
+
+  void _onResponse(NotificationResponse response) {
+    final tap = parseNotificationTap(
+      response.payload,
+      actionId: response.actionId,
+      storageScope: storageScope,
+    );
+    if (tap == null) return;
+    if (_taps.hasListener) {
+      _taps.add(tap);
+    } else {
+      _pendingTaps.add(tap);
+    }
+  }
 
   @override
   Future<void> initialize() async {
@@ -395,15 +501,39 @@ class LocalNotificationService implements NotificationService {
       }
       tz.setLocalLocation(_localLocation);
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const darwin = DarwinInitializationSettings(
+      final darwin = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
         requestSoundPermission: false,
+        notificationCategories: [
+          DarwinNotificationCategory(
+            feedingCategoryId,
+            actions: [
+              DarwinNotificationAction.plain(
+                markFedActionId,
+                'Mark fed',
+                // Opens the app, so the save runs with a signed-in session.
+                options: {DarwinNotificationActionOption.foreground},
+              ),
+            ],
+          ),
+        ],
       );
       await _plugin.initialize(
-        settings: const InitializationSettings(android: android, iOS: darwin),
+        settings: InitializationSettings(android: android, iOS: darwin),
+        onDidReceiveNotificationResponse: _onResponse,
       );
       _initialized = true;
+      // A tap on a reminder while the app was closed launches it; deliver
+      // that tap once per app run, not again for a later session.
+      if (!_launchTapDelivered) {
+        _launchTapDelivered = true;
+        final launch = await _plugin.getNotificationAppLaunchDetails();
+        final response = launch?.notificationResponse;
+        if (launch?.didNotificationLaunchApp == true && response != null) {
+          _onResponse(response);
+        }
+      }
     } catch (_) {
       // Notification failures never stop app startup.
     }
@@ -541,18 +671,29 @@ class LocalNotificationService implements NotificationService {
           ? ''
           : '${userStorageScopeToken(storageScope!)}|';
       final payload = '$scopePrefix$type|$recordKey';
-      final details = const NotificationDetails(
+      final feeding = type == NotificationTypes.dailyFeeding;
+      final details = NotificationDetails(
         android: AndroidNotificationDetails(
           'furlo_reminders',
           'Furlo reminders',
           channelDescription: 'Pet care reminders',
           importance: Importance.high,
           priority: Priority.high,
+          actions: feeding
+              ? const [
+                  AndroidNotificationAction(
+                    markFedActionId,
+                    'Mark fed',
+                    showsUserInterface: true,
+                  ),
+                ]
+              : null,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          categoryIdentifier: feeding ? feedingCategoryId : null,
         ),
       );
       final scheduled = tz.TZDateTime.from(dateTime, _localLocation);

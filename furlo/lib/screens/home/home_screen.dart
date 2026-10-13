@@ -54,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // pets view, so identity changes only when the list itself changes.
   List<Pet>? _remindersBuiltFor;
   int _activeTab = 0;
+  StreamSubscription<NotificationTap>? _tapSubscription;
   String _displayName = '';
 
   @override
@@ -62,6 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _furloState = context.read<FurloState>();
     _furloState.addListener(_onFurloStateChanged);
     _refreshReminders();
+    _tapSubscription = widget.notificationService.taps.listen(
+      _handleNotificationTap,
+    );
     _loadDisplayName();
   }
 
@@ -90,6 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    unawaited(_tapSubscription?.cancel());
     _furloState.removeListener(_onFurloStateChanged);
     _remindersProvider.dispose();
     super.dispose();
@@ -162,8 +167,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openReminder(HomeReminder reminder, List<Pet> pets) {
     final pet = pets.where((item) => item.id == reminder.petId).firstOrNull;
     if (pet == null) return;
+    _openRecordScreen(reminder.type, pet, pets);
+  }
+
+  /// Opens the screen that owns a [type] of record, with [pet] selected.
+  void _openRecordScreen(ReminderType type, Pet pet, List<Pet> pets) {
     Widget screen;
-    switch (reminder.type) {
+    switch (type) {
       case ReminderType.feeding:
         screen = FeedingScreen(
           repository: widget.repository,
@@ -193,6 +203,83 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     context.read<FurloState?>()?.selectPet(pet);
     _open(screen);
+  }
+
+  /// A tapped reminder opens its screen for its pet; "Mark fed" feeds the
+  /// meal without leaving the dashboard.
+  Future<void> _handleNotificationTap(NotificationTap tap) async {
+    try {
+      final target = await _resolveTap(tap);
+      if (target == null || !mounted) return;
+      final (type, pet, title) = target;
+      if (tap.markFed && type == ReminderType.feeding) {
+        await _remindersProvider.markFed(
+          HomeReminder(
+            petId: pet.id!,
+            petName: pet.name,
+            title: title,
+            type: type,
+            urgency: ReminderUrgency.today,
+            recordId: tap.recordId,
+            secondMeal: tap.isSecondMeal,
+          ),
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$title marked fed.')));
+        return;
+      }
+      _furloState.selectPet(pet);
+      _openRecordScreen(type, pet, _furloState.pets);
+    } catch (_) {
+      logAppDiagnostic('Notification tap could not be handled.');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('That reminder could not be opened.')),
+      );
+    }
+  }
+
+  /// The screen type, pet and record title a reminder belongs to, or null
+  /// when the record or its pet no longer exists.
+  Future<(ReminderType, Pet, String)?> _resolveTap(NotificationTap tap) async {
+    final repository = widget.repository;
+    ReminderType type;
+    String? petId;
+    var title = '';
+    switch (tap.type) {
+      case NotificationTypes.dailyFeeding:
+      case NotificationTypes.missedMeal:
+        final entry = (await repository.getAllFeedingSchedules())
+            .where((item) => item.id == tap.recordId)
+            .firstOrNull;
+        type = ReminderType.feeding;
+        petId = entry?.petId;
+        title = entry?.name ?? '';
+      case NotificationTypes.upcomingVaccine:
+      case NotificationTypes.overdueVaccine:
+        final record = (await repository.getAllVaccinations())
+            .where((item) => item.id == tap.recordId)
+            .firstOrNull;
+        type = ReminderType.vaccination;
+        petId = record?.petId;
+        title = record?.vaccineName ?? '';
+      case NotificationTypes.medication:
+        final record = (await repository.getAllHealthRecords())
+            .where((item) => item.id == tap.recordId)
+            .firstOrNull;
+        type = ReminderType.medication;
+        petId = record?.petId;
+        title = record?.title ?? '';
+      case NotificationTypes.vetAppointment:
+        type = ReminderType.vetAppointment;
+        petId = tap.petId;
+      default:
+        return null;
+    }
+    final pet = _furloState.pets.where((item) => item.id == petId).firstOrNull;
+    return pet == null ? null : (type, pet, title);
   }
 
   Future<void> _markFed(HomeReminder reminder) async {

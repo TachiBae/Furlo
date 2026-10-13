@@ -5,6 +5,8 @@ import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/services/notifications_service.dart';
 
 class _FakeNotificationService implements NotificationService {
+  @override
+  Stream<NotificationTap> get taps => const Stream.empty();
   bool granted = true;
   int permissionRequests = 0;
   int rescheduleCalls = 0;

@@ -18,6 +18,8 @@ import 'helpers/fake_auth_service.dart';
 import 'helpers/fake_account_onboarding_repository.dart';
 
 class _FakeNotificationService implements NotificationService {
+  @override
+  Stream<NotificationTap> get taps => const Stream.empty();
   bool cancelledAll = false;
   int clearScheduledCalls = 0;
 
