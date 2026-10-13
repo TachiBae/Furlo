@@ -11,6 +11,7 @@ import '../../utils/app_copy.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/form_input.dart';
 import '../../utils/formatting.dart';
+import '../../utils/vaccine_timeline.dart';
 import '../../widgets/record_components.dart';
 import '../../widgets/status_pill.dart';
 
@@ -49,6 +50,9 @@ class _VaccinationsView extends StatefulWidget {
 
 class _VaccinationsViewState extends State<_VaccinationsView> {
   String _filter = VaccinationStatuses.all;
+
+  /// Timeline instead of cards: every dose and due date in date order.
+  bool _timeline = false;
 
   Future<void> _edit(
     VaccinationsProvider state, [
@@ -108,14 +112,27 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
   @override
   Widget build(BuildContext context) => Consumer<VaccinationsProvider>(
     builder: (context, state, _) {
-      final records = state.vaccinations.where((item) {
-        return _filter == VaccinationStatuses.all ||
-            vaccinationDisplayStatus(item) == _filter;
-      }).toList();
+      // The timeline shows every record; status filters apply to the cards.
+      final records = _timeline
+          ? state.vaccinations
+          : state.vaccinations.where((item) {
+              return _filter == VaccinationStatuses.all ||
+                  vaccinationDisplayStatus(item) == _filter;
+            }).toList();
       return Scaffold(
         appBar: AppBar(
           leading: const BackButton(),
           title: const Text('Vaccinations'),
+          actions: [
+            if (state.vaccinations.isNotEmpty)
+              IconButton(
+                tooltip: _timeline ? 'Show as cards' : 'Show as timeline',
+                onPressed: () => setState(() => _timeline = !_timeline),
+                icon: Icon(
+                  _timeline ? Icons.view_agenda_outlined : Icons.timeline,
+                ),
+              ),
+          ],
         ),
         floatingActionButton:
             state.selectedPet == null || state.vaccinations.isEmpty
@@ -141,28 +158,29 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                           onSelected: state.selectPet,
                         ),
                       ),
-                    SliverToBoxAdapter(
-                      child: RecordFilterTabs(
-                        options: const [
-                          RecordFilterOption(VaccinationStatuses.all, 'All'),
-                          RecordFilterOption(
-                            VaccinationStatuses.dueSoon,
-                            'Due soon',
-                          ),
-                          RecordFilterOption(
-                            VaccinationStatuses.overdue,
-                            'Overdue',
-                          ),
-                          RecordFilterOption(
-                            VaccinationStatuses.completed,
-                            'Completed',
-                          ),
-                        ],
-                        selectedValue: _filter,
-                        onSelected: (status) =>
-                            setState(() => _filter = status),
+                    if (!_timeline)
+                      SliverToBoxAdapter(
+                        child: RecordFilterTabs(
+                          options: const [
+                            RecordFilterOption(VaccinationStatuses.all, 'All'),
+                            RecordFilterOption(
+                              VaccinationStatuses.dueSoon,
+                              'Due soon',
+                            ),
+                            RecordFilterOption(
+                              VaccinationStatuses.overdue,
+                              'Overdue',
+                            ),
+                            RecordFilterOption(
+                              VaccinationStatuses.completed,
+                              'Completed',
+                            ),
+                          ],
+                          selectedValue: _filter,
+                          onSelected: (status) =>
+                              setState(() => _filter = status),
+                        ),
                       ),
-                    ),
                     if (state.loading)
                       const SliverToBoxAdapter(child: RecordListSkeleton())
                     else if (state.error != null)
@@ -213,18 +231,26 @@ class _VaccinationsViewState extends State<_VaccinationsView> {
                           AppSpacing.md,
                           88,
                         ),
-                        sliver: SliverList.builder(
-                          itemCount: records.length,
-                          itemBuilder: (context, index) {
-                            final item = records[index];
-                            return _VaccinationCard(
-                              vaccination: item,
-                              onTap: () => _edit(state, item),
-                              onComplete: () => _markCompleted(state, item),
-                              onDelete: () => _delete(state, item),
-                            );
-                          },
-                        ),
+                        sliver: _timeline
+                            ? SliverToBoxAdapter(
+                                child: _VaccineTimeline(
+                                  events: buildVaccineTimeline(records),
+                                  onTap: (item) => _edit(state, item),
+                                ),
+                              )
+                            : SliverList.builder(
+                                itemCount: records.length,
+                                itemBuilder: (context, index) {
+                                  final item = records[index];
+                                  return _VaccinationCard(
+                                    vaccination: item,
+                                    onTap: () => _edit(state, item),
+                                    onComplete: () =>
+                                        _markCompleted(state, item),
+                                    onDelete: () => _delete(state, item),
+                                  );
+                                },
+                              ),
                       ),
                   ],
                 ),
@@ -577,4 +603,154 @@ bool _isBeforeDay(DateTime? first, DateTime second) {
   final firstDay = DateTime.utc(first.year, first.month, first.day);
   final secondDay = DateTime.utc(second.year, second.month, second.day);
   return firstDay.isBefore(secondDay);
+}
+
+/// Vertical timeline: a rail of dots, one row per dose or due date, and a
+/// Today marker. Tapping a row opens that vaccination.
+class _VaccineTimeline extends StatelessWidget {
+  const _VaccineTimeline({required this.events, required this.onTap});
+
+  final List<VaccineEvent> events;
+  final ValueChanged<Vaccination> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (events.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Text(
+          'Add the date given or the next due date to see the timeline.',
+          style: AppTypography.body.copyWith(
+            color: context.appColors.textSecondary,
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        for (var i = 0; i < events.length; i++)
+          _TimelineRow(
+            event: events[i],
+            isFirst: i == 0,
+            isLast: i == events.length - 1,
+            onTap: events[i].vaccination == null
+                ? null
+                : () => onTap(events[i].vaccination!),
+          ),
+      ],
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({
+    required this.event,
+    required this.isFirst,
+    required this.isLast,
+    required this.onTap,
+  });
+
+  final VaccineEvent event;
+  final bool isFirst;
+  final bool isLast;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final (color, label) = switch (event.kind) {
+      VaccineEventKind.given => (colors.primary, 'Given'),
+      VaccineEventKind.due => (colors.textSecondary, 'Due'),
+      VaccineEventKind.overdue => (colors.danger, 'Overdue'),
+      VaccineEventKind.today => (colors.accent, ''),
+    };
+    final isToday = event.kind == VaccineEventKind.today;
+    final rail = colors.primaryMuted;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.mdRadius,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 28,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: isFirst ? Colors.transparent : rail,
+                    ),
+                  ),
+                  Container(
+                    width: isToday ? 14 : 12,
+                    height: isToday ? 14 : 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      // Given doses are filled; due dates are rings, so the
+                      // difference does not rest on colour alone.
+                      color: event.kind == VaccineEventKind.given || isToday
+                          ? color
+                          : colors.bg,
+                      border: Border.all(color: color, width: 2),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: isLast ? Colors.transparent : rail,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: isToday
+                    ? Text(
+                        'Today · ${shortDateWithYear(event.date)}',
+                        style: AppTypography.label.copyWith(color: color),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.title,
+                                  style: AppTypography.bodyStrong,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  shortDateWithYear(event.date),
+                                  style: AppTypography.caption.copyWith(
+                                    color: colors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          StatusPill(
+                            label: label,
+                            status: event.kind == VaccineEventKind.overdue
+                                ? VaccinationStatuses.overdue
+                                : event.kind == VaccineEventKind.given
+                                ? VaccinationStatuses.completed
+                                : VaccinationStatuses.dueSoon,
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
