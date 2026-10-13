@@ -28,7 +28,10 @@ import 'package:furlo/repositories/notification_settings_repository.dart';
 import 'package:furlo/repositories/pet_repository.dart';
 import 'package:furlo/models/vaccination.dart';
 import 'package:furlo/screens/feeding/feeding_screen.dart';
+import 'package:furlo/repositories/app_settings_repository.dart';
 import 'package:furlo/screens/home/home_screen.dart';
+import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
+import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
 import 'package:furlo/screens/settings/notifications_screen.dart';
 import 'package:furlo/screens/vets/vet_contacts_screen.dart';
@@ -149,6 +152,52 @@ class _FailingSettings extends SharedPreferencesNotificationSettingsRepository {
 // ---------------------------------------------------------------- scenes
 
 final List<Scene> scenes = [
+  Scene('profile', () async {
+    final s = await _seed();
+    return _withState(
+      s.state,
+      ChangeNotifierProvider<ThemeSettings>(
+        create: (_) => ThemeSettings(),
+        child: ProfileScreen(
+          repository: s.repository,
+          appSettings: SharedPreferencesAppSettingsRepository(),
+          notificationSettings:
+              SharedPreferencesNotificationSettingsRepository(),
+          notificationService: const NoOpNotificationService(),
+        ),
+      ),
+    );
+  }),
+  Scene('vaccinations-list', () async {
+    final s = await _seed();
+    await s.repository.addVaccination(
+      Vaccination(petId: '1', vaccineName: 'Rabies'),
+    );
+    await s.repository.addVaccination(
+      Vaccination(
+        petId: '1',
+        vaccineName: 'DHPP booster',
+        dateGiven: DateTime(2025, 11, 2),
+        nextDueDate: DateTime.now().add(const Duration(days: 20)),
+      ),
+    );
+    return VaccinationScreen(repository: s.repository, pets: s.state.pets);
+  }),
+  Scene('vaccinations-empty', () async {
+    final s = await _seed();
+    return VaccinationScreen(repository: s.repository, pets: s.state.pets);
+  }),
+  Scene(
+    'add-pet-photo-sheet',
+    () async {
+      final s = await _seed();
+      return _withState(s.state, AddPetScreen(repository: s.repository));
+    },
+    act: (tester) async {
+      await tester.tap(find.text('Add a photo'));
+      await _settle(tester);
+    },
+  ),
   Scene('dashboard', () async {
     final s = await _seed();
     return _withState(
