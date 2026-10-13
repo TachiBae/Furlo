@@ -8,7 +8,7 @@ import 'package:furlo/models/vet.dart';
 import 'package:furlo/models/weight_log.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
-import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
+import 'package:furlo/screens/pets/pet_form_screen.dart';
 import 'package:provider/provider.dart';
 
 class _FakePetRepository implements PetRepository {

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:furlo/models/pet.dart';
 import 'package:furlo/providers/furlo_state.dart';
 import 'package:furlo/repositories/pet_repository.dart';
-import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
+import 'package:furlo/screens/pets/pet_form_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

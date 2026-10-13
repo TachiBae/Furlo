@@ -12,7 +12,7 @@ import 'repositories/pet_repository.dart';
 import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/home/home_screen.dart';
-import 'screens/pets/pet_onboarding_screen.dart';
+import 'screens/pets/pet_form_screen.dart';
 import 'services/account_onboarding_repository.dart';
 import 'services/auth_service.dart';
 import 'services/notifications_service.dart';

@@ -15,7 +15,7 @@ import '../../utils/formatting.dart';
 import '../../utils/app_diagnostics.dart';
 import '../../utils/form_input.dart';
 import '../../widgets/record_components.dart';
-import '../pets/pet_onboarding_screen.dart';
+import '../pets/pet_form_screen.dart';
 
 class FeedingScreen extends StatefulWidget {
   const FeedingScreen({

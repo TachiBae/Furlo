@@ -35,7 +35,7 @@ void main() {
         'lib/screens/auth/complete_profile_screen.dart',
         'lib/screens/auth/forgot_password_screen.dart',
         'lib/screens/settings/profile_screen.dart',
-        'lib/screens/pets/pet_onboarding_screen.dart',
+        'lib/screens/pets/pet_form_screen.dart',
         'lib/screens/vets/vet_contacts_screen.dart',
         'lib/screens/feeding/feeding_screen.dart',
         'lib/screens/health/health_records_screen.dart',

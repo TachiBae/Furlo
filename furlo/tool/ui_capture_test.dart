@@ -31,7 +31,7 @@ import 'package:furlo/models/weight_log.dart';
 import 'package:furlo/screens/feeding/feeding_screen.dart';
 import 'package:furlo/repositories/app_settings_repository.dart';
 import 'package:furlo/screens/home/home_screen.dart';
-import 'package:furlo/screens/pets/pet_onboarding_screen.dart';
+import 'package:furlo/screens/pets/pet_form_screen.dart';
 import 'package:furlo/screens/settings/privacy_screen.dart';
 import 'package:furlo/screens/settings/profile_screen.dart';
 import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
