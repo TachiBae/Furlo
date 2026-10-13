@@ -1646,13 +1646,22 @@ class FirestorePetRepository implements PetRepository {
   Future<void> updateVet(Vet vet, List<String> petIds) async {
     final id = vet.id;
     if (id == null) throw ArgumentError('Vet id is required to update.');
-    final previous = await _childrenOf(_vetLinks, 'vet_id', id);
+    final previous = await _col(_vetLinks).where('vet_id', isEqualTo: id).get();
+    final keep = petIds.toSet();
+    final linked = <String>{};
     final batch = _firestore.batch();
     batch.set(_col(_vets).doc(id), vet.toMap()..remove('id'));
-    for (final ref in previous) {
-      batch.delete(ref);
+    // Kept links are left untouched so their next appointment survives an
+    // edit of the vet; only unlinked pets lose their link.
+    for (final doc in previous.docs) {
+      final petId = doc.data()['pet_id']?.toString();
+      if (petId != null && keep.contains(petId)) {
+        linked.add(petId);
+      } else {
+        batch.delete(doc.reference);
+      }
     }
-    for (final petId in petIds.toSet()) {
+    for (final petId in keep.difference(linked)) {
       batch.set(
         _col(_vetLinks).doc('${id}_$petId'),
         VetPetAssociation(vetId: id, petId: petId).toMap()..remove('id'),
