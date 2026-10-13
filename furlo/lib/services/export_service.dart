@@ -14,6 +14,7 @@ import '../models/vet.dart';
 import '../models/weight_log.dart' show WeightLog, weightUnit;
 import '../repositories/pet_repository.dart';
 import '../utils/app_theme.dart';
+import '../utils/formatting.dart';
 import '../utils/weight_tracking.dart';
 import 'pdf_download_stub.dart'
     if (dart.library.js_interop) 'pdf_download_web.dart'
@@ -196,7 +197,9 @@ class ExportService {
                               _safePdfText(item.vaccineName),
                               formatSummaryDate(item.dateGiven),
                               formatSummaryDate(item.nextDueDate),
-                              _safePdfText(vaccinationDisplayStatus(item)),
+                              _safePdfText(
+                                capitalizeWords(vaccinationDisplayStatus(item)),
+                              ),
                             ],
                           )
                           .toList(),
