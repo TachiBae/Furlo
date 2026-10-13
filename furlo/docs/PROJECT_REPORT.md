@@ -104,39 +104,46 @@ flutter run -d web-server
 
 ## 11. Manual testing log
 
-| Check | Result | Date | Notes |
+Only checks that were actually run are filled in. **How** says what ran: *automated* = `flutter test`; *headless browser* = a release web build driven by headless Chrome; *capture* = `tool/ui_capture_test.dart` rendering real screens at 375 and 1440 px in all three themes. Phone rows stay empty until done on a device.
+
+| Check | Result | Date | How / notes |
 |---|---|---|---|
-| Web run with every screen reachable |  |  |  |
-| Android or iOS run with data surviving a full app restart |  |  |  |
-| One real notification fired |  |  |  |
-| Vet linked to two pets and deleting a vet |  |  |  |
-| PDF export on web and phone |  |  |  |
-| Validation (empty name, future birthdate, negative weight) |  |  |  |
-| Screens at short window height |  |  |  |
-| Species and breed menus |  |  |  |
-| Vaccination add buttons |  |  |  |
+| Web build starts without errors | Pass | 2026-10-14 | Headless browser: the clean release build reaches the sign-in screen at 375 and 1440 px inside device_preview, no console errors. |
+| Every screen renders on web | Pass (with sample data) | 2026-10-14 | Headless browser via `tool/screenshot_harness.dart` (local sample data, not a signed-in account): dashboard, feeding, vaccinations, health, weight, vets, settings, privacy, pet profile. |
+| Signed-in session on web | | | Not run: needs a real account in a browser. |
+| Android or iOS run with data surviving a restart | | | Not run on a device. `flutter build apk --debug` builds. |
+| One real notification fired (and Mark fed) | | | Not run on a device. Scheduling rules covered by automated tests. |
+| Vet linked to two pets, then edited and deleted | Pass | 2026-10-14 | Automated, against fake Firestore: links follow edits, appointments survive an edit, deleting removes the links. |
+| PDF export | Partial | 2026-10-14 | Sample PDF generated and page 1 reviewed as an image. Browser download and phone share not run. |
+| Validation (empty name, future birthdate, invalid weight) | Pass | 2026-10-14 | Automated. |
+| Screens at short window height and large text | Pass | 2026-10-14 | Automated short-viewport and responsive sweeps; captures at 375 × 812 found no overflow. |
+| Species and breed menus | Pass | 2026-10-14 | Automated and capture. |
+| Vaccination add buttons | Pass | 2026-10-14 | Capture: add button in the empty state and the floating button with records. |
+| Delete all my data / Delete account | Pass | 2026-10-14 | Automated through the app shell with a fake sign-in; real Firebase re-authentication not run. |
 
 ## 12. Screenshots
 
-Screenshots were not captured in this automated run. The image references below list the intended screenshot filenames; add current captures in both themes after manual QA.
+Real-browser captures (release web build, headless Chrome) of `tool/screenshot_harness.dart`, which renders the real screens with local sample data. 375 px wide unless noted.
 
-![Home](screenshots/home.png)
+| Dashboard (Default) | Dashboard (Light) | Dashboard (Dark) |
+|---|---|---|
+| ![Dashboard, Default theme](screenshots/dashboard-default-375.png) | ![Dashboard, Light theme](screenshots/dashboard-light-375.png) | ![Dashboard, Dark theme](screenshots/dashboard-dark-375.png) |
 
-![Pet profile](screenshots/pet-profile.png)
+| Feeding | Vaccinations | Health records |
+|---|---|---|
+| ![Feeding](screenshots/feeding-default-375.png) | ![Vaccinations](screenshots/vaccinations-default-375.png) | ![Health records](screenshots/health-default-375.png) |
 
-![Feeding](screenshots/feeding.png)
+| Weight | Vet contacts | Pet profile |
+|---|---|---|
+| ![Weight tracking](screenshots/weight-default-375.png) | ![Vet contacts](screenshots/vets-default-375.png) | ![Pet profile](screenshots/export-default-375.png) |
 
-![Vaccinations](screenshots/vaccinations.png)
+| Settings | Privacy |
+|---|---|
+| ![Profile and settings](screenshots/settings-default-375.png) | ![Privacy note](screenshots/privacy-default-375.png) |
 
-![Health records](screenshots/health-records.png)
+Dashboard at 1440 px:
 
-![Vet contacts](screenshots/vet-contacts.png)
-
-![Weight tracking](screenshots/weight-tracking.png)
-
-![Profile](screenshots/profile.png)
-
-![Notification settings](screenshots/notification-settings.png)
+![Dashboard at 1440 px](screenshots/dashboard-default-1440.png)
 
 ## 13. Open items
 
