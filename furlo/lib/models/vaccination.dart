@@ -1,7 +1,11 @@
 /// Status labels used by vaccination records and their filters.
+///
+/// The stored values are exactly completed / due soon / overdue, the list
+/// furlo/firestore.rules accepts for `status`. Adding a stored status means
+/// updating that rule and deploying it first. (Old SQLite rows may hold
+/// 'upcoming'; stored statuses are recomputed on read, so it is harmless.)
 abstract final class VaccinationStatuses {
   static const completed = 'completed';
-  static const upcoming = 'upcoming';
   static const dueSoon = 'due soon';
   static const overdue = 'overdue';
   static const all = 'all';

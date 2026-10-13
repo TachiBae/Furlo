@@ -1,6 +1,6 @@
 The Flutter app lives in ./furlo. Run all flutter commands (pub get, analyze, test, run) from the ./furlo folder. All paths like lib/ and test/ are relative to ./furlo. Commit from the repo root.
 
-Project: Furlo, a Flutter pet health tracker. Provider for state. PetRepository uses sqflite on mobile and a SharedPreferences-backed implementation on web, switched by kIsWeb. Use dark theme tokens only (Wondrous Wisteria, Succulent Lime, Black Rock) and never hardcode colors. Single-user, local-only, no secrets. The app is graded on web (`flutter run -d web-server`) inside device_preview, so no screen may throw on web.
+Project: Furlo, a Flutter pet health tracker. Provider for state. Accounts use Firebase Auth (email/password and Google). PetRepository is Cloud Firestore for the signed-in account (FirestorePetRepository, data under users/{uid}); the sqflite and SharedPreferences web stores remain only as read-only sources for the one-time import of pre-account data. Firestore rules live in furlo/firestore.rules and are deployed separately, so data changes must keep working under the deployed rules. Use theme tokens only (Default palette: Wondrous Wisteria, Succulent Lime, Black Rock; plus Light and Dark) and never hardcode colors. No secrets in the repo (the Firebase client config is public by design). The app is graded on web (`flutter run -d web-server`) inside device_preview, so no screen may throw on web.
 
 Rules:
 - All data access goes through the repository.

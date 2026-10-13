@@ -19,7 +19,6 @@ class StatusPill extends StatelessWidget {
       'overdue' => context.appColors.danger,
       'due soon' => context.appColors.textSecondary,
       'completed' => context.appColors.primary,
-      'upcoming' => context.appColors.textSecondary,
       _ =>
         isActive == true
             ? context.appColors.primary

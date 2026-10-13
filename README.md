@@ -8,62 +8,62 @@ Furlo is a pet health and care tracker for owners managing one to three pets at 
 
 Implemented in the Flutter app under `furlo/`:
 
-- **Pet onboarding and profiles** — add/edit pets (species, breed, birth date, optional photo), onboarding gate when no pets exist, per-pet profile with care-record shortcuts and delete
-- **Home dashboard** — pet carousel, selected pet context, today’s reminders, quick actions into care screens
-- **Feeding** — per-pet feeding schedules (time, frequency, portion, done-today), with optional reminder hooks via the notification service on native platforms
-- **Vaccinations** — CRUD, due-date status, vaccine catalog helpers, reminder scheduling on native
-- **Health records** — CRUD by type (checkup, medication, illness/injury, surgery, lab test, other), notes, optional medication reminders on native
+- **Accounts** — email/password sign-up and sign-in, Google sign-in, password reset, and a complete-profile step for new Google accounts. Each account's data is private to it.
+- **Cloud sync** — pets and every record live in the signed-in account (Cloud Firestore), so they follow you to any device. Pre-account data on a device can be imported once, with consent.
+- **Pet onboarding and profiles** — add/edit pets (species, searchable breed, birth date, photo from the camera on phones or from the library/file picker), per-pet profile with care-record shortcuts and delete. Photos are shrunk to fit the account.
+- **Home dashboard** — pet carousel, Today's Reminders (refreshes when you return from a screen; mark a meal fed right there), quick actions into care screens
+- **Feeding** — per-pet schedules: daily, twice daily (two meal times), weekly or custom days, or one date; portion, mark fed, optional reminders
+- **Vaccinations** — CRUD, due-date status, vaccine catalog helpers, and a per-pet timeline of doses given and due
+- **Health records** — CRUD by type (checkup, medication, illness/injury, surgery, lab test, other), notes, optional medication reminders
 - **Vet contacts** — vets linked to pets (many-to-many), next appointment per pet, phone launch via `url_launcher`
-- **Weight tracking** — weight log CRUD and a trend line chart (`fl_chart`)
-- **Notifications** — local notifications on iOS/Android (`flutter_local_notifications`), per-type toggles in settings, reschedule on app start
-- **Profile and settings** — display name, Light and dark themes saved on the device (Default, Light, or Dark), and notification preferences
-- **Export care summary** — PDF care summary per pet. On web, Download PDF saves the file through the browser. On phones, Save PDF opens the system save dialog and Share opens the share sheet. PDF text uses Noto Sans, so accented letters are kept. Emoji and characters the font doesn't contain may appear as `?` or be missing.
+- **Weight tracking** — weight log CRUD, a trend line chart (`fl_chart`) and a plain-words trend ("+0.4 kg in the last month")
+- **Notifications** — local notifications on iOS/Android (`flutter_local_notifications`); weekly schedules remind only on their days; tapping a reminder opens the right screen for the right pet; feeding reminders have a Mark fed button
+- **Profile and settings** — display name (saved on the account), Default/Light/Dark theme, notification preferences, a privacy note, Delete all my data, and Delete account
+- **Export care summary** — PDF care summary per pet with the pet's photo and an "At a glance" section (weight trend, next vaccine, next vet visit). On web, Download PDF saves the file through the browser. On phones, Save PDF opens the system save dialog and Share opens the share sheet. PDF text uses Noto Sans, so accented letters are kept. Emoji and characters the font doesn't contain may appear as `?` or be missing.
 
 ## Known limitations
 
-- **No account or cloud sync** — single device, local data only; two installs do not share data.
-- **Themes** — Default, Light, and Dark are available in settings; the selected choice is saved in SharedPreferences.
-- **Web storage** — `WebPetRepository` persists pets, feeding schedules, vaccinations, health records, vets, vet–pet links, and weight logs in `shared_preferences`.
-- **Web notifications** — `NoOpNotificationService`; reminder UI works but nothing is scheduled.
-- **Bottom nav “My Pets”** — the tab does not open a separate screen; the pet list lives on the home dashboard (“See all” opens the full list).
+- **Web offline** — the web build asks Firestore for an offline cache; behaviour while signed in and offline has not been verified on a real device. Saves made offline wait for the connection to return before they finish.
+- **Web notifications** — `NoOpNotificationService`; reminder settings work but nothing is scheduled in the browser.
+- **Firestore rules** — `furlo/firestore.rules` must be deployed for the twice-daily second meal time and for account deletion to fully remove the profile records (until then the app blanks the name fields instead).
+- **Bottom nav “My Pets”** — the tab opens the full pet list; there is no separate pets tab screen.
 - **Stretch goals below** are not implemented.
 
 ## Tech stack
 
 - **Flutter / Dart** (SDK `^3.12.2` in `pubspec.yaml`)
 - **State:** `provider`
-- **Persistence:** `sqflite` (native), `shared_preferences` (settings and partial web storage)
-- **UI / utilities:** Material 3, `device_preview` (debug), `image_picker`, `url_launcher`, `fl_chart`
+- **Backend:** Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`, `google_sign_in`)
+- **Device storage:** `shared_preferences` (settings, photo cache); `sqflite` and the web store are read only for the one-time import of pre-account data
+- **UI / utilities:** Material 3, `device_preview`, `image_picker`, `url_launcher`, `fl_chart`
 - **Export:** `pdf`, `share_plus`, `file_picker`, and `web`
 - **Notifications (native):** `flutter_local_notifications`, `timezone`
 
 ## Data storage
 
-All feature screens use the **`PetRepository`** interface. Implementation is chosen at runtime:
+All feature screens use the **`PetRepository`** interface. Signed-in accounts use Cloud Firestore:
 
 ```dart
-createPetRepository() => kIsWeb ? WebPetRepository() : SqlitePetRepository();
+PetRepository createPetRepository({required String storageScope}) =>
+    FirestorePetRepository(uid: storageScope);
 ```
 
-- **Mobile (iOS/Android):** SQLite database `furlo.db` via `sqflite`, with foreign keys enabled.
-- **Web:** `sqflite` is not used (no plugin). `WebPetRepository` avoids `MissingPluginException` while keeping the same API for demos and tests.
+**Firestore collections, under `users/{uid}/`:**
 
-**SQLite tables (native):**
-
-| Table | Purpose |
+| Collection | Purpose |
 | --- | --- |
-| `pets` | Pet identity, species, breed, birth date, photo path |
-| `feeding_schedules` | Feeding times, frequency, done-today, last fed, reminders |
+| `pets` | Name, species, breed, birth date, photo (small base64 image) |
+| `feedings` | Schedule, frequency, days, portion, reminders, last fed (and second meal) |
 | `vaccinations` | Vaccine name, dates, completion, derived status |
-| `health_records` | Title, date, type, notes, optional medication reminder fields |
-| `vets` | Clinic contact fields |
-| `vet_pets` | Vet–pet link and optional next appointment |
-| `weight_logs` | Date, weight, notes |
+| `healthRecords` | Title, date, type, notes, optional medication reminder fields |
+| `weightLogs` | Date, weight, notes |
+| `vets` | Contact fields |
+| `vetLinks` | Vet–pet link (the many-to-many join) and next appointment |
+| `settings/profile` | Display/full name, setup flags |
 
-**Also stored outside SQLite:**
+`firestore.rules` lets each account read and write only its own documents, field by field.
 
-- Notification type toggles and permission flag — `SharedPreferencesNotificationSettingsRepository`
-- Display name — `SharedPreferencesAppSettingsRepository`
+**On the device:** notification toggles, theme, a cached display name and cached pet photos (`shared_preferences`). The older on-device stores (`SqlitePetRepository`, `WebPetRepository`) are kept only so pre-account data can be imported.
 
 ## Getting started
 
@@ -98,7 +98,7 @@ flutter run -d web-server
 
 You can also use `flutter run -d chrome` for a Chrome instance with Flutter tooling.
 
-**Device Preview:** In non-release builds, `main.dart` wraps the app in `DevicePreview` (`enabled: !kReleaseMode`). Use the preview toolbar to simulate screen sizes; release builds disable it.
+**Device Preview:** `main.dart` wraps the app in `DevicePreview`, always on for web and in non-release builds elsewhere. Use the preview toolbar to simulate screen sizes.
 
 ### Quality checks
 
@@ -113,9 +113,9 @@ flutter test
 
 | Area | Mobile (iOS/Android) | Web |
 | --- | --- | --- |
-| Pet / feeding persistence | SQLite | `shared_preferences` |
-| Vaccinations, health, vets, weight | SQLite | `shared_preferences` |
-| Local notifications | Scheduled | No-op service |
+| Pets and all records | Cloud Firestore (offline cache on by default) | Cloud Firestore |
+| Pet photo | Camera or library | File picker |
+| Local notifications | Scheduled, with tap-to-open and Mark fed | No-op service |
 | Export PDF | Save PDF dialog (`file_picker`) or Share sheet | Download through the browser |
 | Vet phone links | `url_launcher` | Browser-dependent |
 
@@ -123,23 +123,23 @@ flutter test
 
 ```text
 lib/
-├── app.dart              # MaterialApp, theme, repository wiring, onboarding entry
-├── main.dart             # runApp + DevicePreview wrapper
+├── app.dart              # MaterialApp, theme, auth gate routing
+├── main.dart             # Firebase init, theme preload, runApp + DevicePreview
 ├── data/                 # Static catalogs (breeds, vaccine names, health record types)
 ├── models/               # Pet, feeding, vaccination, health, vet, weight types
-├── providers/            # Provider ChangeNotifiers (pets, reminders, feature state)
-├── repositories/         # PetRepository (+ SQLite / web), settings repositories
-├── screens/              # UI by feature (home, pets, feeding, health, vets, …)
-├── services/             # Local notifications and PDF export
-├── utils/                # Theme, validation, weight helpers, pet photo loading
-└── widgets/              # Shared UI (pet card, status pill, buttons, record rows)
+├── providers/            # ChangeNotifiers: session, pets, record lists, reminders, theme
+├── repositories/         # PetRepository + Firestore store (legacy/ holds import sources), account and settings repositories
+├── screens/              # UI by feature (auth, home, pets, feeding, health, vets, settings, …)
+├── services/             # Auth, notifications, PDF export, legacy import
+├── utils/                # Theme tokens, validation, formatting, weight and photo helpers
+└── widgets/              # Shared UI (record cards, empty states, skeletons, status pill)
 ```
 
 Other repo paths: `flutter-capstone-planning/` (planning docs, including the original app proposal), platform folders under `furlo/android` and `furlo/ios`.
 
 ## Secrets and backend
 
-The MVP needs **no API keys** or backend. Firebase Auth, cloud sync, and multi-user access are **not** implemented.
+The app uses a Firebase project. `lib/firebase_options.dart` holds Firebase's client configuration, which is designed to be public; access is controlled by Firebase Authentication and `firestore.rules`. There are no server secrets in the repository.
 
 ## Roadmap / stretch goals
 
@@ -157,8 +157,6 @@ From the product proposal; not in the app today:
 - Multi-user care
 - Breed tips
 - Weekly summary
-- Camera capture
-- Accounts
 - AI assistant
 
 ## Font attribution

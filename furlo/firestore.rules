@@ -103,7 +103,8 @@ service cloud.firestore {
 
     // ------------------------------------------------------------------
     // users/{uid}/vaccinations: `status` is derived client-side in
-    // deriveVaccinationStatus and can only be completed / overdue / due soon.
+    // deriveVaccinationStatus and can only be completed / overdue / due soon
+    // (kept in step with VaccinationStatuses in lib/models/vaccination.dart).
     // ------------------------------------------------------------------
     match /users/{uid}/vaccinations/{vaccinationId} {
       allow read, delete: if isOwner(uid);

@@ -16,7 +16,7 @@ Paths are relative to `furlo/` unless they start with `../` or name a repo-root 
 5. The structure is workable but top-heavy: `pet_repository.dart` (1,772 lines), `home_screen.dart` (1,165) and `app.dart` (834) each carry several responsibilities.
 
 **Top 5 fixes, ranked by impact:**
-1. **Stop the legacy import from colliding on IDs.** It shares one `copiedIds` set across two local stores that both number their IDs from 1. Pets get skipped and child records get overwritten in Firestore (`lib/services/legacy_local_migration.dart:144`, `:227`). See D1.
+1. **Stop the legacy import from colliding on IDs.** *(Severity later corrected to Low; see Addendum.)* It shares one `copiedIds` set across two local stores that both number their IDs from 1. Pets get skipped and child records get overwritten in Firestore (`lib/services/legacy_local_migration.dart:144`, `:227`). See D1.
 2. **Guard `HealthRecordsProvider`, `VaccinationsProvider` and `WeightTrackingProvider` against notify-after-dispose.** Leaving one of those screens before its load finishes throws in debug and on web (`lib/providers/vaccinations_provider.dart:57`). See Q1.
 3. **Add direct tests for `FirestorePetRepository`.** This is the system of record and it is untested (`lib/repositories/pet_repository.dart:1329`). See T1.
 4. **Schedule Weekly/Custom feeding reminders only on the selected days.** Right now they repeat daily (`lib/services/notifications_service.dart:550`). See Q2.
@@ -143,7 +143,7 @@ Format: **ID · Severity · File:line.** Problem, then Fix.
 
 ### Data Layer
 
-- **D1 · High · `lib/services/legacy_local_migration.dart:144`, `:227`**
+- **D1 · High → Low (corrected, see Addendum) · `lib/services/legacy_local_migration.dart:144`, `:227`**
   - Problem: One `copiedIds` set spans both local sources (the device-wide and per-account stores), and both number their IDs from 1. In the second store, a pet whose ID repeats one in the first store is skipped entirely. Its child records with repeated IDs are written with `set()` to the same Firestore doc IDs (`pet_repository.dart:1466`) and overwrite the first store's records. Local data survives, but the cloud copy is wrong.
   - Fix: Track copied IDs per source, and give imported records fresh Firestore IDs while keeping a source→new-ID map for children and vet links. Add a test with two sources that both contain ID `"1"` (T3).
 - **D2 · Medium · `lib/services/legacy_local_migration.dart:277`**
@@ -322,3 +322,17 @@ Photos currently ride inside the pet document (`cloudPhotoField`, `pet_repositor
 4. **Delete the photo when the pet is deleted.** `deletePet` (`pet_repository.dart:1434`) and `clearAllData` (`:1444`) must also remove the Storage object.
 5. **Shrink the local mirror (D5).** Cache the URL or a small thumbnail rather than full base64 in localStorage.
 6. **Testing.** Add the repository tests (T1) first so the photo-field change is covered when it happens.
+
+## Addendum (2026-10-14)
+
+**D1 severity corrected from High to Low.** While fixing it I checked the history: no released version ever wrote to the per-account local stores. The first commit that added per-account scoping (`a6275aa`) already sent every write to Firestore. The collision needs data in both local stores, so it should not affect real users. The fix shipped anyway (`feature/five-star`, commit "A1"), because it is cheap and makes the import robust.
+
+**Status on `feature/five-star`:** most findings are fixed. Each commit names the finding it fixes (A1–A8, B1–B5, C1–C7, D-1–D-3, E1–E3, F1–F7), and the commit messages say how each was verified. **Still open:**
+- **Q9:** `Pet.id` is still nullable.
+- **Q10:** some auth and migration code still uses `debugPrint`.
+- **D7:** deleting one record still reads the pet's whole collection.
+- **D8:** Firestore `setNextAppointment` still upserts.
+- **D10:** legacy SQLite `onOpen` repairs remain.
+- **T5:** the Firestore rules tests are still manual.
+
+Q8 is partly done: the form and model use `FeedingFrequency`; the date logic still compares lowercase strings.

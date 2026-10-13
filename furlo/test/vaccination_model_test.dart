@@ -82,7 +82,8 @@ void main() {
       'vaccine_name': 'Core vaccine',
       'date_given': '2026-04-01T00:00:00.000',
       'next_due_date': '2026-04-09T00:00:00.000',
-      'status': VaccinationStatuses.upcoming,
+      // A stale value old SQLite rows defaulted to; recomputed on read.
+      'status': 'upcoming',
     });
     expect(decoded.status, VaccinationStatuses.overdue);
   });
