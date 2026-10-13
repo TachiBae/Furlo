@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +13,8 @@ import '../models/vaccination.dart';
 import '../models/vet.dart';
 import '../models/weight_log.dart' show WeightLog, weightUnit;
 import '../repositories/pet_repository.dart';
+import '../utils/app_theme.dart';
+import '../utils/weight_tracking.dart';
 import 'pdf_download_stub.dart'
     if (dart.library.js_interop) 'pdf_download_web.dart'
     as browser;
@@ -154,33 +158,31 @@ class ExportService {
           ),
         ),
         build: (context) => [
-          pw.Text(
-            'Furlo Care Summary',
-            style: pw.TextStyle(
-              fontSize: 23,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.blueGrey900,
+          _header(summary),
+          pw.SizedBox(height: 10),
+          pw.Container(height: 2, color: _accent),
+          if (summaryHighlights(summary) case final highlights
+              when highlights.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'At a glance',
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey900,
+              ),
             ),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Text(
-            _safePdfText(summary.pet.name),
-            style: pw.TextStyle(
-              fontSize: 18,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.grey900,
-            ),
-          ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            _petDetails(summary),
-            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
-          ),
-          pw.Text(
-            'Generated ${formatSummaryDate(summary.generatedAt)}',
-            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
-          ),
-          pw.SizedBox(height: 20),
+            pw.SizedBox(height: 3),
+            for (final line in highlights)
+              pw.Bullet(
+                text: _safePdfText(line),
+                style: const pw.TextStyle(
+                  fontSize: 9,
+                  color: PdfColors.grey900,
+                ),
+              ),
+          ],
+          pw.SizedBox(height: 16),
           _section(
             'Vaccinations',
             summary.vaccinations.isEmpty
@@ -316,6 +318,121 @@ String _petAge(DateTime? birthDate, DateTime today) {
   if (years == 0) return '$extraMonths ${extraMonths == 1 ? 'mo' : 'mos'}';
   if (extraMonths == 0) return '$years ${years == 1 ? 'yr' : 'yrs'}';
   return '$years ${years == 1 ? 'yr' : 'yrs'} $extraMonths ${extraMonths == 1 ? 'mo' : 'mos'}';
+}
+
+/// Furlo's muted primary, taken from the theme tokens so the PDF matches
+/// the app's palette without its own hard-coded colour.
+final _accent = PdfColor.fromInt(
+  AppPalette.defaultTheme.primaryMuted.toARGB32(),
+);
+
+/// Title, pet name and details, with the pet's photo when it is a data URI
+/// the PDF can embed (device file paths are skipped).
+pw.Widget _header(PetCareSummary summary) {
+  final photo = _photoImage(summary.pet.photoPath);
+  final text = pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Text(
+        'Furlo Care Summary',
+        style: pw.TextStyle(
+          fontSize: 23,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.blueGrey900,
+        ),
+      ),
+      pw.SizedBox(height: 6),
+      pw.Text(
+        _safePdfText(summary.pet.name),
+        style: pw.TextStyle(
+          fontSize: 18,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.grey900,
+        ),
+      ),
+      pw.SizedBox(height: 3),
+      pw.Text(
+        _petDetails(summary),
+        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+      ),
+      pw.Text(
+        'Generated ${formatSummaryDate(summary.generatedAt)}',
+        style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+      ),
+    ],
+  );
+  if (photo == null) return text;
+  return pw.Row(
+    crossAxisAlignment: pw.CrossAxisAlignment.center,
+    children: [
+      pw.ClipOval(
+        child: pw.Container(
+          width: 72,
+          height: 72,
+          child: pw.Image(photo, fit: pw.BoxFit.cover),
+        ),
+      ),
+      pw.SizedBox(width: 16),
+      pw.Expanded(child: text),
+    ],
+  );
+}
+
+pw.ImageProvider? _photoImage(String? photoPath) {
+  if (photoPath == null || !photoPath.startsWith('data:')) return null;
+  try {
+    final comma = photoPath.indexOf(',');
+    return pw.MemoryImage(base64Decode(photoPath.substring(comma + 1)));
+  } catch (_) {
+    return null;
+  }
+}
+
+/// The few facts a vet or sitter wants first: current weight and its trend,
+/// the next vaccine due and the next vet appointment. Empty facts are left
+/// out.
+List<String> summaryHighlights(PetCareSummary summary, {DateTime? today}) {
+  final now = today ?? summary.generatedAt;
+  final todayOnly = DateTime(now.year, now.month, now.day);
+  final lines = <String>[];
+  final dated = chronologicalWeightLogs(summary.weights);
+  if (dated.isNotEmpty) {
+    final trend = weightTrend(summary.weights);
+    lines.add(
+      'Weight: ${dated.last.weight} $weightUnit'
+      '${trend == null ? '' : ' (${weightTrendText(trend)})'}',
+    );
+  }
+  final due =
+      summary.vaccinations
+          .where((v) => !v.isCompleted && v.nextDueDate != null)
+          .toList()
+        ..sort((a, b) => a.nextDueDate!.compareTo(b.nextDueDate!));
+  if (due.isNotEmpty) {
+    final next = due.first;
+    final overdue = next.nextDueDate!.isBefore(todayOnly);
+    lines.add(
+      '${overdue ? 'Overdue' : 'Next vaccine'}: ${next.vaccineName}, '
+      '${overdue ? 'was due' : 'due'} ${formatSummaryDate(next.nextDueDate)}',
+    );
+  }
+  final appointments =
+      summary.vets
+          .where(
+            (v) =>
+                v.nextAppointment != null &&
+                !v.nextAppointment!.isBefore(todayOnly),
+          )
+          .toList()
+        ..sort((a, b) => a.nextAppointment!.compareTo(b.nextAppointment!));
+  if (appointments.isNotEmpty) {
+    final next = appointments.first;
+    lines.add(
+      'Next vet visit: ${formatSummaryDate(next.nextAppointment)} with '
+      '${next.vet.name}',
+    );
+  }
+  return lines;
 }
 
 String _petDetails(PetCareSummary summary) => [
