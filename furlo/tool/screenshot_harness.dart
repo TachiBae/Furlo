@@ -6,7 +6,9 @@
 //   flutter build web -t tool/screenshot_harness.dart --no-pub
 //   open /?screen=dashboard&w=375&h=812
 //
-// screen: dashboard | feeding | health | weight | export
+// screen: dashboard | feeding | vaccinations | health | weight | vets |
+//         settings | privacy | export
+// theme:  default | light | dark   (default when omitted)
 // The sample data below is seeded through the real repository API and is
 // cleared and re-seeded on every load, so captures are reproducible.
 import 'package:firebase_core/firebase_core.dart';
@@ -27,6 +29,12 @@ import 'package:furlo/screens/health/health_records_screen.dart';
 import 'package:furlo/screens/home/home_screen.dart';
 import 'package:furlo/screens/pets/pet_profile_screen.dart';
 import 'package:furlo/screens/weight/weight_tracking_screen.dart';
+import 'package:furlo/providers/theme_settings.dart';
+import 'package:furlo/repositories/app_settings_repository.dart';
+import 'package:furlo/screens/settings/privacy_screen.dart';
+import 'package:furlo/screens/settings/profile_screen.dart';
+import 'package:furlo/screens/vaccinations/vaccination_screen.dart';
+import 'package:furlo/screens/vets/vet_contacts_screen.dart';
 import 'package:furlo/services/notifications_service.dart';
 import 'package:furlo/utils/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -72,6 +80,11 @@ Future<void> main() async {
         repository: repository,
         settings: settings,
         screen: query['screen'] ?? 'dashboard',
+        theme: switch (query['theme']) {
+          'light' => AppThemeChoice.light,
+          'dark' => AppThemeChoice.dark,
+          _ => AppThemeChoice.defaultTheme,
+        },
         size: Size(
           double.tryParse(query['w'] ?? '') ?? 375,
           double.tryParse(query['h'] ?? '') ?? 812,
@@ -119,6 +132,7 @@ class _HarnessApp extends StatelessWidget {
     required this.repository,
     required this.settings,
     required this.screen,
+    required this.theme,
     required this.size,
     required this.renderScale,
   });
@@ -127,6 +141,7 @@ class _HarnessApp extends StatelessWidget {
   final PetRepository repository;
   final NotificationSettingsRepository settings;
   final String screen;
+  final AppThemeChoice theme;
   final Size size;
   final double renderScale;
 
@@ -146,6 +161,29 @@ class _HarnessApp extends StatelessWidget {
           pets: state.pets,
           selectedPet: state.selectedPet,
         );
+      case 'vaccinations':
+        return VaccinationScreen(
+          repository: repository,
+          pets: state.pets,
+          selectedPet: state.selectedPet,
+        );
+      case 'vets':
+        return VetContactsScreen(repository: repository, storageScope: _scope);
+      case 'settings':
+        return ChangeNotifierProvider<ThemeSettings>(
+          create: (_) => ThemeSettings(),
+          child: ProfileScreen(
+            repository: repository,
+            appSettings: SharedPreferencesAppSettingsRepository(
+              storageScope: _scope,
+            ),
+            notificationSettings: settings,
+            notificationService: const NoOpNotificationService(),
+            storageScope: _scope,
+          ),
+        );
+      case 'privacy':
+        return const PrivacyScreen();
       case 'export':
         return PetProfileScreen(
           petId: state.pets.first.id!,
@@ -166,7 +204,7 @@ class _HarnessApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme: AppTheme.dark,
+    theme: AppTheme.forChoice(theme),
     // Pin the app to a fixed logical size anchored top-left, so a screenshot
     // of that region is a clean phone-shaped capture.
     builder: (context, child) => Align(
