@@ -291,11 +291,14 @@ void main() {
               ),
             ),
           );
-          await _settle(tester);
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 50)),
-          );
-          await _settle(tester);
+          // Seeded stores were created in real async time; give their
+          // futures real time to land, then let the frames settle.
+          for (var i = 0; i < 4; i++) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 60)),
+            );
+            await _settle(tester);
+          }
           if (scene.act != null) await scene.act!(tester);
           await tester.runAsync(() async {
             final render =
