@@ -267,3 +267,31 @@ furlo/
 │   └── plans/                           # ← the 32 *_PLAN.md / *_TASK*.md files from furlo/ (S10)
 └── test/                                # mirror new paths; + firestore_pet_repository_test.dart (T1)
 ```
+
+## 5. Tool results
+
+All four commands were run from `furlo/` on 2026-10-13 against `ca77b3b`. None of them modified any file.
+
+| Command | Exit | Result |
+|---|---|---|
+| `flutter analyze` | 0 | `No issues found! (ran in 4.3s)` using `flutter_lints` with `build/**` excluded. |
+| `flutter test` | 0 | `All tests passed!`: **295 tests**, 0 failures, across 65 files in `test/`. Expected diagnostic lines appear from error-path tests (e.g. `Account setup status could not be loaded: permission-denied`). |
+| `dart format --output=none --set-exit-if-changed .` | 1 | `Formatted 347 files (131 changed)`. 130 of those are third-party sources under the git-ignored `build/macos/SourcePackages/`. The only project file is `tool/screenshot_harness.dart` (S11). `lib/` and `test/` are clean. Running `dart format --output=none --set-exit-if-changed lib test tool` gives a cleaner signal. |
+| `flutter pub outdated` | 0 | All dev dependencies are up to date. 14 packages could upgrade within the current constraints, and 6 direct dependencies are held back by `pubspec.yaml` constraints (see below). |
+
+**Direct dependencies with newer versions:**
+
+| Package | Current | Latest | Blocked by constraint? |
+|---|---|---|---|
+| `cupertino_icons` | 1.0.9 | 2.0.0 | Yes; unused anyway (S9) |
+| `device_preview` | 1.3.1 | 3.0.0 | Yes (major) |
+| `file_picker` | 10.3.10 | 13.1.0 | Yes (major) |
+| `share_plus` | 12.0.2 | 13.3.1 | Yes (major) |
+| `flutter_local_notifications` | 22.3.1 | 22.3.2 | No (patch) |
+| `image_picker` | 1.2.3 | 1.2.4 | No (patch) |
+| `shared_preferences` | 2.5.5 | 2.5.6 | No (patch) |
+| `sqflite` | 2.4.4 | 2.4.4+1 | No (patch) |
+| `timezone` | 0.11.1 | 0.11.2 | No (patch) |
+| `url_launcher` | 6.3.2 | 6.3.3 | No (patch) |
+
+The Firebase packages, `provider`, `fl_chart`, `pdf`, `font_awesome_flutter`, `path` and `web` are current. Upgrading is out of scope for this audit. The patch bumps are low risk. The three major bumps (`device_preview`, `file_picker`, `share_plus`) touch the web frame and PDF export, so retest those flows after upgrading.
