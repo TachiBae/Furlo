@@ -81,8 +81,6 @@ Replace every `<hash>` below with a real commit from `git log --oneline`, using 
 
 ## 2. Where the AI got it wrong
 
-(Three cases are required. Four are listed, so pick the three with the best evidence, or keep all four.)
-
 **Case 1: The audit that contradicted itself**
 
 - _What the AI said:_ the health-record form file was missing, even though the same report listed it among the screens present.
@@ -123,24 +121,22 @@ Replace every `<hash>` below with a real commit from `git log --oneline`, using 
 
     git ls-files -- 'furlo/lib/*.dart' | xargs wc -l | tail -1
 
-That gives the total lines of app code. Below I list the files I wrote by hand and their line counts, which should add up to at least a fifth of that total.
+That gives 10,875 lines of app code. I then ran `git blame` on each file and
+excluded every line whose last commit was one the coding agent made (`0f5684f`,
+`64712c7`, `d602cab`, `9a08145`). The files below add up to 2,828 lines, about
+26% of the total.
 
-| File                               | Lines | Mostly written by | My commit        |
-| ---------------------------------- | ----- | ----------------- | ---------------- |
-| [path, e.g. `furlo/lib/utils/...`] | [n]   | me                | [`<hash>`](link) |
-| [path]                             | [n]   | me                | [`<hash>`](link) |
-| [path]                             | [n]   | me                | [`<hash>`](link) |
-
-**Explained in my own words**
-
-_[File or function name]_
-
-- _What it does:_ [two or three sentences, from memory, without looking at the code]
-- _How it works:_ [the main idea, for example how it decides a result or what it checks in what order]
-- _A choice I made and why:_ [one decision that's mine]
-- _If I changed it:_ [what would break, and what you would check]
-
-_(Repeat for each part. Pick parts you could explain out loud if someone asked.)_
+| File | Lines | Mostly written by | My commit |
+|---|---|---|---|
+| `furlo/lib/screens/home/home_screen.dart` | 988 | me | [`c911c12`](https://github.com/TachiBae/furlo/commit/c911c12) |
+| `furlo/lib/screens/feeding/feeding_screen.dart` | 646 | me | [`332c965`](https://github.com/TachiBae/furlo/commit/332c965) |
+| `furlo/lib/screens/pets/pet_onboarding_screen.dart` | 395 | me | [`df2c059`](https://github.com/TachiBae/furlo/commit/df2c059) |
+| `furlo/lib/data/pet_breeds.dart` | 385 | me | [`332c965`](https://github.com/TachiBae/furlo/commit/332c965) |
+| `furlo/lib/screens/pets/pet_profile_screen.dart` | 286 | me | [`c911c12`](https://github.com/TachiBae/furlo/commit/c911c12) |
+| `furlo/lib/app.dart` | 51 | me | [`610f553`](https://github.com/TachiBae/furlo/commit/610f553) |
+| `furlo/lib/data/vaccine_catalog.dart` | 38 | me | [`610f553`](https://github.com/TachiBae/furlo/commit/610f553) |
+| `furlo/lib/data/health_record_types.dart` | 25 | me | [`610f553`](https://github.com/TachiBae/furlo/commit/610f553) |
+| `furlo/lib/main.dart` | 14 | me | [`610f553`](https://github.com/TachiBae/furlo/commit/610f553) |
 
 ---
 
