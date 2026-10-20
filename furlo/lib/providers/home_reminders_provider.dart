@@ -116,7 +116,7 @@ TodayReminderResult buildTodayReminders({
     final due = vaccination.nextDueDate;
     if (pet == null || due == null || vaccination.isCompleted) continue;
     final dueDay = DateTime(due.year, due.month, due.day);
-    final daysUntilDue = dueDay.difference(todayOnly).inDays;
+    final daysUntilDue = _daysBetween(todayOnly, dueDay);
     if (daysUntilDue > 7) continue;
     reminders.add(
       HomeReminder(
@@ -142,7 +142,7 @@ TodayReminderResult buildTodayReminders({
       appointment.date.month,
       appointment.date.day,
     );
-    final daysUntil = date.difference(todayOnly).inDays;
+    final daysUntil = _daysBetween(todayOnly, date);
     if (daysUntil < 0 || daysUntil > 3) continue;
     reminders.add(
       HomeReminder(
@@ -193,10 +193,18 @@ TodayReminderResult buildTodayReminders({
   return TodayReminderResult(allItems: List.unmodifiable(reminders));
 }
 
+/// Whole calendar days from [from] to [to], counted on UTC dates so a
+/// daylight-saving change between them cannot shave off a day.
+int _daysBetween(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
+
 bool _medicationDueToday(DateTime start, String frequency, DateTime today) {
   final startDay = DateTime(start.year, start.month, start.day);
   if (startDay.isAfter(today)) return false;
-  final elapsedDays = today.difference(startDay).inDays;
+  final elapsedDays = _daysBetween(startDay, today);
   switch (frequency.toLowerCase()) {
     case 'daily':
       return true;

@@ -25,8 +25,10 @@ class _AllPetsScreen extends StatelessWidget {
           : GridView.builder(
               padding: const EdgeInsets.all(AppSpacing.md),
               itemCount: pets.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                // Two columns on a phone, more on desktop instead of two
+                // 700px squares.
+                maxCrossAxisExtent: 220,
                 crossAxisSpacing: AppSpacing.sm,
                 mainAxisSpacing: AppSpacing.sm,
                 childAspectRatio: 1,

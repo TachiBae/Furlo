@@ -401,8 +401,13 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                               : null,
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        Text(pet.name, style: AppTypography.h1),
                         Text(
+                          pet.name,
+                          style: AppTypography.h1,
+                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          textAlign: TextAlign.center,
                           [
                             pet.species,
                             if (pet.breed?.trim().isNotEmpty == true)

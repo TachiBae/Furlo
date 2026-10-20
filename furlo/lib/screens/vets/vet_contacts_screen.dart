@@ -111,9 +111,19 @@ class _VetContactsScreenState extends State<VetContactsScreen> {
   Future<void> _openForm([Vet? vet]) async {
     List<String> ids = [];
     if (vet?.id != null) {
-      ids = (await widget.repository.getPetsForVet(
-        vet!.id!,
-      )).map((pet) => pet.id!).toList();
+      try {
+        ids = (await widget.repository.getPetsForVet(
+          vet!.id!,
+        )).map((pet) => pet.id!).toList();
+      } catch (_) {
+        logAppDiagnostic('Vet form links could not be loaded.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This vet could not be opened.')),
+          );
+        }
+        return;
+      }
     }
     if (!mounted) return;
     final saved = await Navigator.push<bool>(
@@ -404,7 +414,14 @@ class _VetFormScreenState extends State<VetFormScreen> {
       body: Form(
         key: _form,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // Centers the fields in a 700px column on wide screens.
+          padding: EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: ((MediaQuery.sizeOf(context).width - 700) / 2).clamp(
+              16,
+              double.infinity,
+            ),
+          ),
           children: [
             _field(
               _name,

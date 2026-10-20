@@ -104,7 +104,12 @@ class FurloState with ChangeNotifier {
   void _setPets(List<Pet> pets, {String? preferredPetId}) {
     _pets = List.of(pets);
     _petsView = null;
+    if (preferredPetId != null &&
+        _pets.any((pet) => pet.id == preferredPetId)) {
+      _selectedPetId = preferredPetId;
+      return;
+    }
     if (_pets.any((pet) => pet.id == _selectedPetId)) return;
-    _selectedPetId = preferredPetId ?? _pets.firstOrNull?.id;
+    _selectedPetId = _pets.firstOrNull?.id;
   }
 }

@@ -78,14 +78,11 @@ class FeedingEntry {
   }
 
   bool isCompleteOn(DateTime date) {
+    // A one-time meal is done once fed, even if fed early, matching isComplete
+    // (changing its date clears lastFedAt).
+    if (frequency == doesNotRepeat) return lastFedAt != null;
     if (isTwiceDaily) return isDoneOn(date) && isSecondDoneOn(date);
-    if (frequency != doesNotRepeat) return isDoneOn(date);
-    final scheduled = scheduledDate;
-    return scheduled != null &&
-        scheduled.year == date.year &&
-        scheduled.month == date.month &&
-        scheduled.day == date.day &&
-        isDoneOn(scheduled);
+    return isDoneOn(date);
   }
 
   bool isScheduledOn(DateTime date) {

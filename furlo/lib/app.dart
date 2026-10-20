@@ -61,9 +61,13 @@ class _FurloAppState extends State<FurloApp> {
   // Null when the theme was restored before runApp: no splash frame at all.
   Future<void>? _themeLoad;
   FurloState? _furloState;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   void _handleFurloState(FurloState? state) {
     if (!mounted) return;
+    // A session ending outside the app (sign-out in another tab) must not
+    // leave pushed screens reading the state that is about to be disposed.
+    if (state == null) _navigatorKey.currentState?.popUntil((r) => r.isFirst);
     setState(() => _furloState = state);
   }
 
@@ -102,6 +106,7 @@ class _FurloAppState extends State<FurloApp> {
         }
         return Consumer<ThemeSettings>(
           builder: (context, themeSettings, _) => MaterialApp(
+            navigatorKey: _navigatorKey,
             debugShowCheckedModeBanner: false,
             title: 'Furlo',
             locale: DevicePreview.locale(context),

@@ -213,6 +213,7 @@ class _NavItem extends StatelessWidget {
                             color: context.appColors.textPrimary,
                           ),
                           maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         )
                       : const SizedBox(height: 0),
                 ),

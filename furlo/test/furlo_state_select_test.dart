@@ -96,6 +96,7 @@ void main() {
         findsOneWidget,
         reason: 'addPet selects the new pet',
       );
+      expect(state.selectedPet?.name, 'Nemo');
 
       await tester.pumpWidget(const SizedBox.shrink());
       state.dispose();

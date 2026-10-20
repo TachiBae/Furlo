@@ -308,6 +308,13 @@ class AppTheme {
         backgroundColor: palette.surface,
         surfaceTintColor: Colors.transparent,
       ),
+      // M3 FABs default to primaryContainer (surfaceAlt here), which almost
+      // matches the background; use the brand primary instead.
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: palette.primary,
+        foregroundColor: palette.textOnPrimary,
+        extendedTextStyle: AppTypography.bodyStrong,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: palette.primary,

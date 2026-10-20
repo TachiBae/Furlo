@@ -246,7 +246,7 @@ List<PlannedReminder> planFeedingReminders({
       }
       // A meal already fed today does not count as the next missed one.
       final next = entry.isDoneOn(now) && _sameDate(fire, now)
-          ? fire.add(const Duration(days: 7))
+          ? _plusDays(fire, 7)
           : fire;
       if (soonest == null || next.isBefore(soonest)) soonest = next;
     }
@@ -280,7 +280,7 @@ List<PlannedReminder> planFeedingReminders({
     }
     var nextMeal = _nextTime(now, time);
     if (doneToday && _sameDate(nextMeal, now)) {
-      nextMeal = nextMeal.add(const Duration(days: 1));
+      nextMeal = _plusDays(nextMeal, 1);
     }
     missed(key, nextMeal, mealName);
   }
@@ -350,14 +350,14 @@ DateTime? calculateNotificationFireTime({
     case NotificationTypes.missedMeal:
       var nextMeal = _nextTime(now, time ?? '08:00');
       if (isDone && _sameDate(nextMeal, now)) {
-        nextMeal = nextMeal.add(const Duration(days: 1));
+        nextMeal = _plusDays(nextMeal, 1);
       }
       fireTime = nextMeal.add(const Duration(minutes: 60));
     case NotificationTypes.upcomingVaccine:
       fireTime = _atNine(date!.subtract(const Duration(days: 3)));
     case NotificationTypes.overdueVaccine:
       if (isDone) return null;
-      fireTime = _atNine(date!.add(const Duration(days: 1)));
+      fireTime = _atNine(_plusDays(date!, 1));
     case NotificationTypes.vetAppointment:
       fireTime = _atNine(date!.subtract(const Duration(days: 1)));
     case NotificationTypes.medication:
@@ -375,12 +375,17 @@ bool _sameDate(DateTime first, DateTime second) =>
     first.month == second.month &&
     first.day == second.day;
 
+/// [n] calendar days later at the same wall-clock time. Adding a Duration
+/// would move the hour across a daylight-saving change.
+DateTime _plusDays(DateTime d, int n) =>
+    DateTime(d.year, d.month, d.day + n, d.hour, d.minute);
+
 DateTime _nextTime(DateTime now, String time) {
   final parts = time.split(':');
   final hour = int.tryParse(parts.first) ?? 8;
   final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
   var result = DateTime(now.year, now.month, now.day, hour, minute);
-  if (!result.isAfter(now)) result = result.add(const Duration(days: 1));
+  if (!result.isAfter(now)) result = _plusDays(result, 1);
   return result;
 }
 
@@ -391,7 +396,7 @@ DateTime _nextMedicationTime(DateTime now, DateTime start, String frequency) {
     case 'weekly':
       var next = day;
       while (!next.isAfter(now)) {
-        next = next.add(const Duration(days: 7));
+        next = _plusDays(next, 7);
       }
       return next;
     case 'monthly':
@@ -406,7 +411,7 @@ DateTime _nextMedicationTime(DateTime now, DateTime start, String frequency) {
     default:
       var next = day;
       while (!next.isAfter(now)) {
-        next = next.add(const Duration(days: 1));
+        next = _plusDays(next, 1);
       }
       return next;
   }

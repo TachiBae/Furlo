@@ -440,6 +440,8 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
             : _selectedVaccine!,
         dateGiven: _dateGiven,
         nextDueDate: _nextDueDate,
+        // Editing must not silently un-complete a finished vaccination.
+        isCompleted: widget.existing?.isCompleted ?? false,
       ),
     );
   }
@@ -463,6 +465,7 @@ class _VaccinationFormScreenState extends State<VaccinationFormScreen> {
               children: [
                 DropdownButtonFormField<String>(
                   initialValue: _selectedVaccine,
+                  isExpanded: true,
                   decoration: _decoration('Vaccine', 'Choose a vaccine'),
                   items: [..._vaccineOptions, 'Other']
                       .map(

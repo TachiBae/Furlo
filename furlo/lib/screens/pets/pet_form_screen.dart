@@ -314,7 +314,10 @@ class _AddPetScreenState extends State<AddPetScreen> {
     final now = DateTime.now();
     final selected = await showDatePicker(
       context: context,
-      initialDate: _birthDate ?? DateTime(now.year - 1, now.month, now.day),
+      // A stored future date would fail the picker's range check.
+      initialDate: _birthDate != null && !_birthDate!.isAfter(now)
+          ? _birthDate!
+          : DateTime(now.year - 1, now.month, now.day),
       firstDate: DateTime(1900),
       lastDate: now,
       helpText: 'Select birthdate',
@@ -375,7 +378,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return PopScope<Object?>(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
+        // As the first-pet screen it is the app's only page: popping it would
+        // leave nothing on screen (browser Back on web).
+        if (didPop || !Navigator.of(context).canPop()) return;
         if (_hasUnsavedChanges) {
           final discard = await confirmDiscardChanges(
             context,

@@ -247,4 +247,17 @@ void main() {
     expect(result.visibleItems, hasLength(5));
     expect(result.remainingCount, 2);
   });
+
+  test('a one-time meal fed early is not listed on its day', () {
+    final meal = FeedingEntry(
+      petId: '1',
+      name: 'Treat',
+      time: '18:00',
+      frequency: FeedingFrequency.doesNotRepeat,
+      scheduledDate: today,
+      lastFedAt: today.subtract(const Duration(days: 1)),
+    );
+    expect(meal.isCompleteOn(today), isTrue);
+    expect(build(feedings: [meal]).allItems, isEmpty);
+  });
 }

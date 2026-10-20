@@ -593,6 +593,7 @@ class _FeedingScreenState extends State<FeedingScreen> {
                                         ? DropdownButtonFormField<String>(
                                             key: ValueKey(_selectedPet?.id),
                                             initialValue: _selectedPet?.id,
+                                            isExpanded: true,
                                             decoration: const InputDecoration(
                                               labelText: 'Pet',
                                             ),

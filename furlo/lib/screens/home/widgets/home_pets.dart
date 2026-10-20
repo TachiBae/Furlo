@@ -104,9 +104,16 @@ class _PetTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = pet.photoPath;
-    final image = data != null && data.startsWith('data:')
-        ? MemoryImage(base64Decode(data.substring(data.indexOf(',') + 1)))
-        : null;
+    MemoryImage? image;
+    if (data != null && data.startsWith('data:')) {
+      try {
+        image = MemoryImage(
+          base64Decode(data.substring(data.indexOf(',') + 1)),
+        );
+      } on FormatException {
+        image = null; // A damaged photo shows the paw icon instead.
+      }
+    }
     return Material(
       color: context.appColors.surface,
       borderRadius: AppRadius.lgRadius,

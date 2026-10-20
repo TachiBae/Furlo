@@ -75,11 +75,13 @@ class _QuickActions extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: actions.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: AppSpacing.sm,
         crossAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 2.6,
+        // Fixed height that grows with text scale; an aspect ratio clipped
+        // two-line labels at 2.0.
+        mainAxisExtent: MediaQuery.textScalerOf(context).scale(62),
       ),
       itemBuilder: (context, index) {
         final action = actions[index];

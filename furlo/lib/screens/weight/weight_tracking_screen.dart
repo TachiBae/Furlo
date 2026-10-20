@@ -534,7 +534,14 @@ class _WeightEntryFormScreenState extends State<WeightEntryFormScreen> {
     body: Form(
       key: _form,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        // Centers the fields in a 700px column on wide screens.
+        padding: EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: ((MediaQuery.sizeOf(context).width - 700) / 2).clamp(
+            16,
+            double.infinity,
+          ),
+        ),
         children: [
           TextFormField(
             controller: _weight,
